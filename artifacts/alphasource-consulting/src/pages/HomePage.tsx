@@ -143,14 +143,10 @@ export default function HomePage() {
                 key={p.title}
                 className={`grid md:grid-cols-2 gap-10 items-center p-10 rounded-3xl border border-gray-100 hover:border-[#A380F6]/25 hover:shadow-md transition-all duration-300 ${i % 2 === 1 ? "bg-[#F8F9FD]" : "bg-white"}`}
               >
-                {/* Left: icon + stat */}
-                <div className="flex flex-col items-center justify-center gap-4 py-4">
+                {/* Left: icon */}
+                <div className="flex items-center justify-center py-4">
                   <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-[#A380F6]/20 to-[#02ABE0]/10 flex items-center justify-center text-[#A380F6]">
                     {p.icon}
-                  </div>
-                  <div className="text-center">
-                    <div className="text-4xl font-black text-[#0A1547]">{p.stat}</div>
-                    <div className="text-xs text-[#0A1547]/45 font-medium mt-1">{p.statLabel}</div>
                   </div>
                 </div>
                 {/* Right: copy */}
@@ -214,17 +210,8 @@ export default function HomePage() {
             </svg>
           </div>
           <blockquote className="text-2xl font-semibold text-[#0A1547] leading-relaxed mb-8 italic">
-            "alphaSource cut our screening time in half. The operational clarity we got in week one would have taken us months to figure out on our own."
+            "alphaSource pulled out at least 4 trends hiding in our reports. The operational clarity we got in week one would have taken us months to figure out on our own."
           </blockquote>
-          <div className="flex items-center justify-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#0A1547]/10 flex items-center justify-center">
-              <span className="text-sm font-black text-[#0A1547]">DR</span>
-            </div>
-            <div className="text-left">
-              <div className="text-sm font-black text-[#0A1547]">Dr. Rebecca Holt</div>
-              <div className="text-xs text-[#0A1547]/50">Holt Family Dental, Phoenix AZ</div>
-            </div>
-          </div>
         </div>
       </section>
 
