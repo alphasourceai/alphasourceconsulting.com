@@ -1,6 +1,6 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { Link } from "wouter";
+import ContactForm from "@/components/ContactForm";
 
 const pillars = [
   {
@@ -49,7 +49,7 @@ export default function HomePage() {
       <Navbar />
 
       {/* Hero */}
-      <section className="relative min-h-screen flex items-center overflow-hidden gradient-hero-dark">
+      <section className="relative min-h-screen flex items-center overflow-hidden gradient-hero-dark pt-16">
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
@@ -58,7 +58,7 @@ export default function HomePage() {
           }}
         />
 
-        <div className="relative max-w-7xl mx-auto px-6 lg:px-8 py-32 grid md:grid-cols-2 gap-16 items-center">
+        <div className="relative max-w-7xl mx-auto px-6 lg:px-8 py-24 grid md:grid-cols-2 gap-16 items-center w-full">
           <div>
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-8 border border-white/20 bg-white/5 backdrop-blur-sm">
               <div className="w-2 h-2 rounded-full bg-[#02D99D] animate-pulse" />
@@ -78,8 +78,8 @@ export default function HomePage() {
             </p>
 
             <div className="flex flex-wrap gap-4">
-              <Link
-                href="/dental-consulting#contact"
+              <a
+                href="#contact"
                 className="inline-flex items-center gap-2 px-7 py-3.5 text-sm font-bold text-white rounded-full transition-all hover:opacity-90 active:scale-95"
                 style={{ background: "linear-gradient(135deg, #A380F6 0%, #8b63f0 100%)" }}
               >
@@ -87,13 +87,13 @@ export default function HomePage() {
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M5 12h14M12 5l7 7-7 7"/>
                 </svg>
-              </Link>
-              <Link
-                href="/analyzer"
+              </a>
+              <a
+                href="/consulting/analyzer"
                 className="inline-flex items-center gap-2 px-7 py-3.5 text-sm font-bold text-white rounded-full border border-white/30 bg-white/10 hover:bg-white/20 transition-all active:scale-95"
               >
                 Try the Analyzer
-              </Link>
+              </a>
             </div>
           </div>
 
@@ -120,14 +120,13 @@ export default function HomePage() {
         </div>
 
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-bounce">
-          <span className="text-white/30 text-xs">Scroll</span>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-30">
             <path d="M12 5v14M5 12l7 7 7-7"/>
           </svg>
         </div>
       </section>
 
-      {/* Pillars */}
+      {/* People-Driven Pillars */}
       <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="text-center mb-16">
@@ -158,20 +157,17 @@ export default function HomePage() {
                 A Team That Knows Dentistry Inside and Out
               </h2>
               <p className="text-[#0A1547]/65 leading-relaxed mb-6">
-                alphaSource Consulting was founded by dental industry veterans who have seen firsthand the administrative burden that keeps great practices from reaching their full potential. We combine deep domain expertise with cutting-edge AI to give your practice a real edge.
+                alphaSource Consulting was founded by dental industry veterans who have seen firsthand the administrative burden that keeps great practices from reaching their full potential.
               </p>
-              <p className="text-[#0A1547]/65 leading-relaxed mb-8">
-                Our team has spent decades working inside dental organizations — not just consulting from the outside. That lived experience shapes every recommendation we make.
-              </p>
-              <Link
-                href="/about"
+              <a
+                href="/consulting/about"
                 className="inline-flex items-center gap-2 px-6 py-3 text-sm font-bold text-white bg-[#0A1547] rounded-full hover:bg-[#A380F6] transition-colors active:scale-95"
               >
                 Meet the Team
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M5 12h14M12 5l7 7-7 7"/>
                 </svg>
-              </Link>
+              </a>
             </div>
             <div className="flex gap-4">
               <div className="flex flex-col gap-4 mt-8">
@@ -201,7 +197,7 @@ export default function HomePage() {
             </svg>
           </div>
           <blockquote className="text-2xl font-semibold text-[#0A1547] leading-relaxed mb-8 italic">
-            "alphaSource transformed how our practice handles scheduling and patient flow. We got back 6 hours a week — and our team morale went through the roof."
+            "alphaSource cut our screening time in half. The operational clarity we got in week one would have taken us months to figure out on our own."
           </blockquote>
           <div className="flex items-center justify-center gap-3">
             <div className="w-10 h-10 rounded-full bg-[#0A1547]/10 flex items-center justify-center">
@@ -215,27 +211,17 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* CTA Banner */}
-      <section className="py-20 gradient-hero-dark relative overflow-hidden">
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{ background: "radial-gradient(ellipse at 60% 50%, rgba(163,128,246,0.2) 0%, transparent 60%)" }}
-        />
-        <div className="relative max-w-4xl mx-auto px-6 lg:px-8 text-center">
-          <h2 className="text-4xl font-black text-white mb-4">Ready to Amplify What Matters?</h2>
-          <p className="text-white/65 text-lg mb-10">
-            Book a free 30-minute strategy call with our team and discover what's possible.
-          </p>
-          <Link
-            href="/dental-consulting#contact"
-            className="inline-flex items-center gap-2 px-8 py-4 text-base font-bold text-white rounded-full transition-all hover:opacity-90 active:scale-95"
-            style={{ background: "linear-gradient(135deg, #A380F6 0%, #8b63f0 100%)" }}
-          >
-            Get Started Today
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14M12 5l7 7-7 7"/>
-            </svg>
-          </Link>
+      {/* Contact / Demo Request Form */}
+      <section id="contact" className="py-24 bg-[#F8F9FD]">
+        <div className="max-w-2xl mx-auto px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#A380F6] mb-3">Get In Touch</span>
+            <h2 className="text-4xl font-black text-[#0A1547]">Request a Demo</h2>
+            <p className="text-[#0A1547]/55 mt-4">
+              Fill out the form below and one of our consultants will reach out within 24 hours.
+            </p>
+          </div>
+          <ContactForm />
         </div>
       </section>
 

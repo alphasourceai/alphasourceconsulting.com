@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
 
 const navLinks = [
@@ -9,31 +9,18 @@ const navLinks = [
 ];
 
 export default function Navbar() {
-  const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [location] = useLocation();
 
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
   return (
-    <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled
-          ? "bg-white/97 backdrop-blur-md shadow-sm border-b border-gray-100"
-          : "bg-transparent"
-      }`}
-    >
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0A1547] border-b border-white/10">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <div className="flex items-center justify-between h-18 py-4">
-          <Link href="/" className="flex items-center gap-0">
+        <div className="flex items-center justify-between h-16">
+          <Link href="/" className="flex items-center">
             <img
               src={`${import.meta.env.BASE_URL}logo-dark-text.png`}
               alt="AlphaSource Consulting"
-              className={`h-8 w-auto transition-all duration-300 ${scrolled ? "brightness-100" : "brightness-200"}`}
+              className="h-8 w-auto brightness-200"
             />
           </Link>
 
@@ -45,9 +32,7 @@ export default function Navbar() {
                 className={`px-3 py-2 text-sm font-semibold rounded-lg transition-colors ${
                   location === link.href
                     ? "text-[#A380F6]"
-                    : scrolled
-                    ? "text-[#0A1547] hover:text-[#A380F6]"
-                    : "text-white/90 hover:text-white"
+                    : "text-white/75 hover:text-white"
                 }`}
               >
                 {link.label}
@@ -56,18 +41,14 @@ export default function Navbar() {
           </div>
 
           <Link
-            href="/dental-consulting#contact"
-            className={`hidden md:inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold rounded-full transition-all duration-200 active:scale-95 ${
-              scrolled
-                ? "bg-[#0A1547] text-white hover:bg-[#A380F6]"
-                : "bg-white/15 text-white border border-white/30 hover:bg-white/25"
-            }`}
+            href="/#contact"
+            className="hidden md:inline-flex items-center gap-2 px-5 py-2 text-sm font-bold text-[#0A1547] bg-white rounded-full hover:bg-[#A380F6] hover:text-white transition-all duration-200 active:scale-95"
           >
-            Book a Consultation
+            Get in Touch
           </Link>
 
           <button
-            className={`md:hidden p-2 rounded-lg transition-colors ${scrolled ? "text-[#0A1547]" : "text-white"}`}
+            className="md:hidden p-2 rounded-lg text-white"
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-label="Toggle menu"
           >
@@ -83,12 +64,12 @@ export default function Navbar() {
       </div>
 
       {mobileOpen && (
-        <div className="md:hidden bg-white border-t border-gray-100 px-6 py-4 space-y-1 shadow-lg">
+        <div className="md:hidden bg-[#0d1a5e] border-t border-white/10 px-6 py-4 space-y-1">
           {navLinks.map((link) => (
             <Link
               key={link.label}
               href={link.href}
-              className="block px-3 py-2.5 text-sm font-semibold text-[#0A1547] hover:text-[#A380F6] hover:bg-purple-50 rounded-lg transition-colors"
+              className="block px-3 py-2.5 text-sm font-semibold text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
               onClick={() => setMobileOpen(false)}
             >
               {link.label}
@@ -96,11 +77,11 @@ export default function Navbar() {
           ))}
           <div className="pt-3">
             <Link
-              href="/dental-consulting#contact"
-              className="block w-full text-center px-5 py-2.5 text-sm font-bold text-white bg-[#0A1547] rounded-full hover:bg-[#A380F6] transition-colors"
+              href="/#contact"
+              className="block w-full text-center px-5 py-2.5 text-sm font-bold text-[#0A1547] bg-white rounded-full hover:bg-[#A380F6] hover:text-white transition-colors"
               onClick={() => setMobileOpen(false)}
             >
-              Book a Consultation
+              Get in Touch
             </Link>
           </div>
         </div>
