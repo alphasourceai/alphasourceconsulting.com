@@ -93,7 +93,7 @@ export default function HomePage() {
                 </svg>
               </a>
               <a
-                href="/consulting/analyzer"
+                href="/analyzer"
                 className="inline-flex items-center gap-2 px-7 py-3.5 text-sm font-bold text-white rounded-full border border-white/30 bg-white/10 hover:bg-white/20 transition-all active:scale-95"
               >
                 Try the Analyzer
@@ -173,7 +173,7 @@ export default function HomePage() {
                 alphaSource Consulting was founded by dental industry veterans who have seen firsthand the administrative burden that keeps great practices from reaching their full potential.
               </p>
               <a
-                href="/consulting/about"
+                href="/about"
                 className="inline-flex items-center gap-2 px-6 py-3 text-sm font-bold text-white bg-[#0A1547] rounded-full hover:bg-[#A380F6] transition-colors active:scale-95"
               >
                 Meet the Team

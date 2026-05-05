@@ -121,7 +121,7 @@ export default function DentalConsultingPage() {
               </p>
             </div>
             <a
-              href="/consulting/analyzer"
+              href="/analyzer"
               className="shrink-0 inline-flex items-center gap-2 px-7 py-3.5 text-sm font-bold text-white rounded-full transition-all hover:opacity-90 active:scale-95"
               style={{ background: "linear-gradient(135deg, #A380F6 0%, #8b63f0 100%)" }}
             >
