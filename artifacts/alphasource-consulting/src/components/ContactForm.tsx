@@ -1,4 +1,14 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
+
+const MAX_LENGTHS = {
+  firstName: 100,
+  lastName: 100,
+  email: 254,
+  phone: 40,
+  message: 2000,
+};
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function ContactForm() {
   const [form, setForm] = useState({
@@ -7,12 +17,80 @@ export default function ContactForm() {
     email: "",
     phone: "",
     message: "",
+    companyWebsite: "",
   });
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    setError("");
+
+    if (form.companyWebsite.trim()) {
+      setSubmitted(true);
+      return;
+    }
+
+    const endpoint = import.meta.env.VITE_CONTACT_FORM_ENDPOINT?.trim();
+    const payload = {
+      firstName: form.firstName.trim(),
+      lastName: form.lastName.trim(),
+      email: form.email.trim(),
+      phone: form.phone.trim(),
+      message: form.message.trim(),
+      sourcePath: window.location.pathname,
+      submittedAt: new Date().toISOString(),
+    };
+
+    if (!payload.firstName || !payload.lastName || !payload.email) {
+      setError("Please enter your first name, last name, and email address.");
+      return;
+    }
+
+    if (!EMAIL_PATTERN.test(payload.email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
+    if (
+      payload.firstName.length > MAX_LENGTHS.firstName ||
+      payload.lastName.length > MAX_LENGTHS.lastName ||
+      payload.email.length > MAX_LENGTHS.email ||
+      payload.phone.length > MAX_LENGTHS.phone ||
+      payload.message.length > MAX_LENGTHS.message
+    ) {
+      setError("Please shorten your entry and try again.");
+      return;
+    }
+
+    if (!endpoint) {
+      setError("The contact form is not configured yet. Please email us directly.");
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Form submission failed with status ${response.status}`);
+      }
+
+      setSubmitted(true);
+    } catch {
+      setError("We couldn't send your message. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const inputClass =
@@ -36,12 +114,26 @@ export default function ContactForm() {
 
   return (
     <form onSubmit={handleSubmit} className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm space-y-5">
+      <div className="absolute left-[-9999px]" aria-hidden="true">
+        <label>
+          Company Website
+          <input
+            type="text"
+            name="companyWebsite"
+            tabIndex={-1}
+            autoComplete="off"
+            value={form.companyWebsite}
+            onChange={(e) => setForm({ ...form, companyWebsite: e.target.value })}
+          />
+        </label>
+      </div>
       <div className="grid md:grid-cols-2 gap-5">
         <div>
           <label className="block text-xs font-bold text-[#0A1547]/60 uppercase tracking-wider mb-2">First Name</label>
           <input
             type="text"
             required
+            maxLength={MAX_LENGTHS.firstName}
             value={form.firstName}
             onChange={(e) => setForm({ ...form, firstName: e.target.value })}
             placeholder="Jane"
@@ -53,6 +145,7 @@ export default function ContactForm() {
           <input
             type="text"
             required
+            maxLength={MAX_LENGTHS.lastName}
             value={form.lastName}
             onChange={(e) => setForm({ ...form, lastName: e.target.value })}
             placeholder="Smith"
@@ -66,6 +159,7 @@ export default function ContactForm() {
           <input
             type="email"
             required
+            maxLength={MAX_LENGTHS.email}
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
             placeholder="jane@mypractice.com"
@@ -76,6 +170,7 @@ export default function ContactForm() {
           <label className="block text-xs font-bold text-[#0A1547]/60 uppercase tracking-wider mb-2">Phone Number</label>
           <input
             type="tel"
+            maxLength={MAX_LENGTHS.phone}
             value={form.phone}
             onChange={(e) => setForm({ ...form, phone: e.target.value })}
             placeholder="(602) 555-0100"
@@ -87,18 +182,25 @@ export default function ContactForm() {
         <label className="block text-xs font-bold text-[#0A1547]/60 uppercase tracking-wider mb-2">Message</label>
         <textarea
           rows={4}
+          maxLength={MAX_LENGTHS.message}
           value={form.message}
           onChange={(e) => setForm({ ...form, message: e.target.value })}
           placeholder="Tell us about your practice and your biggest operational challenges..."
           className={`${inputClass} resize-none`}
         />
       </div>
+      {error && (
+        <p className="text-sm font-semibold text-red-600" role="alert">
+          {error}
+        </p>
+      )}
       <button
         type="submit"
-        className="w-full py-3.5 text-sm font-bold text-white rounded-full transition-all hover:opacity-90 active:scale-[0.99]"
+        disabled={submitting}
+        className="w-full py-3.5 text-sm font-bold text-white rounded-full transition-all hover:opacity-90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
         style={{ background: "linear-gradient(135deg, #A380F6 0%, #8b63f0 100%)" }}
       >
-        Submit Request
+        {submitting ? "Sending..." : "Submit Request"}
       </button>
     </form>
   );
