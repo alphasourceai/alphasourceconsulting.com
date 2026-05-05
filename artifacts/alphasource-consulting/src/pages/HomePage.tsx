@@ -43,10 +43,10 @@ const pillars = [
 ];
 
 const stats = [
-  { value: "40+", label: "Practices Served" },
-  { value: "2,000+", label: "Hours Saved Annually" },
-  { value: "94%", label: "Client Satisfaction" },
-  { value: "15 min", label: "Average Report Time" },
+  { value: "15+", label: "Years of Industry Experience" },
+  { value: "30+", label: "Offices Managed" },
+  { value: "3", label: "States Served" },
+  { value: "AI", label: "Powered Operations Analysis" },
 ];
 
 export default function HomePage() {
@@ -72,11 +72,9 @@ export default function HomePage() {
             </div>
 
             <h1 className="text-5xl lg:text-6xl font-black text-white leading-tight mb-6">
-              Unleash Your{" "}
-              <span className="text-gradient-lilac">Talent</span>
+              <span className="text-gradient-lilac">AI-powered</span>{" "}insights.
               <br />
-              Amplify What{" "}
-              <span className="text-gradient-brand">Matters</span>
+              <span className="text-gradient-brand">Experience-driven</span>{" "}solutions.
             </h1>
 
             <p className="text-lg text-white/70 leading-relaxed mb-10 max-w-md">
