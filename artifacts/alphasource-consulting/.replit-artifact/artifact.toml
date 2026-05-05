@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/consulting/"
+title = "AlphaSource Consulting Website"
+version = "1.0.0"
+id = "artifacts/alphasource-consulting"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/consulting/" ]
+localPort = 25688
+
+[services.development]
+run = "pnpm --filter @workspace/alphasource-consulting run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/alphasource-consulting", "run", "build" ]
+publicDir = "artifacts/alphasource-consulting/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25688"
+BASE_PATH = "/consulting/"
