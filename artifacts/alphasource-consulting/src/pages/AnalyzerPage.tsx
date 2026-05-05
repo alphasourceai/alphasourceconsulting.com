@@ -66,25 +66,6 @@ export default function AnalyzerPage() {
         </div>
       </section>
 
-      {/* Brief supporting info */}
-      <section className="py-20 bg-white">
-        <div className="max-w-4xl mx-auto px-6 lg:px-8">
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { icon: "⚡", title: "15-Minute Reports", body: "Get a full operational assessment in the time it takes to have a coffee." },
-              { icon: "🔒", title: "Secure & HIPAA-Ready", body: "Your data never leaves a secure environment. Built for dental compliance." },
-              { icon: "🎯", title: "Actionable Output", body: "Every finding comes with a prioritized recommendation and estimated impact." },
-            ].map((item) => (
-              <div key={item.title} className="p-6 rounded-2xl border border-gray-100 bg-[#F8F9FD]">
-                <div className="text-2xl mb-3">{item.icon}</div>
-                <h3 className="text-sm font-black text-[#0A1547] mb-2">{item.title}</h3>
-                <p className="text-xs text-[#0A1547]/55 leading-relaxed">{item.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       <Footer />
     </div>
   );

@@ -5,34 +5,40 @@ import ContactForm from "@/components/ContactForm";
 const pillars = [
   {
     icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
         <circle cx="9" cy="7" r="4"/>
         <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
         <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
       </svg>
     ),
+    stat: "40+",
+    statLabel: "Practices served nationwide",
     title: "People-Driven",
-    body: "We believe technology should serve people — not the other way around. Every recommendation we make puts your team and patients first.",
+    body: "We believe technology should serve people — not the other way around. Every recommendation we make puts your team and patients first. From scheduling to staffing, our approach keeps the human element front and center.",
   },
   {
     icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
       </svg>
     ),
+    stat: "15 min",
+    statLabel: "Average time to your first insight",
     title: "Data-Informed",
-    body: "Our AI-powered analyzer surfaces the trends and patterns hidden in your operations data, giving you clarity to act with confidence.",
+    body: "Our AI-powered analyzer surfaces the trends and patterns hidden in your operations data. You get clear, prioritized recommendations in minutes — not a 40-page report that sits on a shelf.",
   },
   {
     icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10"/>
         <path d="M12 8v4l3 3"/>
       </svg>
     ),
+    stat: "2,000+",
+    statLabel: "Hours reclaimed annually by our clients",
     title: "Time Back",
-    body: "Reclaim the hours spent on administrative overhead. Our tools and consulting expertise let you focus on delivering exceptional care.",
+    body: "Reclaim the hours spent on administrative overhead. Our tools and consulting expertise let you focus on delivering exceptional care — while your operations run smoothly in the background.",
   },
 ];
 
@@ -126,21 +132,34 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* People-Driven Pillars */}
+      {/* People-Driven — 2-column: icon/stat left, copy right */}
       <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="text-center mb-16">
             <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#A380F6] mb-3">Our Approach</span>
             <h2 className="text-4xl font-black text-[#0A1547]">Built for People, Powered by AI</h2>
           </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            {pillars.map((p) => (
-              <div key={p.title} className="group p-8 rounded-3xl border border-gray-100 hover:border-[#A380F6]/30 hover:shadow-lg transition-all duration-300">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#A380F6]/15 to-[#02ABE0]/10 flex items-center justify-center mb-6 text-[#A380F6] group-hover:scale-110 transition-transform">
-                  {p.icon}
+          <div className="space-y-8">
+            {pillars.map((p, i) => (
+              <div
+                key={p.title}
+                className={`grid md:grid-cols-2 gap-10 items-center p-10 rounded-3xl border border-gray-100 hover:border-[#A380F6]/25 hover:shadow-md transition-all duration-300 ${i % 2 === 1 ? "bg-[#F8F9FD]" : "bg-white"}`}
+              >
+                {/* Left: icon + stat */}
+                <div className="flex flex-col items-center justify-center gap-4 py-4">
+                  <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-[#A380F6]/20 to-[#02ABE0]/10 flex items-center justify-center text-[#A380F6]">
+                    {p.icon}
+                  </div>
+                  <div className="text-center">
+                    <div className="text-4xl font-black text-[#0A1547]">{p.stat}</div>
+                    <div className="text-xs text-[#0A1547]/45 font-medium mt-1">{p.statLabel}</div>
+                  </div>
                 </div>
-                <h3 className="text-xl font-black text-[#0A1547] mb-3">{p.title}</h3>
-                <p className="text-[#0A1547]/60 text-sm leading-relaxed">{p.body}</p>
+                {/* Right: copy */}
+                <div>
+                  <h3 className="text-2xl font-black text-[#0A1547] mb-4">{p.title}</h3>
+                  <p className="text-[#0A1547]/60 leading-relaxed">{p.body}</p>
+                </div>
               </div>
             ))}
           </div>
