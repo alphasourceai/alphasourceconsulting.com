@@ -295,7 +295,7 @@ export default function AnalyzerPage() {
             : "Ready";
   const statusMessage =
     status === "completed"
-      ? "Analysis complete. The AlphaSource team will review the results and follow up with next steps."
+      ? "Analysis complete. The alphaSource Consulting team will review the results and follow up with next steps."
       : status === "error"
         ? "We could not complete this analyzer submission. Please review the message shown here or try again."
         : status === "queued"
@@ -348,7 +348,7 @@ export default function AnalyzerPage() {
             <div className="rounded-2xl bg-white border border-gray-100 p-5 shadow-sm">
               <p className="text-xs font-bold text-[#A380F6] uppercase tracking-wider mb-2">Team-Assisted</p>
               <p className="text-sm text-[#0A1547]/60 leading-relaxed">
-                AR reports, claims reports, and any files that may contain PHI require a HIPAA-compliant workflow with the AlphaSource team.
+                AR reports, claims reports, and any files that may contain PHI require a HIPAA-compliant workflow with the alphaSource Consulting team.
               </p>
             </div>
           </div>
@@ -361,7 +361,7 @@ export default function AnalyzerPage() {
                   <ul className="list-disc pl-5 space-y-2 text-sm text-[#0A1547]/60 leading-relaxed">
                     <li>Upload practice financial and operations files only.</li>
                     <li>Do not upload HIPAA-protected PHI through this public analyzer.</li>
-                    <li>AR and claims reports require working with the AlphaSource team through a HIPAA-compliant upload workflow.</li>
+                    <li>AR and claims reports require working with the alphaSource Consulting team through a HIPAA-compliant upload workflow.</li>
                   </ul>
                 </div>
 
@@ -464,7 +464,7 @@ export default function AnalyzerPage() {
                     className="mt-1 h-4 w-4 rounded border-gray-300 accent-[#A380F6]"
                   />
                   <span>
-                    I confirm that I am uploading financial or practice operations files only, that I am not uploading HIPAA-protected PHI, and that I am authorized to share this file with AlphaSource.
+                    I confirm that I am uploading financial or practice operations files only, that I am not uploading HIPAA-protected PHI, and that I am authorized to share this file with alphaSource Consulting.
                   </span>
                 </label>
 

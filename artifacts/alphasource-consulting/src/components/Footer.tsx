@@ -9,8 +9,8 @@ export default function Footer() {
             <div className="mb-4">
               <img
                 src={`${import.meta.env.BASE_URL}logo-color-no-bg.png`}
-                alt="AlphaSource Consulting"
-                className="h-10 w-auto"
+                alt="alphaSource Consulting"
+                className="h-auto w-[240px] object-contain sm:w-[300px]"
               />
             </div>
             <p className="text-white/60 text-sm leading-relaxed max-w-xs">
@@ -68,7 +68,7 @@ export default function Footer() {
 
         <div className="border-t border-white/10 mt-12 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="text-white/40 text-sm">
-            &copy; {new Date().getFullYear()} AlphaSource Consulting. All rights reserved.
+            &copy; {new Date().getFullYear()} alphaSource Consulting. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
             <a href="#" className="text-white/40 text-sm hover:text-white/70 transition-colors">
