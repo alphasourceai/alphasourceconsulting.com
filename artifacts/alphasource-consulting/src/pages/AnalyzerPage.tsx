@@ -21,17 +21,18 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_ALLOWED_PATTERN = /^[0-9+\-().\s xX]+$/;
 const ALLOWED_EXTENSIONS = [".pdf", ".csv", ".xlsx"];
 const POLL_INTERVAL_MS = 3000;
+const INITIAL_FORM = {
+  firstName: "",
+  lastName: "",
+  officeName: "",
+  email: "",
+  phone: "",
+  orgType: "" as OrgType,
+  companyWebsite: "",
+};
 
 export default function AnalyzerPage() {
-  const [form, setForm] = useState({
-    firstName: "",
-    lastName: "",
-    officeName: "",
-    email: "",
-    phone: "",
-    orgType: "" as OrgType,
-    companyWebsite: "",
-  });
+  const [form, setForm] = useState(INITIAL_FORM);
   const [file, setFile] = useState<File | null>(null);
   const [financialOnlyAcknowledgement, setFinancialOnlyAcknowledgement] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -39,6 +40,7 @@ export default function AnalyzerPage() {
   const [jobId, setJobId] = useState("");
   const [error, setError] = useState("");
   const pollTimerRef = useRef<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     return () => stopPolling();
@@ -61,6 +63,20 @@ export default function AnalyzerPage() {
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     setFile(event.target.files?.[0] || null);
+  };
+
+  const handleNewAnalysis = () => {
+    stopPolling();
+    setForm(INITIAL_FORM);
+    setFile(null);
+    setFinancialOnlyAcknowledgement(false);
+    setSubmitting(false);
+    setStatus("idle");
+    setJobId("");
+    setError("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const getFileExtension = (fileName: string) => {
@@ -266,6 +282,7 @@ export default function AnalyzerPage() {
   );
   const canShowFileUpload = contactFieldsValid && financialOnlyAcknowledgement;
   const isAnalyzing = submitting || status === "queued" || status === "processing";
+  const isCompleted = status === "completed";
   const statusLabel =
     status === "queued"
       ? "Queued"
@@ -341,7 +358,7 @@ export default function AnalyzerPage() {
               <form onSubmit={handleSubmit} className="p-8 lg:p-10 space-y-5">
                 <div className="rounded-2xl bg-[#F8F9FD] border border-gray-100 p-5">
                   <p className="text-sm font-black text-[#0A1547] mb-3">Before You Upload</p>
-                  <ul className="space-y-2 text-sm text-[#0A1547]/60 leading-relaxed">
+                  <ul className="list-disc pl-5 space-y-2 text-sm text-[#0A1547]/60 leading-relaxed">
                     <li>Upload practice financial and operations files only.</li>
                     <li>Do not upload HIPAA-protected PHI through this public analyzer.</li>
                     <li>AR and claims reports require working with the AlphaSource team through a HIPAA-compliant upload workflow.</li>
@@ -454,13 +471,30 @@ export default function AnalyzerPage() {
                 {canShowFileUpload ? (
                   <div>
                     <label className={fieldLabelClass}>Upload File {requiredMark}</label>
-                    <input
-                      type="file"
-                      required
-                      accept=".pdf,.csv,.xlsx"
-                      onChange={handleFileChange}
-                      className={`${inputClass} h-[46px] py-2 file:mr-4 file:rounded-full file:border-0 file:bg-[#A380F6]/10 file:px-4 file:py-2 file:text-sm file:font-bold file:text-[#0A1547]`}
-                    />
+                    <div className="w-full min-h-[46px] px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 flex items-center gap-3 text-sm text-[#0A1547] focus-within:ring-2 focus-within:ring-[#A380F6]/30 focus-within:border-[#A380F6] transition-all">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".pdf,.csv,.xlsx"
+                        onChange={handleFileChange}
+                        className="sr-only"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="inline-flex shrink-0 items-center gap-2 rounded-full bg-[#A380F6]/10 px-4 py-2 text-sm font-bold text-[#0A1547] hover:bg-[#A380F6]/20 transition-colors"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <polyline points="17 8 12 3 7 8" />
+                          <line x1="12" y1="3" x2="12" y2="15" />
+                        </svg>
+                        Choose File
+                      </button>
+                      <span className="min-w-0 truncate text-[#0A1547]/55">
+                        {file ? file.name : "No file selected"}
+                      </span>
+                    </div>
                   </div>
                 ) : (
                   <div className="rounded-2xl border border-dashed border-[#A380F6]/30 bg-gray-50 p-5 text-sm text-[#0A1547]/55">
@@ -476,16 +510,26 @@ export default function AnalyzerPage() {
 
                 <button
                   type="submit"
-                  disabled={isAnalyzing}
+                  disabled={isAnalyzing || isCompleted}
                   className="w-full py-3.5 text-sm font-bold text-white rounded-full transition-all hover:opacity-90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
                   style={{ background: "linear-gradient(135deg, #A380F6 0%, #8b63f0 100%)" }}
                 >
                   {submitting ? "Submitting..." : status === "queued" || status === "processing" ? "Analyzing..." : "Run Analyzer"}
                 </button>
 
+                {isCompleted && (
+                  <button
+                    type="button"
+                    onClick={handleNewAnalysis}
+                    className="w-full py-3.5 text-sm font-bold text-[#0A1547] rounded-full border border-[#A380F6]/30 bg-white hover:bg-[#A380F6]/10 transition-all active:scale-[0.99]"
+                  >
+                    Start New Analysis
+                  </button>
+                )}
+
                 {isAnalyzing && (
                   <p className="text-sm font-semibold text-[#0A1547]/55">
-                    Analysis may take approximately 3–5 minutes. You can keep this page open while we process your file.
+                    Analysis may take approximately 3–5 minutes. Please keep this page open while we process your file.
                   </p>
                 )}
               </form>

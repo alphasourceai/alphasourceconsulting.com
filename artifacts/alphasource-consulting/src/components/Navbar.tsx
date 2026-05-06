@@ -18,9 +18,9 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="flex items-center">
             <img
-              src={`${import.meta.env.BASE_URL}logo-dark-text.png`}
+              src={`${import.meta.env.BASE_URL}Color%20logo%20-%20no%20background.png`}
               alt="AlphaSource Consulting"
-              className="h-8 w-auto brightness-200"
+              className="h-8 w-auto"
             />
           </Link>
 
