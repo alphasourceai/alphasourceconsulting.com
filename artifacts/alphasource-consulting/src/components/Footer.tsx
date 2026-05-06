@@ -8,7 +8,7 @@ export default function Footer() {
           <div className="md:col-span-2">
             <div className="mb-4">
               <img
-                src={`${import.meta.env.BASE_URL}Color%20logo%20-%20no%20background.png`}
+                src={`${import.meta.env.BASE_URL}logo-color-no-bg.png`}
                 alt="AlphaSource Consulting"
                 className="h-10 w-auto"
               />
