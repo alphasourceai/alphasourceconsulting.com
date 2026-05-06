@@ -18,6 +18,7 @@ type AnalyzerApiResponse = {
 };
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_ALLOWED_PATTERN = /^[0-9+\-().\s xX]+$/;
 const ALLOWED_EXTENSIONS = [".pdf", ".csv", ".xlsx"];
 const POLL_INTERVAL_MS = 3000;
 
@@ -27,10 +28,12 @@ export default function AnalyzerPage() {
     lastName: "",
     officeName: "",
     email: "",
+    phone: "",
     orgType: "" as OrgType,
     companyWebsite: "",
   });
   const [file, setFile] = useState<File | null>(null);
+  const [financialOnlyAcknowledgement, setFinancialOnlyAcknowledgement] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [status, setStatus] = useState<JobStatus>("idle");
   const [jobId, setJobId] = useState("");
@@ -71,16 +74,25 @@ export default function AnalyzerPage() {
       lastName: form.lastName.trim(),
       officeName: form.officeName.trim(),
       email: form.email.trim(),
+      phone: form.phone.trim(),
       orgType: form.orgType,
       companyWebsite: form.companyWebsite.trim(),
     };
 
-    if (!trimmedForm.firstName || !trimmedForm.lastName || !trimmedForm.officeName || !trimmedForm.email || !trimmedForm.orgType) {
+    if (!trimmedForm.firstName || !trimmedForm.lastName || !trimmedForm.officeName || !trimmedForm.email || !trimmedForm.phone || !trimmedForm.orgType) {
       return { ok: false as const, message: "Please complete all required fields." };
     }
 
     if (!EMAIL_PATTERN.test(trimmedForm.email)) {
       return { ok: false as const, message: "Please enter a valid email address." };
+    }
+
+    if (!isValidPhone(trimmedForm.phone)) {
+      return { ok: false as const, message: "Please enter a valid phone number." };
+    }
+
+    if (!financialOnlyAcknowledgement) {
+      return { ok: false as const, message: "Please confirm the upload acknowledgement before selecting a file." };
     }
 
     if (!file) {
@@ -92,6 +104,11 @@ export default function AnalyzerPage() {
     }
 
     return { ok: true as const, trimmedForm };
+  };
+
+  const isValidPhone = (phoneValue: string) => {
+    const digits = phoneValue.replace(/\D/g, "");
+    return PHONE_ALLOWED_PATTERN.test(phoneValue) && digits.length >= 7;
   };
 
   const readApiPayload = async (response: Response): Promise<AnalyzerApiResponse> => {
@@ -179,7 +196,9 @@ export default function AnalyzerPage() {
     payload.append("last_name", validation.trimmedForm.lastName);
     payload.append("office_name", validation.trimmedForm.officeName);
     payload.append("email", validation.trimmedForm.email);
+    payload.append("phone", validation.trimmedForm.phone);
     payload.append("org_type", validation.trimmedForm.orgType);
+    payload.append("financial_only_acknowledgement", "true");
     payload.append("source_path", window.location.pathname);
     payload.append("companyWebsite", validation.trimmedForm.companyWebsite);
     payload.append("file", selectedFile);
@@ -227,6 +246,25 @@ export default function AnalyzerPage() {
 
   const inputClass =
     "w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-[#0A1547] text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#A380F6]/30 focus:border-[#A380F6] transition-all";
+  const fieldLabelClass = "block text-xs font-bold text-[#0A1547]/60 uppercase tracking-wider mb-2";
+  const requiredMark = <span className="text-[#A380F6]" aria-hidden="true">*</span>;
+  const trimmedContact = {
+    firstName: form.firstName.trim(),
+    lastName: form.lastName.trim(),
+    officeName: form.officeName.trim(),
+    email: form.email.trim(),
+    phone: form.phone.trim(),
+    orgType: form.orgType,
+  };
+  const contactFieldsValid = Boolean(
+    trimmedContact.firstName &&
+      trimmedContact.lastName &&
+      trimmedContact.officeName &&
+      EMAIL_PATTERN.test(trimmedContact.email) &&
+      isValidPhone(trimmedContact.phone) &&
+      trimmedContact.orgType,
+  );
+  const canShowFileUpload = contactFieldsValid && financialOnlyAcknowledgement;
   const isAnalyzing = submitting || status === "queued" || status === "processing";
   const statusLabel =
     status === "queued"
@@ -238,6 +276,16 @@ export default function AnalyzerPage() {
           : status === "error"
             ? "Error"
             : "Ready";
+  const statusMessage =
+    status === "completed"
+      ? "Analysis complete. The AlphaSource team will review the results and follow up with next steps."
+      : status === "error"
+        ? "We could not complete this analyzer submission. Please review the message shown here or try again."
+        : status === "queued"
+          ? "Your upload is queued. The analyzer will begin processing shortly."
+          : status === "processing"
+            ? "Your file is being processed by the analyzer. Keep this page open while status updates continue."
+            : "Complete the required fields, acknowledge the upload terms, and select a supported file to begin.";
 
   return (
     <div className="min-h-screen bg-white font-sans">
@@ -264,19 +312,42 @@ export default function AnalyzerPage() {
         </div>
       </section>
 
-      {/* Analyzer Tool */}
+      {/* Analyzer Section */}
       <section className="py-20 bg-[#F8F9FD]">
         <div className="max-w-5xl mx-auto px-6 lg:px-8">
-          <div className="text-center mb-10">
-            <h2 className="text-2xl font-black text-[#0A1547] mb-3">Analyzer Tool</h2>
-            <p className="text-[#0A1547]/55 max-w-lg mx-auto text-sm">
-              Upload your practice data and the analyzer will process your file securely.
-            </p>
+          <div className="grid md:grid-cols-3 gap-4 mb-8">
+            <div className="rounded-2xl bg-white border border-gray-100 p-5 shadow-sm">
+              <p className="text-xs font-bold text-[#A380F6] uppercase tracking-wider mb-2">What It Does</p>
+              <p className="text-sm text-[#0A1547]/60 leading-relaxed">
+                Reviews supported practice financial and operations files to identify trends, risks, and improvement opportunities.
+              </p>
+            </div>
+            <div className="rounded-2xl bg-white border border-gray-100 p-5 shadow-sm">
+              <p className="text-xs font-bold text-[#A380F6] uppercase tracking-wider mb-2">Self-Submit</p>
+              <p className="text-sm text-[#0A1547]/60 leading-relaxed">
+                Upload financial and practice operations files only, such as exported reports in PDF, CSV, or XLSX format.
+              </p>
+            </div>
+            <div className="rounded-2xl bg-white border border-gray-100 p-5 shadow-sm">
+              <p className="text-xs font-bold text-[#A380F6] uppercase tracking-wider mb-2">Team-Assisted</p>
+              <p className="text-sm text-[#0A1547]/60 leading-relaxed">
+                AR reports, claims reports, and any files that may contain PHI require a HIPAA-compliant workflow with the AlphaSource team.
+              </p>
+            </div>
           </div>
 
           <div className="w-full rounded-3xl border border-gray-100 bg-white shadow-sm overflow-hidden">
             <div className="grid lg:grid-cols-[1.3fr_0.7fr]">
               <form onSubmit={handleSubmit} className="p-8 lg:p-10 space-y-5">
+                <div className="rounded-2xl bg-[#F8F9FD] border border-gray-100 p-5">
+                  <p className="text-sm font-black text-[#0A1547] mb-3">Before You Upload</p>
+                  <ul className="space-y-2 text-sm text-[#0A1547]/60 leading-relaxed">
+                    <li>Upload practice financial and operations files only.</li>
+                    <li>Do not upload HIPAA-protected PHI through this public analyzer.</li>
+                    <li>AR and claims reports require working with the AlphaSource team through a HIPAA-compliant upload workflow.</li>
+                  </ul>
+                </div>
+
                 <div className="absolute left-[-9999px]" aria-hidden="true">
                   <label>
                     Company Website
@@ -293,7 +364,7 @@ export default function AnalyzerPage() {
 
                 <div className="grid md:grid-cols-2 gap-5">
                   <div>
-                    <label className="block text-xs font-bold text-[#0A1547]/60 uppercase tracking-wider mb-2">First Name</label>
+                    <label className={fieldLabelClass}>First Name {requiredMark}</label>
                     <input
                       type="text"
                       required
@@ -304,7 +375,7 @@ export default function AnalyzerPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-[#0A1547]/60 uppercase tracking-wider mb-2">Last Name</label>
+                    <label className={fieldLabelClass}>Last Name {requiredMark}</label>
                     <input
                       type="text"
                       required
@@ -318,7 +389,7 @@ export default function AnalyzerPage() {
 
                 <div className="grid md:grid-cols-2 gap-5">
                   <div>
-                    <label className="block text-xs font-bold text-[#0A1547]/60 uppercase tracking-wider mb-2">Office Name</label>
+                    <label className={fieldLabelClass}>Office/Group Name {requiredMark}</label>
                     <input
                       type="text"
                       required
@@ -329,7 +400,7 @@ export default function AnalyzerPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-[#0A1547]/60 uppercase tracking-wider mb-2">Email Address</label>
+                    <label className={fieldLabelClass}>Email Address {requiredMark}</label>
                     <input
                       type="email"
                       required
@@ -343,29 +414,59 @@ export default function AnalyzerPage() {
 
                 <div className="grid md:grid-cols-2 gap-5">
                   <div>
-                    <label className="block text-xs font-bold text-[#0A1547]/60 uppercase tracking-wider mb-2">Organization Type</label>
+                    <label className={fieldLabelClass}>Phone Number {requiredMark}</label>
+                    <input
+                      type="tel"
+                      required
+                      value={form.phone}
+                      onChange={(event) => updateField("phone", event.target.value)}
+                      placeholder="(602) 555-0100"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={fieldLabelClass}>Organization Type {requiredMark}</label>
                     <select
                       required
                       value={form.orgType}
                       onChange={(event) => updateField("orgType", event.target.value as OrgType)}
-                      className={inputClass}
+                      className={`${inputClass} h-[46px]`}
                     >
                       <option value="">Select one</option>
                       <option value="Location">Location</option>
                       <option value="Group">Group</option>
                     </select>
                   </div>
+                </div>
+
+                <label className="flex gap-3 rounded-2xl border border-[#A380F6]/20 bg-[#A380F6]/5 p-4 text-sm text-[#0A1547]/65 leading-relaxed">
+                  <input
+                    type="checkbox"
+                    checked={financialOnlyAcknowledgement}
+                    onChange={(event) => setFinancialOnlyAcknowledgement(event.target.checked)}
+                    className="mt-1 h-4 w-4 rounded border-gray-300 accent-[#A380F6]"
+                  />
+                  <span>
+                    I confirm that I am uploading financial or practice operations files only, that I am not uploading HIPAA-protected PHI, and that I am authorized to share this file with AlphaSource.
+                  </span>
+                </label>
+
+                {canShowFileUpload ? (
                   <div>
-                    <label className="block text-xs font-bold text-[#0A1547]/60 uppercase tracking-wider mb-2">Upload File</label>
+                    <label className={fieldLabelClass}>Upload File {requiredMark}</label>
                     <input
                       type="file"
                       required
                       accept=".pdf,.csv,.xlsx"
                       onChange={handleFileChange}
-                      className={`${inputClass} file:mr-4 file:rounded-full file:border-0 file:bg-[#A380F6]/10 file:px-4 file:py-2 file:text-sm file:font-bold file:text-[#0A1547]`}
+                      className={`${inputClass} h-[46px] py-2 file:mr-4 file:rounded-full file:border-0 file:bg-[#A380F6]/10 file:px-4 file:py-2 file:text-sm file:font-bold file:text-[#0A1547]`}
                     />
                   </div>
-                </div>
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-[#A380F6]/30 bg-gray-50 p-5 text-sm text-[#0A1547]/55">
+                    Complete the required contact fields, select an organization type, and confirm the acknowledgement to unlock file upload.
+                  </div>
+                )}
 
                 {error && (
                   <p className="text-sm font-semibold text-red-600" role="alert">
@@ -381,6 +482,12 @@ export default function AnalyzerPage() {
                 >
                   {submitting ? "Submitting..." : status === "queued" || status === "processing" ? "Analyzing..." : "Run Analyzer"}
                 </button>
+
+                {isAnalyzing && (
+                  <p className="text-sm font-semibold text-[#0A1547]/55">
+                    Analysis may take approximately 3–5 minutes. You can keep this page open while we process your file.
+                  </p>
+                )}
               </form>
 
               <div className="bg-[#0A1547] p-8 lg:p-10 text-white flex flex-col justify-between">
@@ -397,15 +504,7 @@ export default function AnalyzerPage() {
                   <p className="text-xs font-bold text-white/50 uppercase tracking-wider mb-2">Status</p>
                   <h3 className="text-2xl font-black mb-4">{statusLabel}</h3>
                   <p className="text-sm text-white/60 leading-relaxed">
-                    {status === "completed"
-                      ? "Analysis complete. We will follow up with the results and next steps."
-                      : status === "error"
-                        ? "The analyzer needs attention before this submission can continue."
-                        : status === "queued"
-                          ? "Your file is queued for analysis."
-                          : status === "processing"
-                            ? "Your file is being analyzed."
-                            : "Submit a supported file to start the analyzer."}
+                    {statusMessage}
                   </p>
 
                   {jobId && (
