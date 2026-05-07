@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "wouter";
 import { useAuth } from "@/auth/AuthProvider";
 import { AdminApiError, getAdminClients } from "@/lib/adminApi";
 import type { AdminClient } from "@/lib/types";
@@ -191,6 +192,12 @@ function ClientCard({ client }: { client: AdminClient }) {
           <p className="mt-2 text-sm font-bold text-[#0A1547]/62">
             {formatNullable(client.latestName)} · {formatNullable(client.latestOfficeName)}
           </p>
+          <Link
+            href={`/clients/${encodeURIComponent(client.email)}`}
+            className="admin-focus mt-4 inline-flex rounded-xl bg-[#0A1547] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#1A2460]"
+          >
+            View details
+          </Link>
         </div>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-2">
           <Fact label="Submissions" value={client.submissionCount} />

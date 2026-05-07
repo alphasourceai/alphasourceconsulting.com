@@ -1,7 +1,8 @@
 import { useEffect, type ReactNode } from "react";
-import { Route, Router as WouterRouter, Switch, useLocation } from "wouter";
+import { Route, Router as WouterRouter, Switch, useLocation, type RouteComponentProps } from "wouter";
 import { AuthProvider, useAuth } from "@/auth/AuthProvider";
 import AdminLayout from "@/components/AdminLayout";
+import ClientDetailPage from "@/pages/ClientDetailPage";
 import ClientsPage from "@/pages/ClientsPage";
 import LoginPage from "@/pages/LoginPage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
@@ -112,6 +113,27 @@ function ClientsRoute() {
   );
 }
 
+function decodeEmailParam(value: string): string {
+  try {
+    return decodeURIComponent(value).trim();
+  } catch {
+    return "";
+  }
+}
+
+function ClientDetailRoute({ params }: RouteComponentProps<{ email: string }>) {
+  const email = decodeEmailParam(params.email);
+
+  return (
+    <ProtectedRoute
+      title="Client Detail"
+      description="Review billing, checkout, upload, and manual override records for one client."
+    >
+      <ClientDetailPage email={email} />
+    </ProtectedRoute>
+  );
+}
+
 function AnalysisRoute() {
   return (
     <ProtectedRoute
@@ -174,6 +196,7 @@ function AppRoutes() {
       <Switch>
         <Route path="/" component={RootRoute} />
         <Route path="/login" component={LoginPage} />
+        <Route path="/clients/:email" component={ClientDetailRoute} />
         <Route path="/clients" component={ClientsRoute} />
         <Route path="/analysis" component={AnalysisRoute} />
         <Route path="/secure-uploads" component={SecureUploadsRoute} />

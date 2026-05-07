@@ -1,5 +1,10 @@
 import { getAdminApiBaseUrl } from "@/lib/env";
-import type { AdminClientsResponse, AdminMeResponse, SafeApiError } from "@/lib/types";
+import type {
+  AdminClientsResponse,
+  AdminMeResponse,
+  ClientBillingDetailResponse,
+  SafeApiError,
+} from "@/lib/types";
 
 type RequestOptions = {
   token: string;
@@ -78,6 +83,20 @@ export function getAdminClients(
   }
 
   return adminRequest<AdminClientsResponse>(`/api/admin/clients?${params.toString()}`, {
+    token,
+    signal,
+  });
+}
+
+export function getClientBillingDetail(
+  token: string,
+  email: string,
+  signal?: AbortSignal,
+): Promise<ClientBillingDetailResponse> {
+  const params = new URLSearchParams();
+  params.set("email", email);
+
+  return adminRequest<ClientBillingDetailResponse>(`/api/admin/billing/client?${params.toString()}`, {
     token,
     signal,
   });

@@ -39,6 +39,60 @@ export type AdminClientsResponse = {
   hasMore: boolean;
 };
 
+export type StripeCustomerSummary = {
+  stripeCustomerId: string | null;
+  livemode: boolean | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+};
+
+export type CheckoutSessionSummary = {
+  id: string;
+  stripeCheckoutSessionId: string | null;
+  purpose: string | null;
+  mode: string | null;
+  status: string | null;
+  paymentStatus: string | null;
+  amountTotal: number | null;
+  currency: string | null;
+  livemode: boolean | null;
+  uploadId: string | null;
+  clientSubmissionId: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+};
+
+export type BillingUploadSummary = {
+  id: string;
+  fileName: string | null;
+  toolName: string | null;
+  paid: boolean | null;
+  uploadTime: string | null;
+};
+
+export type BillingOverrideSummary = {
+  id: string;
+  targetType: string | null;
+  targetId: string | null;
+  clientEmail: string | null;
+  overridePaid: boolean | null;
+  reason: string | null;
+  adminUserId: string | null;
+  createdAt: string | null;
+};
+
+export type ClientBillingDetailResponse = {
+  ok: true;
+  clientEmail: string;
+  customer: StripeCustomerSummary | null;
+  summary: BillingSummary;
+  checkoutSessions: CheckoutSessionSummary[];
+  uploads: BillingUploadSummary[];
+  billingOverrides: BillingOverrideSummary[];
+  invoices?: unknown[];
+  subscriptions?: unknown[];
+};
+
 export type SafeApiError = {
   ok: false;
   error?: {
