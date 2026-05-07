@@ -562,6 +562,24 @@ function Panel({
 }
 
 function CheckoutSessionCard({ session }: { session: CheckoutSessionSummary }) {
+  const [copyStatus, setCopyStatus] = useState("");
+  const checkoutUrl = session.checkoutUrl?.trim() || "";
+  const paymentStatus = session.paymentStatus?.toLowerCase() || "";
+  const canUseCheckoutLink = checkoutUrl !== "" && paymentStatus !== "paid";
+
+  const handleCopy = async () => {
+    if (!checkoutUrl) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(checkoutUrl);
+      setCopyStatus("Copied");
+    } catch {
+      setCopyStatus("Copy failed");
+    }
+  };
+
   return (
     <article className="rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -581,6 +599,48 @@ function CheckoutSessionCard({ session }: { session: CheckoutSessionSummary }) {
         <Detail label="Upload ID" value={session.uploadId} />
         <Detail label="Submission ID" value={session.clientSubmissionId} />
       </dl>
+
+      {canUseCheckoutLink && (
+        <div className="mt-4 rounded-2xl border border-[#02ABE0]/20 bg-white p-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <p className="text-sm font-black text-[#0A1547]">Checkout link available</p>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => void handleCopy()}
+                className="admin-focus rounded-xl border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/50"
+              >
+                Copy Link
+              </button>
+              <a
+                href={checkoutUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="admin-focus rounded-xl bg-[#0A1547] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#1A2460]"
+              >
+                Open Link
+              </a>
+              {copyStatus && (
+                <span className="text-sm font-bold text-[#0A1547]/58">{copyStatus}</span>
+              )}
+            </div>
+          </div>
+          <details className="mt-3 rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3">
+            <summary className="cursor-pointer text-xs font-extrabold uppercase tracking-[0.16em] text-[#0A1547]/50">
+              Technical details
+            </summary>
+            <p className="mt-3 break-all text-sm font-semibold text-[#0A1547]/68">
+              {checkoutUrl}
+            </p>
+          </details>
+        </div>
+      )}
+
+      {!checkoutUrl && (
+        <p className="mt-4 rounded-xl border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-bold text-[#0A1547]/50">
+          Checkout link unavailable for older session.
+        </p>
+      )}
     </article>
   );
 }

@@ -55,6 +55,7 @@ export type CheckoutSessionSummary = {
   paymentStatus: string | null;
   amountTotal: number | null;
   currency: string | null;
+  checkoutUrl: string | null;
   livemode: boolean | null;
   uploadId: string | null;
   clientSubmissionId: string | null;
