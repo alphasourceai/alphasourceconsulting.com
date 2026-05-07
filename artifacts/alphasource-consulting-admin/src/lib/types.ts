@@ -17,6 +17,16 @@ export type BillingSummary = {
   latestPaymentStatus: string | null;
 };
 
+export type BillingOverviewStatus = "open" | "paid" | "all";
+
+export type BillingOverviewSummary = {
+  checkoutSessionCount: number;
+  paidCheckoutSessionCount: number;
+  openCheckoutSessionCount: number;
+  manualOverrideCount: number;
+  needsReviewEventCount: number;
+};
+
 export type AdminClient = {
   email: string;
   latestName: string | null;
@@ -49,6 +59,7 @@ export type StripeCustomerSummary = {
 export type CheckoutSessionSummary = {
   id: string;
   stripeCheckoutSessionId: string | null;
+  clientEmail: string | null;
   purpose: string | null;
   mode: string | null;
   status: string | null;
@@ -90,6 +101,19 @@ export type ClientBillingDetailResponse = {
   checkoutSessions: CheckoutSessionSummary[];
   uploads: BillingUploadSummary[];
   billingOverrides: BillingOverrideSummary[];
+  invoices?: unknown[];
+  subscriptions?: unknown[];
+};
+
+export type BillingOverviewResponse = {
+  ok: true;
+  summary: BillingOverviewSummary;
+  checkoutSessions: CheckoutSessionSummary[];
+  billingOverrides: BillingOverrideSummary[];
+  limit: number;
+  offset: number;
+  count: number;
+  hasMore: boolean;
   invoices?: unknown[];
   subscriptions?: unknown[];
 };

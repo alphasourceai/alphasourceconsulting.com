@@ -2,6 +2,8 @@ import { getAdminApiBaseUrl } from "@/lib/env";
 import type {
   AdminClientsResponse,
   AdminMeResponse,
+  BillingOverviewResponse,
+  BillingOverviewStatus,
   ClientBillingDetailResponse,
   CreateCheckoutSessionRequest,
   CreateCheckoutSessionResponse,
@@ -16,6 +18,13 @@ type RequestOptions = {
 };
 
 type ClientsQuery = {
+  search?: string;
+  limit?: number;
+  offset?: number;
+};
+
+type BillingOverviewQuery = {
+  status?: BillingOverviewStatus;
   search?: string;
   limit?: number;
   offset?: number;
@@ -123,5 +132,26 @@ export function createCheckoutSession(
     signal,
     method: "POST",
     body: payload,
+  });
+}
+
+export function getBillingOverview(
+  token: string,
+  query: BillingOverviewQuery = {},
+  signal?: AbortSignal,
+): Promise<BillingOverviewResponse> {
+  const params = new URLSearchParams();
+  params.set("status", query.status ?? "open");
+  params.set("limit", String(query.limit ?? 10));
+  params.set("offset", String(query.offset ?? 0));
+
+  const search = query.search?.trim();
+  if (search) {
+    params.set("search", search);
+  }
+
+  return adminRequest<BillingOverviewResponse>(`/api/admin/billing/overview?${params.toString()}`, {
+    token,
+    signal,
   });
 }

@@ -2,6 +2,7 @@ import { useEffect, type ReactNode } from "react";
 import { Route, Router as WouterRouter, Switch, useLocation, type RouteComponentProps } from "wouter";
 import { AuthProvider, useAuth } from "@/auth/AuthProvider";
 import AdminLayout from "@/components/AdminLayout";
+import BillingPage from "@/pages/BillingPage";
 import ClientDetailPage from "@/pages/ClientDetailPage";
 import ClientsPage from "@/pages/ClientsPage";
 import LoginPage from "@/pages/LoginPage";
@@ -176,6 +177,17 @@ function PdfGeneratorRoute() {
   );
 }
 
+function BillingRoute() {
+  return (
+    <ProtectedRoute
+      title="Billing"
+      description="Read-only Stripe checkout session and manual override visibility from local admin records."
+    >
+      <BillingPage />
+    </ProtectedRoute>
+  );
+}
+
 function AdminManagementRoute() {
   return (
     <ProtectedRoute
@@ -201,6 +213,7 @@ function AppRoutes() {
         <Route path="/analysis" component={AnalysisRoute} />
         <Route path="/secure-uploads" component={SecureUploadsRoute} />
         <Route path="/pdf-generator" component={PdfGeneratorRoute} />
+        <Route path="/billing" component={BillingRoute} />
         <Route path="/admin-management" component={AdminManagementRoute} />
         <Route component={RootRoute} />
       </Switch>

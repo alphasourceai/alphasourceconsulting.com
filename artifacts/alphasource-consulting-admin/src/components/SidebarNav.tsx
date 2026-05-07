@@ -5,6 +5,7 @@ const navItems = [
   { href: "/analysis", label: "Document Analysis" },
   { href: "/secure-uploads", label: "Secure Uploads" },
   { href: "/pdf-generator", label: "PDF Generator" },
+  { href: "/billing", label: "Billing" },
   { href: "/admin-management", label: "Admin Management" },
 ];
 
