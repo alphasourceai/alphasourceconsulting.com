@@ -72,9 +72,9 @@ function LinkLogo() {
   return (
     <a href="/clients" className="admin-focus flex items-center rounded-xl">
       <img
-        src={`${import.meta.env.BASE_URL}logo-color-no-bg.png`}
+        src={`${import.meta.env.BASE_URL}logo-dark-text.png`}
         alt="alphaSource Consulting"
-        className="h-auto w-52 object-contain"
+        className="h-auto w-56 max-w-full object-contain"
       />
     </a>
   );

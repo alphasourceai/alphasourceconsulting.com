@@ -39,7 +39,7 @@ export default function LoginPage() {
           <img
             src={`${import.meta.env.BASE_URL}logo-color-no-bg.png`}
             alt="alphaSource Consulting"
-            className="w-60 max-w-full rounded-xl bg-white/95 p-3"
+            className="h-auto w-64 max-w-full object-contain"
           />
           <div className="mt-16">
             <p className="text-sm font-extrabold uppercase tracking-[0.24em] text-[#02D99D]">
