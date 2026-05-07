@@ -3,12 +3,16 @@ import type {
   AdminClientsResponse,
   AdminMeResponse,
   ClientBillingDetailResponse,
+  CreateCheckoutSessionRequest,
+  CreateCheckoutSessionResponse,
   SafeApiError,
 } from "@/lib/types";
 
 type RequestOptions = {
   token: string;
   signal?: AbortSignal;
+  method?: "GET" | "POST";
+  body?: unknown;
 };
 
 type ClientsQuery = {
@@ -46,12 +50,19 @@ function readErrorMessage(payload: unknown): { code: string; message: string } {
 }
 
 async function adminRequest<T>(path: string, options: RequestOptions): Promise<T> {
+  const headers: HeadersInit = {
+    Accept: "application/json",
+    Authorization: `Bearer ${options.token}`,
+  };
+
+  if (options.body !== undefined) {
+    headers["Content-Type"] = "application/json";
+  }
+
   const response = await fetch(`${getAdminApiBaseUrl()}${path}`, {
-    method: "GET",
-    headers: {
-      Accept: "application/json",
-      Authorization: `Bearer ${options.token}`,
-    },
+    method: options.method ?? "GET",
+    headers,
+    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
     signal: options.signal,
   });
   const payload = await readJson(response);
@@ -99,5 +110,18 @@ export function getClientBillingDetail(
   return adminRequest<ClientBillingDetailResponse>(`/api/admin/billing/client?${params.toString()}`, {
     token,
     signal,
+  });
+}
+
+export function createCheckoutSession(
+  token: string,
+  payload: CreateCheckoutSessionRequest,
+  signal?: AbortSignal,
+): Promise<CreateCheckoutSessionResponse> {
+  return adminRequest<CreateCheckoutSessionResponse>("/api/admin/billing/checkout-sessions", {
+    token,
+    signal,
+    method: "POST",
+    body: payload,
   });
 }

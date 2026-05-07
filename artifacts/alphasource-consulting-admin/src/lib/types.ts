@@ -93,6 +93,25 @@ export type ClientBillingDetailResponse = {
   subscriptions?: unknown[];
 };
 
+export type CreateCheckoutSessionRequest = {
+  clientEmail: string;
+  purpose: string;
+  description: string;
+  amount: number;
+  currency: "usd";
+  uploadId?: string;
+  successUrl: string;
+  cancelUrl: string;
+};
+
+export type CreateCheckoutSessionResponse = {
+  ok: true;
+  checkoutSessionId: string;
+  url: string;
+  status: string | null;
+  paymentStatus: string | null;
+};
+
 export type SafeApiError = {
   ok: false;
   error?: {
