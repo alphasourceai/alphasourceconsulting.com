@@ -408,7 +408,7 @@ function CreateCheckoutLinkCard({
           <select
             value={uploadId}
             onChange={(event) => setUploadId(event.target.value)}
-            className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547]"
+            className="admin-focus mt-2 h-[46px] w-full appearance-none rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold leading-tight text-[#0A1547]"
             disabled={creating || uploads.length === 0}
           >
             <option value="">No upload selected</option>
@@ -437,30 +437,42 @@ function CreateCheckoutLinkCard({
 
       {createdSession?.url && (
         <div className="mt-5 rounded-2xl border border-[#02D99D]/25 bg-[#02D99D]/10 p-4">
-          <p className="text-sm font-black text-[#0A1547]">Checkout link created</p>
-          <p className="mt-2 break-all rounded-xl bg-white px-3 py-2 text-sm font-semibold text-[#0A1547]/70">
-            {createdSession.url}
-          </p>
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={() => void handleCopy()}
-              className="admin-focus rounded-xl border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/50"
-            >
-              Copy Link
-            </button>
-            <a
-              href={createdSession.url}
-              target="_blank"
-              rel="noreferrer"
-              className="admin-focus rounded-xl bg-[#0A1547] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#1A2460]"
-            >
-              Open Link
-            </a>
-            {copyStatus && (
-              <span className="text-sm font-bold text-[#0A1547]/58">{copyStatus}</span>
-            )}
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-sm font-black text-[#0A1547]">Checkout link created.</p>
+              <p className="mt-1 max-w-xl text-sm font-semibold text-[#0A1547]/62">
+                Session {formatNullable(createdSession.checkoutSessionId)} is ready to send manually.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => void handleCopy()}
+                className="admin-focus rounded-xl border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/50"
+              >
+                Copy Link
+              </button>
+              <a
+                href={createdSession.url}
+                target="_blank"
+                rel="noreferrer"
+                className="admin-focus rounded-xl bg-[#0A1547] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#1A2460]"
+              >
+                Open Link
+              </a>
+              {copyStatus && (
+                <span className="text-sm font-bold text-[#0A1547]/58">{copyStatus}</span>
+              )}
+            </div>
           </div>
+          <details className="mt-4 rounded-xl border border-[#0A1547]/10 bg-white px-4 py-3">
+            <summary className="cursor-pointer text-xs font-extrabold uppercase tracking-[0.16em] text-[#0A1547]/50">
+              Technical details
+            </summary>
+            <p className="mt-3 break-all text-sm font-semibold text-[#0A1547]/68">
+              {createdSession.url}
+            </p>
+          </details>
         </div>
       )}
     </section>
