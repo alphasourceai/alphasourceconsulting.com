@@ -36,6 +36,7 @@ minimumReleaseAgeExclude:
 
 packages:
   - artifacts/alphasource-consulting
+  - artifacts/alphasource-consulting-admin
 
 catalog:
   '@replit/vite-plugin-cartographer': ^0.5.1
