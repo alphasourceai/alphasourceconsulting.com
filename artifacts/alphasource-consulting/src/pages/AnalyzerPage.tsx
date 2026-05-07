@@ -4,6 +4,7 @@ import Footer from "@/components/Footer";
 
 type OrgType = "" | "Location" | "Group";
 type JobStatus = "idle" | "queued" | "processing" | "completed" | "error";
+type LockableField = "firstName" | "lastName" | "email" | "officeName" | "phone";
 
 type AnalyzerApiResponse = {
   ok?: boolean;
@@ -15,6 +16,21 @@ type AnalyzerApiResponse = {
   };
   error_code?: string | null;
   error_message?: string | null;
+};
+
+type GhlPrefillResponse = {
+  ok?: boolean;
+  cid?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  officeName?: string;
+  phone?: string;
+  lockedFields?: string[];
+  error?: {
+    code?: string;
+    message?: string;
+  };
 };
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -39,10 +55,15 @@ export default function AnalyzerPage() {
   const [status, setStatus] = useState<JobStatus>("idle");
   const [jobId, setJobId] = useState("");
   const [error, setError] = useState("");
+  const [cid, setCid] = useState("");
+  const [lockedFields, setLockedFields] = useState<LockableField[]>([]);
+  const [prefillNotice, setPrefillNotice] = useState("");
+  const [prefillWarning, setPrefillWarning] = useState("");
   const pollTimerRef = useRef<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
+    void loadGhlPrefill();
     return () => stopPolling();
   }, []);
 
@@ -57,8 +78,80 @@ export default function AnalyzerPage() {
     return import.meta.env.VITE_ANALYZER_API_BASE_URL?.trim().replace(/\/$/, "") || "";
   };
 
+  const getCidFromUrl = () => {
+    return new URLSearchParams(window.location.search).get("cid")?.trim() || "";
+  };
+
+  const isLockedField = (field: LockableField) => lockedFields.includes(field);
+
+  const getResetForm = () => {
+    const nextForm = { ...INITIAL_FORM };
+    lockedFields.forEach((field) => {
+      nextForm[field] = form[field];
+    });
+    return nextForm;
+  };
+
   const updateField = (field: keyof typeof form, value: string) => {
     setForm((currentForm) => ({ ...currentForm, [field]: value }));
+  };
+
+  const readGhlPrefillPayload = async (response: Response): Promise<GhlPrefillResponse> => {
+    try {
+      return await response.json();
+    } catch {
+      return {};
+    }
+  };
+
+  const normalizeLockedFields = (fields: string[] | undefined) => {
+    const allowedFields: LockableField[] = ["firstName", "lastName", "email", "officeName", "phone"];
+    return allowedFields.filter((field) => fields?.includes(field));
+  };
+
+  const loadGhlPrefill = async () => {
+    const nextCid = getCidFromUrl();
+    if (!nextCid) {
+      return;
+    }
+
+    setCid(nextCid);
+    const apiBaseUrl = getApiBaseUrl();
+    if (!apiBaseUrl) {
+      setPrefillWarning("Lead information could not be loaded. You can still complete the form manually.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/public-analyzer/ghl-prefill?cid=${encodeURIComponent(nextCid)}`, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+      });
+      const payload = await readGhlPrefillPayload(response);
+
+      if (!response.ok || payload.ok === false) {
+        throw new Error("Prefill failed.");
+      }
+
+      const nextLockedFields = normalizeLockedFields(payload.lockedFields);
+      setForm((currentForm) => ({
+        ...currentForm,
+        firstName: payload.firstName || currentForm.firstName,
+        lastName: payload.lastName || currentForm.lastName,
+        email: payload.email || currentForm.email,
+        officeName: payload.officeName || currentForm.officeName,
+        phone: payload.phone || currentForm.phone,
+      }));
+      setLockedFields(nextLockedFields);
+      setPrefillNotice("Lead information loaded from alphaSource.");
+      setPrefillWarning("");
+    } catch {
+      setLockedFields([]);
+      setPrefillNotice("");
+      setPrefillWarning("Lead information could not be loaded. You can still complete the form manually.");
+    }
   };
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -67,13 +160,14 @@ export default function AnalyzerPage() {
 
   const handleNewAnalysis = () => {
     stopPolling();
-    setForm(INITIAL_FORM);
+    setForm(getResetForm());
     setFile(null);
     setFinancialOnlyAcknowledgement(false);
     setSubmitting(false);
     setStatus("idle");
     setJobId("");
     setError("");
+    setPrefillWarning("");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -215,8 +309,11 @@ export default function AnalyzerPage() {
     payload.append("phone", validation.trimmedForm.phone);
     payload.append("org_type", validation.trimmedForm.orgType);
     payload.append("financial_only_acknowledgement", "true");
-    payload.append("source_path", window.location.pathname);
+    payload.append("source_path", `${window.location.pathname}${window.location.search}`);
     payload.append("companyWebsite", validation.trimmedForm.companyWebsite);
+    if (cid) {
+      payload.append("cid", cid);
+    }
     payload.append("file", selectedFile);
 
     setSubmitting(true);
@@ -365,6 +462,18 @@ export default function AnalyzerPage() {
                   </ul>
                 </div>
 
+                {prefillNotice && (
+                  <p className="rounded-2xl border border-[#02D99D]/20 bg-[#02D99D]/10 px-4 py-3 text-sm font-semibold text-[#0A1547]/70">
+                    {prefillNotice}
+                  </p>
+                )}
+
+                {prefillWarning && (
+                  <p className="rounded-2xl border border-[#A380F6]/20 bg-[#A380F6]/5 px-4 py-3 text-sm font-semibold text-[#0A1547]/65">
+                    {prefillWarning}
+                  </p>
+                )}
+
                 <div className="absolute left-[-9999px]" aria-hidden="true">
                   <label>
                     Company Website
@@ -387,8 +496,9 @@ export default function AnalyzerPage() {
                       required
                       value={form.firstName}
                       onChange={(event) => updateField("firstName", event.target.value)}
+                      disabled={isLockedField("firstName")}
                       placeholder="Jane"
-                      className={inputClass}
+                      className={`${inputClass} disabled:cursor-not-allowed disabled:bg-[#F8F9FD] disabled:text-[#0A1547]/70`}
                     />
                   </div>
                   <div>
@@ -398,8 +508,9 @@ export default function AnalyzerPage() {
                       required
                       value={form.lastName}
                       onChange={(event) => updateField("lastName", event.target.value)}
+                      disabled={isLockedField("lastName")}
                       placeholder="Smith"
-                      className={inputClass}
+                      className={`${inputClass} disabled:cursor-not-allowed disabled:bg-[#F8F9FD] disabled:text-[#0A1547]/70`}
                     />
                   </div>
                 </div>
@@ -412,8 +523,9 @@ export default function AnalyzerPage() {
                       required
                       value={form.officeName}
                       onChange={(event) => updateField("officeName", event.target.value)}
+                      disabled={isLockedField("officeName")}
                       placeholder="Acme Dental"
-                      className={inputClass}
+                      className={`${inputClass} disabled:cursor-not-allowed disabled:bg-[#F8F9FD] disabled:text-[#0A1547]/70`}
                     />
                   </div>
                   <div>
@@ -423,8 +535,9 @@ export default function AnalyzerPage() {
                       required
                       value={form.email}
                       onChange={(event) => updateField("email", event.target.value)}
+                      disabled={isLockedField("email")}
                       placeholder="jane@mypractice.com"
-                      className={inputClass}
+                      className={`${inputClass} disabled:cursor-not-allowed disabled:bg-[#F8F9FD] disabled:text-[#0A1547]/70`}
                     />
                   </div>
                 </div>
@@ -437,8 +550,9 @@ export default function AnalyzerPage() {
                       required
                       value={form.phone}
                       onChange={(event) => updateField("phone", event.target.value)}
+                      disabled={isLockedField("phone")}
                       placeholder="(602) 555-0100"
-                      className={inputClass}
+                      className={`${inputClass} disabled:cursor-not-allowed disabled:bg-[#F8F9FD] disabled:text-[#0A1547]/70`}
                     />
                   </div>
                   <div>
