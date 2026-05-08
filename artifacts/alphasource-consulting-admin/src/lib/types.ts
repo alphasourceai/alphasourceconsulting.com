@@ -72,6 +72,34 @@ export type AdminAnalysisError = {
   message: string | null;
 } | null;
 
+export type AdminAnalysisProviderStatus = {
+  ok?: boolean;
+  errorType?: string | null;
+};
+
+export type AdminAnalysisIssue = {
+  title?: string | null;
+  impact?: string | null;
+  recommendation?: string | null;
+  sources?: string[];
+  count?: number;
+};
+
+export type AdminAnalysisTrend = {
+  text?: string | null;
+  source?: string | null;
+};
+
+export type AdminAnalysisData = {
+  sourceFormat?: string | null;
+  generatedAt?: string | null;
+  raw_analyses?: Record<string, string>;
+  provider_statuses?: Record<string, AdminAnalysisProviderStatus>;
+  all_trends?: AdminAnalysisTrend[];
+  deduplicated_issues?: AdminAnalysisIssue[];
+  total_issue_count?: number;
+};
+
 export type AdminAnalysisJobFile = {
   id: string;
   jobId: string;
@@ -86,7 +114,9 @@ export type AdminAnalysisJobFile = {
   startedAt: string | null;
   completedAt: string | null;
   erroredAt: string | null;
+  processedAt?: string | null;
   error: AdminAnalysisError;
+  analysisData?: AdminAnalysisData | null;
 };
 
 export type AdminAnalysisJob = {

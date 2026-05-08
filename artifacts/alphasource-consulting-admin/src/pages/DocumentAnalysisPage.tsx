@@ -7,7 +7,14 @@ import {
   getAnalysisJob,
   getClientOptions,
 } from "@/lib/adminApi";
-import type { AdminAnalysisJob, AdminClientOption } from "@/lib/types";
+import type {
+  AdminAnalysisData,
+  AdminAnalysisIssue,
+  AdminAnalysisJob,
+  AdminAnalysisProviderStatus,
+  AdminAnalysisTrend,
+  AdminClientOption,
+} from "@/lib/types";
 
 type ClientMode = "existing" | "new";
 
@@ -73,6 +80,16 @@ function formatBytes(value: number | null): string {
   }
 
   return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatProviderName(value: string): string {
+  if (value.toLowerCase() === "xai") {
+    return "xAI";
+  }
+
+  return value
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function fileExtension(filename: string): string {
@@ -662,6 +679,7 @@ function JobStatusCard({
               <Detail label="Size" value={formatBytes(file.byteSize)} />
               <Detail label="Content type" value={file.contentType} />
             </dl>
+            {file.analysisData && <ProcessedOutput analysisData={file.analysisData} />}
           </article>
         ))}
       </div>
@@ -684,6 +702,162 @@ function Detail({ label, value }: { label: string; value: string | null }) {
       <dt className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/42">{label}</dt>
       <dd className="mt-1 break-all font-black text-[#0A1547]">{formatNullable(value)}</dd>
     </div>
+  );
+}
+
+function ProcessedOutput({ analysisData }: { analysisData: AdminAnalysisData }) {
+  const providerStatuses = analysisData.provider_statuses ? Object.entries(analysisData.provider_statuses) : [];
+  const issues = analysisData.deduplicated_issues || [];
+  const trends = analysisData.all_trends || [];
+  const rawOutputs = analysisData.raw_analyses ? Object.entries(analysisData.raw_analyses) : [];
+
+  return (
+    <div className="mt-5 rounded-2xl border border-[#A380F6]/20 bg-white p-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#A380F6]">
+            Processed admin job output
+          </p>
+          <p className="mt-2 text-sm font-semibold leading-6 text-[#0A1547]/62">
+            Internal processing output only. This is not the final client report, PDF, email, or delivery record.
+          </p>
+        </div>
+        <span className="w-fit rounded-full border border-[#02D99D]/25 bg-[#02D99D]/10 px-3 py-1 text-xs font-extrabold text-[#0A1547]">
+          {formatNullable(analysisData.sourceFormat || "processed")}
+        </span>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <Fact label="Total issues" value={formatNullable(analysisData.total_issue_count)} />
+        <Fact label="Processed at" value={formatDate(analysisData.generatedAt || null)} />
+      </div>
+
+      {providerStatuses.length > 0 && (
+        <div className="mt-5">
+          <p className="text-sm font-black text-[#0A1547]">Provider statuses</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {providerStatuses.map(([provider, status]) => (
+              <ProviderStatusPill key={provider} provider={provider} status={status} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {issues.length > 0 && (
+        <div className="mt-5">
+          <p className="text-sm font-black text-[#0A1547]">Deduplicated issues</p>
+          <div className="mt-3 grid gap-3">
+            {issues.slice(0, 5).map((issue, index) => (
+              <IssueCard key={`${issue.title || "issue"}-${index}`} issue={issue} />
+            ))}
+          </div>
+          {issues.length > 5 && (
+            <p className="mt-3 text-xs font-bold text-[#0A1547]/50">
+              Showing 5 of {issues.length} issues.
+            </p>
+          )}
+        </div>
+      )}
+
+      {trends.length > 0 && (
+        <div className="mt-5">
+          <p className="text-sm font-black text-[#0A1547]">Trends</p>
+          <ul className="mt-3 grid gap-2">
+            {trends.slice(0, 6).map((trend, index) => (
+              <TrendItem key={`${trend.text || "trend"}-${index}`} trend={trend} />
+            ))}
+          </ul>
+          {trends.length > 6 && (
+            <p className="mt-3 text-xs font-bold text-[#0A1547]/50">
+              Showing 6 of {trends.length} trends.
+            </p>
+          )}
+        </div>
+      )}
+
+      {rawOutputs.length > 0 && (
+        <details className="mt-5 rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+          <summary className="cursor-pointer text-sm font-extrabold text-[#0A1547]">
+            Technical details
+          </summary>
+          <div className="mt-4 grid gap-3">
+            {rawOutputs.map(([provider, output]) => (
+              <details key={provider} className="rounded-xl border border-[#0A1547]/10 bg-white p-3">
+                <summary className="cursor-pointer text-sm font-extrabold text-[#0A1547]">
+                  {provider}
+                </summary>
+                <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap rounded-lg bg-[#0A1547] p-3 text-xs font-semibold leading-5 text-white">
+                  {output}
+                </pre>
+              </details>
+            ))}
+          </div>
+        </details>
+      )}
+    </div>
+  );
+}
+
+function ProviderStatusPill({
+  provider,
+  status,
+}: {
+  provider: string;
+  status: AdminAnalysisProviderStatus;
+}) {
+  const ok = Boolean(status.ok);
+
+  return (
+    <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${
+      ok
+        ? "border-[#02D99D]/30 bg-[#02D99D]/10 text-[#0A1547]"
+        : "border-[#A380F6]/30 bg-[#A380F6]/10 text-[#0A1547]"
+    }`}
+    >
+      {formatProviderName(provider)}: {ok ? "Processed" : "Unavailable"}
+      {!ok && status.errorType ? ` (${status.errorType})` : ""}
+    </span>
+  );
+}
+
+function IssueCard({ issue }: { issue: AdminAnalysisIssue }) {
+  return (
+    <article className="rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+      <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <p className="text-sm font-black text-[#0A1547]">{formatNullable(issue.title)}</p>
+        {issue.count !== undefined && (
+          <span className="w-fit rounded-full border border-[#02ABE0]/25 bg-[#02ABE0]/10 px-2.5 py-1 text-xs font-extrabold text-[#0A1547]">
+            {issue.count} source{issue.count === 1 ? "" : "s"}
+          </span>
+        )}
+      </div>
+      {issue.impact && (
+        <p className="mt-2 text-sm font-semibold leading-6 text-[#0A1547]/68">
+          <span className="font-black text-[#0A1547]">Impact:</span> {issue.impact}
+        </p>
+      )}
+      {issue.recommendation && (
+        <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/68">
+          <span className="font-black text-[#0A1547]">Recommendation:</span> {issue.recommendation}
+        </p>
+      )}
+      {issue.sources && issue.sources.length > 0 && (
+        <p className="mt-2 text-xs font-bold text-[#0A1547]/50">
+          Sources: {issue.sources.join(", ")}
+        </p>
+      )}
+    </article>
+  );
+}
+
+function TrendItem({ trend }: { trend: AdminAnalysisTrend }) {
+  return (
+    <li className="rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3">
+      <p className="text-sm font-semibold leading-6 text-[#0A1547]/72">{formatNullable(trend.text)}</p>
+      {trend.source && (
+        <p className="mt-1 text-xs font-bold text-[#0A1547]/48">{trend.source}</p>
+      )}
+    </li>
   );
 }
 
