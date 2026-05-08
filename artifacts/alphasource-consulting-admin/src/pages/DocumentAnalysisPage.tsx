@@ -5,12 +5,15 @@ import {
   AdminApiError,
   cancelAnalysisJob,
   createArIntakeJob,
+  createClaimsIntakeJob,
   createFinancialIntakeJob,
   getAnalysisJob,
   getClientOptions,
   processArAnalysisJob,
+  processClaimsAnalysisJob,
   processFinancialAnalysisJob,
   promoteArAnalysisJob,
+  promoteClaimsAnalysisJob,
   promoteFinancialAnalysisJob,
 } from "@/lib/adminApi";
 import type {
@@ -23,7 +26,7 @@ import type {
 } from "@/lib/types";
 
 type ClientMode = "existing" | "new";
-type AnalysisKind = "financial" | "ar";
+type AnalysisKind = "financial" | "ar" | "claims";
 
 type PromotionMetadata = {
   submissionId?: string | null;
@@ -58,22 +61,28 @@ const allowedFinancialExtensions = [".csv", ".xlsx", ".pdf"];
 const processableFinancialExtensions = new Set([".csv", ".xlsx"]);
 const allowedArExtensions = [".csv", ".xlsx"];
 const processableArExtensions = new Set(allowedArExtensions);
+const allowedClaimsExtensions = [".csv", ".xlsx"];
+const processableClaimsExtensions = new Set(allowedClaimsExtensions);
 const financialAnalyzerToolName = "Financial Analyzer";
 const arAnalyzerToolName = "AR Analyzer";
+const claimsAnalyzerToolName = "Insurance Claim Analyzer";
 
 const analysisCreateLabels: Record<AnalysisKind, string> = {
   financial: "Create Financial Analysis",
   ar: "Create AR Analysis",
+  claims: "Create Claims Analysis",
 };
 
 const analysisRunLabels: Record<AnalysisKind, string> = {
   financial: "Run Financial Analysis",
   ar: "Run AR Analysis",
+  claims: "Run Claims Analysis",
 };
 
 const analysisProcessingTitles: Record<AnalysisKind, string> = {
   financial: "Financial analysis processing",
   ar: "AR analysis processing",
+  claims: "Claims analysis processing",
 };
 
 function formatNullable(value: string | number | null | undefined): string {
@@ -153,9 +162,15 @@ function isJobEligibleForManualProcessing(job: AdminAnalysisJob): boolean {
   }
 
   const extension = fileExtensionFromNullable(analysisFile.originalFilename || null);
-  return analysisKind === "financial"
-    ? processableFinancialExtensions.has(extension)
-    : processableArExtensions.has(extension);
+  if (analysisKind === "financial") {
+    return processableFinancialExtensions.has(extension);
+  }
+
+  if (analysisKind === "ar") {
+    return processableArExtensions.has(extension);
+  }
+
+  return processableClaimsExtensions.has(extension);
 }
 
 function getFinancialJobFile(job: AdminAnalysisJob) {
@@ -166,6 +181,10 @@ function getArJobFile(job: AdminAnalysisJob) {
   return job.files.find((file) => file.toolName === arAnalyzerToolName) || null;
 }
 
+function getClaimsJobFile(job: AdminAnalysisJob) {
+  return job.files.find((file) => file.toolName === claimsAnalyzerToolName) || null;
+}
+
 function getJobAnalysisKind(job: AdminAnalysisJob): AnalysisKind | null {
   if (getFinancialJobFile(job)) {
     return "financial";
@@ -173,6 +192,10 @@ function getJobAnalysisKind(job: AdminAnalysisJob): AnalysisKind | null {
 
   if (getArJobFile(job)) {
     return "ar";
+  }
+
+  if (getClaimsJobFile(job)) {
+    return "claims";
   }
 
   return null;
@@ -187,6 +210,10 @@ function getJobAnalysisFile(job: AdminAnalysisJob) {
 
   if (analysisKind === "ar") {
     return getArJobFile(job);
+  }
+
+  if (analysisKind === "claims") {
+    return getClaimsJobFile(job);
   }
 
   return null;
@@ -245,6 +272,7 @@ export default function DocumentAnalysisPage() {
   const [analysisKind, setAnalysisKind] = useState<AnalysisKind>("financial");
   const [financialFile, setFinancialFile] = useState<File | null>(null);
   const [arFile, setArFile] = useState<File | null>(null);
+  const [claimsFile, setClaimsFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [job, setJob] = useState<AdminAnalysisJob | null>(null);
@@ -252,8 +280,10 @@ export default function DocumentAnalysisPage() {
   const [canceling, setCanceling] = useState(false);
   const [processingFinancial, setProcessingFinancial] = useState(false);
   const [processingAr, setProcessingAr] = useState(false);
+  const [processingClaims, setProcessingClaims] = useState(false);
   const [promotingFinancial, setPromotingFinancial] = useState(false);
   const [promotingAr, setPromotingAr] = useState(false);
+  const [promotingClaims, setPromotingClaims] = useState(false);
   const [promotionMetadata, setPromotionMetadata] = useState<PromotionMetadata | null>(null);
 
   const updateClientField = (field: keyof ClientFormState, value: string) => {
@@ -382,6 +412,14 @@ export default function DocumentAnalysisPage() {
         return "AR file must be a .csv or .xlsx file.";
       }
     }
+    if (analysisKind === "claims") {
+      if (!claimsFile) {
+        return "Claims Analyzer source file is required.";
+      }
+      if (!allowedClaimsExtensions.includes(fileExtension(claimsFile.name))) {
+        return "Claims file must be a .csv or .xlsx file.";
+      }
+    }
 
     return "";
   };
@@ -397,12 +435,18 @@ export default function DocumentAnalysisPage() {
       return;
     }
 
-    const selectedFile = analysisKind === "financial" ? financialFile : arFile;
+    const selectedFile = analysisKind === "financial"
+      ? financialFile
+      : analysisKind === "ar"
+        ? arFile
+        : claimsFile;
     if (!selectedFile) {
       setSubmitError(
         analysisKind === "financial"
           ? "Financial Analyzer source file is required."
-          : "AR Analyzer source file is required.",
+          : analysisKind === "ar"
+            ? "AR Analyzer source file is required."
+            : "Claims Analyzer source file is required.",
       );
       return;
     }
@@ -420,14 +464,21 @@ export default function DocumentAnalysisPage() {
     if (clientForm.ghlCid.trim()) {
       formData.append("ghlCid", clientForm.ghlCid.trim());
     }
-    formData.append(analysisKind === "financial" ? "financialFile" : "arFile", selectedFile);
+    const fileFieldName = analysisKind === "financial"
+      ? "financialFile"
+      : analysisKind === "ar"
+        ? "arFile"
+        : "claimsFile";
+    formData.append(fileFieldName, selectedFile);
 
     setSubmitting(true);
 
     try {
       const response = analysisKind === "financial"
         ? await createFinancialIntakeJob(token, formData)
-        : await createArIntakeJob(token, formData);
+        : analysisKind === "ar"
+          ? await createArIntakeJob(token, formData)
+          : await createClaimsIntakeJob(token, formData);
       setPromotionMetadata(null);
       setJob(response.job);
     } catch (intakeError) {
@@ -437,7 +488,9 @@ export default function DocumentAnalysisPage() {
         setSubmitError(
           analysisKind === "financial"
             ? "Financial intake job could not be created."
-            : "AR intake job could not be created.",
+            : analysisKind === "ar"
+              ? "AR intake job could not be created."
+              : "Claims intake job could not be created.",
         );
       }
     } finally {
@@ -511,6 +564,28 @@ export default function DocumentAnalysisPage() {
     }
   };
 
+  const handleProcessClaims = async () => {
+    if (!job || !token) {
+      return;
+    }
+
+    setProcessingClaims(true);
+    setJobError("");
+
+    try {
+      const response = await processClaimsAnalysisJob(token, job.id);
+      setJob(response.job);
+    } catch (processError) {
+      if (processError instanceof AdminApiError) {
+        setJobError(processError.message);
+      } else {
+        setJobError("Claims analysis could not be processed.");
+      }
+    } finally {
+      setProcessingClaims(false);
+    }
+  };
+
   const handlePromoteFinancial = async () => {
     if (!job || !token) {
       return;
@@ -567,6 +642,34 @@ export default function DocumentAnalysisPage() {
     }
   };
 
+  const handlePromoteClaims = async () => {
+    if (!job || !token) {
+      return;
+    }
+
+    setPromotingClaims(true);
+    setJobError("");
+    setPromotionMetadata(null);
+
+    try {
+      const response = await promoteClaimsAnalysisJob(token, job.id);
+      setJob(response.job);
+      setPromotionMetadata({
+        submissionId: response.submissionId,
+        uploadId: response.uploadId,
+        promoted: response.promoted,
+      });
+    } catch (promoteError) {
+      if (promoteError instanceof AdminApiError) {
+        setJobError(promoteError.message);
+      } else {
+        setJobError("Claims analysis could not be promoted to client records.");
+      }
+    } finally {
+      setPromotingClaims(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <section className="admin-card p-5">
@@ -575,7 +678,7 @@ export default function DocumentAnalysisPage() {
             <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#A380F6]">Manual analysis</p>
             <h2 className="mt-2 text-2xl font-black text-[#0A1547]">Document Analysis</h2>
             <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#0A1547]/62">
-              Financial and AR intake are enabled. CSV and XLSX processing can be run manually after intake; Financial PDF processing will be added later.
+              Financial, AR, and Claims intake are enabled. CSV and XLSX processing can be run manually after intake; PDF processing will be added later.
             </p>
           </div>
           <span className="w-fit rounded-full border border-[#02ABE0]/25 bg-[#02ABE0]/10 px-3 py-1 text-xs font-extrabold text-[#0A1547]">
@@ -663,7 +766,7 @@ export default function DocumentAnalysisPage() {
           <StepHeader
             eyebrow="Step 2"
             title="Choose analysis and upload source file"
-            description="Financial and AR Analyzer intake are active. Processing stays manual after the durable job record is created."
+            description="Financial, AR, and Claims Analyzer intake are active. Processing stays manual after the durable job record is created."
           />
 
           <div className="mt-5 grid gap-4">
@@ -679,9 +782,9 @@ export default function DocumentAnalysisPage() {
                 onClick={() => handleAnalysisKindChange("ar")}
               />
               <AnalysisChoiceButton
-                disabled
+                active={analysisKind === "claims"}
                 label="Claims Analysis"
-                onClick={() => undefined}
+                onClick={() => handleAnalysisKindChange("claims")}
               />
             </div>
 
@@ -733,10 +836,29 @@ export default function DocumentAnalysisPage() {
               </AnalyzerToolCard>
             )}
 
-            <AnalyzerToolCard
-              description="Create Claims Analysis will be enabled after the API flow supports this tool."
-              title="Insurance Claim Analyzer"
-            />
+            {analysisKind === "claims" && (
+              <AnalyzerToolCard
+                active
+                description="Accepts .csv and .xlsx Claims files. CSV and XLSX processing are available now. PDF processing will be added later."
+                title="Insurance Claim Analyzer"
+              >
+                <label className="block">
+                  <span className="text-sm font-extrabold text-[#0A1547]">Claims source file</span>
+                  <input
+                    type="file"
+                    accept=".csv,.xlsx"
+                    onChange={(event) => setClaimsFile(event.target.files?.[0] ?? null)}
+                    className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547] file:mr-4 file:rounded-lg file:border-0 file:bg-[#0A1547] file:px-4 file:py-2 file:text-sm file:font-extrabold file:text-white"
+                    disabled={submitting}
+                  />
+                </label>
+                {claimsFile && (
+                  <p className="mt-3 text-sm font-bold text-[#0A1547]/62">
+                    Selected: {claimsFile.name} · {formatBytes(claimsFile.size)}
+                  </p>
+                )}
+              </AnalyzerToolCard>
+            )}
           </div>
 
           <div className="mt-5 rounded-2xl border border-[#A380F6]/20 bg-[#A380F6]/10 p-4">
@@ -765,12 +887,16 @@ export default function DocumentAnalysisPage() {
           jobError={jobError}
           onCancel={() => void handleCancel()}
           onProcessAr={() => void handleProcessAr()}
+          onProcessClaims={() => void handleProcessClaims()}
           onProcessFinancial={() => void handleProcessFinancial()}
           onPromoteAr={() => void handlePromoteAr()}
+          onPromoteClaims={() => void handlePromoteClaims()}
           onPromoteFinancial={() => void handlePromoteFinancial()}
           processingAr={processingAr}
+          processingClaims={processingClaims}
           processingFinancial={processingFinancial}
           promotingAr={promotingAr}
+          promotingClaims={promotingClaims}
           promotingFinancial={promotingFinancial}
           promotionMetadata={promotionMetadata}
         />
@@ -922,12 +1048,16 @@ function JobStatusCard({
   jobError,
   onCancel,
   onProcessAr,
+  onProcessClaims,
   onProcessFinancial,
   onPromoteAr,
+  onPromoteClaims,
   onPromoteFinancial,
   processingAr,
+  processingClaims,
   processingFinancial,
   promotingAr,
+  promotingClaims,
   promotingFinancial,
   promotionMetadata,
 }: {
@@ -936,12 +1066,16 @@ function JobStatusCard({
   jobError: string;
   onCancel: () => void;
   onProcessAr: () => void;
+  onProcessClaims: () => void;
   onProcessFinancial: () => void;
   onPromoteAr: () => void;
+  onPromoteClaims: () => void;
   onPromoteFinancial: () => void;
   processingAr: boolean;
+  processingClaims: boolean;
   processingFinancial: boolean;
   promotingAr: boolean;
+  promotingClaims: boolean;
   promotingFinancial: boolean;
   promotionMetadata: PromotionMetadata | null;
 }) {
@@ -964,14 +1098,29 @@ function JobStatusCard({
   );
   const showLinkedRecords = Boolean(promotionMetadata || hasAnyLinkedClientRecord);
   const showPdfProcessingNote = Boolean(
-    analysisKind === "financial"
-    && analysisFile
-    && fileExtension === ".pdf",
+    (analysisKind === "financial" && analysisFile && fileExtension === ".pdf")
+    || analysisKind === "claims",
   );
-  const processing = analysisKind === "ar" ? processingAr : processingFinancial;
-  const promoting = analysisKind === "ar" ? promotingAr : promotingFinancial;
-  const onProcess = analysisKind === "ar" ? onProcessAr : onProcessFinancial;
-  const onPromote = analysisKind === "ar" ? onPromoteAr : onPromoteFinancial;
+  const processing = analysisKind === "ar"
+    ? processingAr
+    : analysisKind === "claims"
+      ? processingClaims
+      : processingFinancial;
+  const promoting = analysisKind === "ar"
+    ? promotingAr
+    : analysisKind === "claims"
+      ? promotingClaims
+      : promotingFinancial;
+  const onProcess = analysisKind === "ar"
+    ? onProcessAr
+    : analysisKind === "claims"
+      ? onProcessClaims
+      : onProcessFinancial;
+  const onPromote = analysisKind === "ar"
+    ? onPromoteAr
+    : analysisKind === "claims"
+      ? onPromoteClaims
+      : onPromoteFinancial;
 
   return (
     <section className="admin-card p-5">

@@ -169,6 +169,19 @@ export function createArIntakeJob(
   });
 }
 
+export function createClaimsIntakeJob(
+  token: string,
+  formData: FormData,
+  signal?: AbortSignal,
+): Promise<AdminAnalysisJobResponse> {
+  return adminRequest<AdminAnalysisJobResponse>("/api/admin/analysis-jobs/claims-intake", {
+    token,
+    signal,
+    method: "POST",
+    body: formData,
+  });
+}
+
 export function getAnalysisJob(
   token: string,
   jobId: string,
@@ -216,6 +229,18 @@ export function processArAnalysisJob(
   });
 }
 
+export function processClaimsAnalysisJob(
+  token: string,
+  jobId: string,
+  signal?: AbortSignal,
+): Promise<AdminAnalysisJobResponse> {
+  return adminRequest<AdminAnalysisJobResponse>(`/api/admin/analysis-jobs/${encodeURIComponent(jobId)}/process-claims`, {
+    token,
+    signal,
+    method: "POST",
+  });
+}
+
 export function promoteFinancialAnalysisJob(
   token: string,
   jobId: string,
@@ -234,6 +259,18 @@ export function promoteArAnalysisJob(
   signal?: AbortSignal,
 ): Promise<AdminAnalysisJobPromotionResponse> {
   return adminRequest<AdminAnalysisJobPromotionResponse>(`/api/admin/analysis-jobs/${encodeURIComponent(jobId)}/promote-ar`, {
+    token,
+    signal,
+    method: "POST",
+  });
+}
+
+export function promoteClaimsAnalysisJob(
+  token: string,
+  jobId: string,
+  signal?: AbortSignal,
+): Promise<AdminAnalysisJobPromotionResponse> {
+  return adminRequest<AdminAnalysisJobPromotionResponse>(`/api/admin/analysis-jobs/${encodeURIComponent(jobId)}/promote-claims`, {
     token,
     signal,
     method: "POST",
