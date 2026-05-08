@@ -4,10 +4,13 @@ import { useAuth } from "@/auth/AuthProvider";
 import {
   AdminApiError,
   cancelAnalysisJob,
+  createArIntakeJob,
   createFinancialIntakeJob,
   getAnalysisJob,
   getClientOptions,
+  processArAnalysisJob,
   processFinancialAnalysisJob,
+  promoteArAnalysisJob,
   promoteFinancialAnalysisJob,
 } from "@/lib/adminApi";
 import type {
@@ -20,6 +23,7 @@ import type {
 } from "@/lib/types";
 
 type ClientMode = "existing" | "new";
+type AnalysisKind = "financial" | "ar";
 
 type PromotionMetadata = {
   submissionId?: string | null;
@@ -48,11 +52,29 @@ const emptyClientForm: ClientFormState = {
 };
 
 const activeJobStatuses = new Set(["queued", "processing", "intake_pending"]);
-const financialProcessingStatuses = new Set(["queued", "processing"]);
+const manualProcessingStatuses = new Set(["queued", "processing"]);
 const terminalJobStatuses = new Set(["completed", "error", "canceled", "cancelled"]);
 const allowedFinancialExtensions = [".csv", ".xlsx", ".pdf"];
 const processableFinancialExtensions = new Set([".csv", ".xlsx"]);
+const allowedArExtensions = [".csv", ".xlsx"];
+const processableArExtensions = new Set(allowedArExtensions);
 const financialAnalyzerToolName = "Financial Analyzer";
+const arAnalyzerToolName = "AR Analyzer";
+
+const analysisCreateLabels: Record<AnalysisKind, string> = {
+  financial: "Create Financial Analysis",
+  ar: "Create AR Analysis",
+};
+
+const analysisRunLabels: Record<AnalysisKind, string> = {
+  financial: "Run Financial Analysis",
+  ar: "Run AR Analysis",
+};
+
+const analysisProcessingTitles: Record<AnalysisKind, string> = {
+  financial: "Financial analysis processing",
+  ar: "AR analysis processing",
+};
 
 function formatNullable(value: string | number | null | undefined): string {
   if (value === null || value === undefined || value === "") {
@@ -121,19 +143,53 @@ function isJobActive(status: string | null): boolean {
   return activeJobStatuses.has((status || "").toLowerCase());
 }
 
-function isJobEligibleForFinancialProcessing(job: AdminAnalysisJob): boolean {
+function isJobEligibleForManualProcessing(job: AdminAnalysisJob): boolean {
   const normalizedStatus = (job.status || "").toLowerCase();
-  const financialFile = getFinancialJobFile(job);
+  const analysisKind = getJobAnalysisKind(job);
+  const analysisFile = getJobAnalysisFile(job);
 
-  return (
-    financialProcessingStatuses.has(normalizedStatus)
-    && Boolean(financialFile)
-    && processableFinancialExtensions.has(fileExtensionFromNullable(financialFile?.originalFilename || null))
-  );
+  if (!analysisKind || !analysisFile || !manualProcessingStatuses.has(normalizedStatus)) {
+    return false;
+  }
+
+  const extension = fileExtensionFromNullable(analysisFile.originalFilename || null);
+  return analysisKind === "financial"
+    ? processableFinancialExtensions.has(extension)
+    : processableArExtensions.has(extension);
 }
 
 function getFinancialJobFile(job: AdminAnalysisJob) {
   return job.files.find((file) => file.toolName === financialAnalyzerToolName) || null;
+}
+
+function getArJobFile(job: AdminAnalysisJob) {
+  return job.files.find((file) => file.toolName === arAnalyzerToolName) || null;
+}
+
+function getJobAnalysisKind(job: AdminAnalysisJob): AnalysisKind | null {
+  if (getFinancialJobFile(job)) {
+    return "financial";
+  }
+
+  if (getArJobFile(job)) {
+    return "ar";
+  }
+
+  return null;
+}
+
+function getJobAnalysisFile(job: AdminAnalysisJob) {
+  const analysisKind = getJobAnalysisKind(job);
+
+  if (analysisKind === "financial") {
+    return getFinancialJobFile(job);
+  }
+
+  if (analysisKind === "ar") {
+    return getArJobFile(job);
+  }
+
+  return null;
 }
 
 function clientDetailHref(email: string): string {
@@ -186,14 +242,18 @@ export default function DocumentAnalysisPage() {
   const [selectedClientEmail, setSelectedClientEmail] = useState("");
   const [clientOptionsLoading, setClientOptionsLoading] = useState(false);
   const [clientOptionsError, setClientOptionsError] = useState("");
+  const [analysisKind, setAnalysisKind] = useState<AnalysisKind>("financial");
   const [financialFile, setFinancialFile] = useState<File | null>(null);
+  const [arFile, setArFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [job, setJob] = useState<AdminAnalysisJob | null>(null);
   const [jobError, setJobError] = useState("");
   const [canceling, setCanceling] = useState(false);
   const [processingFinancial, setProcessingFinancial] = useState(false);
+  const [processingAr, setProcessingAr] = useState(false);
   const [promotingFinancial, setPromotingFinancial] = useState(false);
+  const [promotingAr, setPromotingAr] = useState(false);
   const [promotionMetadata, setPromotionMetadata] = useState<PromotionMetadata | null>(null);
 
   const updateClientField = (field: keyof ClientFormState, value: string) => {
@@ -285,6 +345,11 @@ export default function DocumentAnalysisPage() {
     setClientForm(option ? formFromOption(option) : emptyClientForm);
   };
 
+  const handleAnalysisKindChange = (nextAnalysisKind: AnalysisKind) => {
+    setAnalysisKind(nextAnalysisKind);
+    setSubmitError("");
+  };
+
   const validateForm = (): string => {
     if (!clientForm.clientEmail.trim()) {
       return "Client email is required.";
@@ -301,11 +366,21 @@ export default function DocumentAnalysisPage() {
     if (!clientForm.orgType.trim()) {
       return "Organization type is required.";
     }
-    if (!financialFile) {
-      return "Financial Analyzer source file is required.";
+    if (analysisKind === "financial") {
+      if (!financialFile) {
+        return "Financial Analyzer source file is required.";
+      }
+      if (!allowedFinancialExtensions.includes(fileExtension(financialFile.name))) {
+        return "Financial file must be a .csv, .xlsx, or .pdf file.";
+      }
     }
-    if (!allowedFinancialExtensions.includes(fileExtension(financialFile.name))) {
-      return "Financial file must be a .csv, .xlsx, or .pdf file.";
+    if (analysisKind === "ar") {
+      if (!arFile) {
+        return "AR Analyzer source file is required.";
+      }
+      if (!allowedArExtensions.includes(fileExtension(arFile.name))) {
+        return "AR file must be a .csv or .xlsx file.";
+      }
     }
 
     return "";
@@ -322,8 +397,13 @@ export default function DocumentAnalysisPage() {
       return;
     }
 
-    if (!financialFile) {
-      setSubmitError("Financial Analyzer source file is required.");
+    const selectedFile = analysisKind === "financial" ? financialFile : arFile;
+    if (!selectedFile) {
+      setSubmitError(
+        analysisKind === "financial"
+          ? "Financial Analyzer source file is required."
+          : "AR Analyzer source file is required.",
+      );
       return;
     }
 
@@ -340,19 +420,25 @@ export default function DocumentAnalysisPage() {
     if (clientForm.ghlCid.trim()) {
       formData.append("ghlCid", clientForm.ghlCid.trim());
     }
-    formData.append("financialFile", financialFile);
+    formData.append(analysisKind === "financial" ? "financialFile" : "arFile", selectedFile);
 
     setSubmitting(true);
 
     try {
-      const response = await createFinancialIntakeJob(token, formData);
+      const response = analysisKind === "financial"
+        ? await createFinancialIntakeJob(token, formData)
+        : await createArIntakeJob(token, formData);
       setPromotionMetadata(null);
       setJob(response.job);
     } catch (intakeError) {
       if (intakeError instanceof AdminApiError) {
         setSubmitError(intakeError.message);
       } else {
-        setSubmitError("Financial intake job could not be created.");
+        setSubmitError(
+          analysisKind === "financial"
+            ? "Financial intake job could not be created."
+            : "AR intake job could not be created.",
+        );
       }
     } finally {
       setSubmitting(false);
@@ -403,6 +489,28 @@ export default function DocumentAnalysisPage() {
     }
   };
 
+  const handleProcessAr = async () => {
+    if (!job || !token) {
+      return;
+    }
+
+    setProcessingAr(true);
+    setJobError("");
+
+    try {
+      const response = await processArAnalysisJob(token, job.id);
+      setJob(response.job);
+    } catch (processError) {
+      if (processError instanceof AdminApiError) {
+        setJobError(processError.message);
+      } else {
+        setJobError("AR analysis could not be processed.");
+      }
+    } finally {
+      setProcessingAr(false);
+    }
+  };
+
   const handlePromoteFinancial = async () => {
     if (!job || !token) {
       return;
@@ -431,15 +539,43 @@ export default function DocumentAnalysisPage() {
     }
   };
 
+  const handlePromoteAr = async () => {
+    if (!job || !token) {
+      return;
+    }
+
+    setPromotingAr(true);
+    setJobError("");
+    setPromotionMetadata(null);
+
+    try {
+      const response = await promoteArAnalysisJob(token, job.id);
+      setJob(response.job);
+      setPromotionMetadata({
+        submissionId: response.submissionId,
+        uploadId: response.uploadId,
+        promoted: response.promoted,
+      });
+    } catch (promoteError) {
+      if (promoteError instanceof AdminApiError) {
+        setJobError(promoteError.message);
+      } else {
+        setJobError("AR analysis could not be promoted to client records.");
+      }
+    } finally {
+      setPromotingAr(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <section className="admin-card p-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#A380F6]">DA-3A intake</p>
+            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#A380F6]">Manual analysis</p>
             <h2 className="mt-2 text-2xl font-black text-[#0A1547]">Document Analysis</h2>
             <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#0A1547]/62">
-              Financial file intake is enabled. CSV and XLSX processing can be run manually after intake. PDF processing will be added later.
+              Financial and AR intake are enabled. CSV and XLSX processing can be run manually after intake; Financial PDF processing will be added later.
             </p>
           </div>
           <span className="w-fit rounded-full border border-[#02ABE0]/25 bg-[#02ABE0]/10 px-3 py-1 text-xs font-extrabold text-[#0A1547]">
@@ -526,39 +662,79 @@ export default function DocumentAnalysisPage() {
         <section className="admin-card p-5">
           <StepHeader
             eyebrow="Step 2"
-            title="Upload source file"
-            description="Financial Analyzer intake is active in this phase. CSV and XLSX files can be processed manually after the durable job record is created."
+            title="Choose analysis and upload source file"
+            description="Financial and AR Analyzer intake are active. Processing stays manual after the durable job record is created."
           />
 
           <div className="mt-5 grid gap-4">
-            <AnalyzerToolCard
-              active
-              description="Accepts .csv, .xlsx, and .pdf financial files. CSV and XLSX processing can be run manually after intake."
-              title="Financial Analyzer"
-            >
-              <label className="block">
-                <span className="text-sm font-extrabold text-[#0A1547]">Financial source file</span>
-                <input
-                  type="file"
-                  accept=".csv,.xlsx,.pdf"
-                  onChange={(event) => setFinancialFile(event.target.files?.[0] ?? null)}
-                  className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547] file:mr-4 file:rounded-lg file:border-0 file:bg-[#0A1547] file:px-4 file:py-2 file:text-sm file:font-extrabold file:text-white"
-                  disabled={submitting}
-                />
-              </label>
-              {financialFile && (
-                <p className="mt-3 text-sm font-bold text-[#0A1547]/62">
-                  Selected: {financialFile.name} · {formatBytes(financialFile.size)}
-                </p>
-              )}
-            </AnalyzerToolCard>
+            <div className="grid gap-2 rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-1 sm:grid-cols-3">
+              <AnalysisChoiceButton
+                active={analysisKind === "financial"}
+                label="Financial Analysis"
+                onClick={() => handleAnalysisKindChange("financial")}
+              />
+              <AnalysisChoiceButton
+                active={analysisKind === "ar"}
+                label="AR Analysis"
+                onClick={() => handleAnalysisKindChange("ar")}
+              />
+              <AnalysisChoiceButton
+                disabled
+                label="Claims Analysis"
+                onClick={() => undefined}
+              />
+            </div>
+
+            {analysisKind === "financial" && (
+              <AnalyzerToolCard
+                active
+                description="Accepts .csv, .xlsx, and .pdf financial files. CSV and XLSX processing can be run manually after intake."
+                title="Financial Analyzer"
+              >
+                <label className="block">
+                  <span className="text-sm font-extrabold text-[#0A1547]">Financial source file</span>
+                  <input
+                    type="file"
+                    accept=".csv,.xlsx,.pdf"
+                    onChange={(event) => setFinancialFile(event.target.files?.[0] ?? null)}
+                    className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547] file:mr-4 file:rounded-lg file:border-0 file:bg-[#0A1547] file:px-4 file:py-2 file:text-sm file:font-extrabold file:text-white"
+                    disabled={submitting}
+                  />
+                </label>
+                {financialFile && (
+                  <p className="mt-3 text-sm font-bold text-[#0A1547]/62">
+                    Selected: {financialFile.name} · {formatBytes(financialFile.size)}
+                  </p>
+                )}
+              </AnalyzerToolCard>
+            )}
+
+            {analysisKind === "ar" && (
+              <AnalyzerToolCard
+                active
+                description="Accepts .csv and .xlsx AR files. Processing can be run manually after intake."
+                title="AR Analyzer"
+              >
+                <label className="block">
+                  <span className="text-sm font-extrabold text-[#0A1547]">AR source file</span>
+                  <input
+                    type="file"
+                    accept=".csv,.xlsx"
+                    onChange={(event) => setArFile(event.target.files?.[0] ?? null)}
+                    className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547] file:mr-4 file:rounded-lg file:border-0 file:bg-[#0A1547] file:px-4 file:py-2 file:text-sm file:font-extrabold file:text-white"
+                    disabled={submitting}
+                  />
+                </label>
+                {arFile && (
+                  <p className="mt-3 text-sm font-bold text-[#0A1547]/62">
+                    Selected: {arFile.name} · {formatBytes(arFile.size)}
+                  </p>
+                )}
+              </AnalyzerToolCard>
+            )}
 
             <AnalyzerToolCard
-              description="Team-assisted AR workflow will be added after financial intake and job execution are stable."
-              title="AR Analyzer"
-            />
-            <AnalyzerToolCard
-              description="Insurance claim analysis remains disabled until the API flow supports this tool."
+              description="Create Claims Analysis will be enabled after the API flow supports this tool."
               title="Insurance Claim Analyzer"
             />
           </div>
@@ -566,7 +742,7 @@ export default function DocumentAnalysisPage() {
           <div className="mt-5 rounded-2xl border border-[#A380F6]/20 bg-[#A380F6]/10 p-4">
             <p className="text-sm font-black text-[#0A1547]">Intake and processing are separate steps.</p>
             <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
-              Creating the financial analysis stores the source file and durable job record. CSV and XLSX jobs can then be processed manually; this still does not create a ClientSubmission, Upload, report, email, GHL update, or payment action.
+              Creating the analysis stores the source file and durable job record. CSV and XLSX jobs can then be processed manually; this still does not create a client report, email, GHL update, PDF, report delivery, or payment action.
             </p>
           </div>
 
@@ -577,7 +753,7 @@ export default function DocumentAnalysisPage() {
             disabled={submitting}
             className="admin-focus mt-5 w-full rounded-xl bg-[#A380F6] px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-[#A380F6]/20 transition hover:bg-[#906cf2] disabled:opacity-60"
           >
-            {submitting ? "Creating financial analysis..." : "Create Financial Analysis"}
+            {submitting ? "Creating analysis..." : analysisCreateLabels[analysisKind]}
           </button>
         </section>
       </form>
@@ -588,9 +764,13 @@ export default function DocumentAnalysisPage() {
           job={job}
           jobError={jobError}
           onCancel={() => void handleCancel()}
+          onProcessAr={() => void handleProcessAr()}
           onProcessFinancial={() => void handleProcessFinancial()}
+          onPromoteAr={() => void handlePromoteAr()}
           onPromoteFinancial={() => void handlePromoteFinancial()}
+          processingAr={processingAr}
           processingFinancial={processingFinancial}
+          promotingAr={promotingAr}
           promotingFinancial={promotingFinancial}
           promotionMetadata={promotionMetadata}
         />
@@ -679,6 +859,34 @@ function StepHeader({
   );
 }
 
+function AnalysisChoiceButton({
+  active,
+  disabled,
+  label,
+  onClick,
+}: {
+  active?: boolean;
+  disabled?: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`admin-focus rounded-xl px-4 py-2 text-sm font-extrabold transition ${
+        active
+          ? "bg-[#0A1547] text-white"
+          : "text-[#0A1547]/62 hover:bg-white hover:text-[#0A1547]"
+      } disabled:text-[#0A1547]/36 disabled:hover:bg-transparent`}
+    >
+      {label}
+      {disabled && <span className="ml-2 text-xs font-bold">(coming later)</span>}
+    </button>
+  );
+}
+
 function AnalyzerToolCard({
   active,
   children,
@@ -713,9 +921,13 @@ function JobStatusCard({
   job,
   jobError,
   onCancel,
+  onProcessAr,
   onProcessFinancial,
+  onPromoteAr,
   onPromoteFinancial,
+  processingAr,
   processingFinancial,
+  promotingAr,
   promotingFinancial,
   promotionMetadata,
 }: {
@@ -723,32 +935,43 @@ function JobStatusCard({
   job: AdminAnalysisJob;
   jobError: string;
   onCancel: () => void;
+  onProcessAr: () => void;
   onProcessFinancial: () => void;
+  onPromoteAr: () => void;
   onPromoteFinancial: () => void;
+  processingAr: boolean;
   processingFinancial: boolean;
+  promotingAr: boolean;
   promotingFinancial: boolean;
   promotionMetadata: PromotionMetadata | null;
 }) {
   const canCancel = isJobActive(job.status);
-  const canProcessFinancial = isJobEligibleForFinancialProcessing(job);
-  const financialFile = getFinancialJobFile(job);
-  const financialFileExtension = fileExtensionFromNullable(financialFile?.originalFilename || null);
+  const analysisKind = getJobAnalysisKind(job);
+  const analysisFile = getJobAnalysisFile(job);
+  const canProcess = isJobEligibleForManualProcessing(job);
+  const fileExtension = fileExtensionFromNullable(analysisFile?.originalFilename || null);
   const jobCompleted = (job.status || "").toLowerCase() === "completed";
   const hasSubmissionLink = hasRecordId(job.submissionId);
-  const hasUploadLink = hasRecordId(financialFile?.uploadId);
+  const hasUploadLink = hasRecordId(analysisFile?.uploadId);
   const hasAnyLinkedClientRecord = hasSubmissionLink || hasUploadLink;
   const hasCompleteLinkedClientRecords = hasSubmissionLink && hasUploadLink;
-  const canPromoteFinancial = Boolean(
+  const canPromote = Boolean(
     jobCompleted
-    && financialFile
-    && financialFile.analysisData
+    && analysisKind
+    && analysisFile
+    && analysisFile.analysisData
     && !hasCompleteLinkedClientRecords,
   );
   const showLinkedRecords = Boolean(promotionMetadata || hasAnyLinkedClientRecord);
   const showPdfProcessingNote = Boolean(
-    financialFile
-    && financialFileExtension === ".pdf",
+    analysisKind === "financial"
+    && analysisFile
+    && fileExtension === ".pdf",
   );
+  const processing = analysisKind === "ar" ? processingAr : processingFinancial;
+  const promoting = analysisKind === "ar" ? promotingAr : promotingFinancial;
+  const onProcess = analysisKind === "ar" ? onProcessAr : onProcessFinancial;
+  const onPromote = analysisKind === "ar" ? onPromoteAr : onPromoteFinancial;
 
   return (
     <section className="admin-card p-5">
@@ -757,7 +980,7 @@ function JobStatusCard({
           <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#A380F6]">Step 3</p>
           <h3 className="mt-2 text-xl font-black text-[#0A1547]">Intake job status</h3>
           <p className="mt-1 text-sm font-semibold text-[#0A1547]/62">
-            This status reflects file intake only, not AI analysis execution.
+            This status tracks intake, manual processing, and client record links for this admin job.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -792,19 +1015,21 @@ function JobStatusCard({
       <div className="mt-5 rounded-2xl border border-[#02ABE0]/20 bg-[#02ABE0]/[0.08] p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-sm font-black text-[#0A1547]">Financial analysis processing</p>
+            <p className="text-sm font-black text-[#0A1547]">
+              {analysisKind ? analysisProcessingTitles[analysisKind] : "Analysis processing"}
+            </p>
             <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
               CSV and XLSX processing are manual in this phase. Processed output remains internal admin job output, not a final client report.
             </p>
           </div>
-          {canProcessFinancial && (
+          {analysisKind && canProcess && (
             <button
               type="button"
-              onClick={onProcessFinancial}
-              disabled={processingFinancial}
+              onClick={onProcess}
+              disabled={processing}
               className="admin-focus w-full rounded-xl bg-[#0A1547] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#1A2460] disabled:opacity-60 lg:w-auto"
             >
-              {processingFinancial ? "Running analysis..." : "Run Financial Analysis"}
+              {processing ? "Running analysis..." : analysisRunLabels[analysisKind]}
             </button>
           )}
         </div>
@@ -815,15 +1040,15 @@ function JobStatusCard({
         )}
       </div>
 
-      {(canPromoteFinancial || showLinkedRecords) && (
+      {(canPromote || showLinkedRecords) && (
         <PromotionSection
-          canPromote={canPromoteFinancial}
+          canPromote={canPromote}
           clientEmail={job.clientEmail}
           jobSubmissionId={job.submissionId}
           metadata={promotionMetadata}
-          onPromote={onPromoteFinancial}
-          promoting={promotingFinancial}
-          uploadId={financialFile?.uploadId || null}
+          onPromote={onPromote}
+          promoting={promoting}
+          uploadId={analysisFile?.uploadId || null}
         />
       )}
 

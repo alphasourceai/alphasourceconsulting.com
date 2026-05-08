@@ -156,6 +156,19 @@ export function createFinancialIntakeJob(
   });
 }
 
+export function createArIntakeJob(
+  token: string,
+  formData: FormData,
+  signal?: AbortSignal,
+): Promise<AdminAnalysisJobResponse> {
+  return adminRequest<AdminAnalysisJobResponse>("/api/admin/analysis-jobs/ar-intake", {
+    token,
+    signal,
+    method: "POST",
+    body: formData,
+  });
+}
+
 export function getAnalysisJob(
   token: string,
   jobId: string,
@@ -191,12 +204,36 @@ export function processFinancialAnalysisJob(
   });
 }
 
+export function processArAnalysisJob(
+  token: string,
+  jobId: string,
+  signal?: AbortSignal,
+): Promise<AdminAnalysisJobResponse> {
+  return adminRequest<AdminAnalysisJobResponse>(`/api/admin/analysis-jobs/${encodeURIComponent(jobId)}/process-ar`, {
+    token,
+    signal,
+    method: "POST",
+  });
+}
+
 export function promoteFinancialAnalysisJob(
   token: string,
   jobId: string,
   signal?: AbortSignal,
 ): Promise<AdminAnalysisJobPromotionResponse> {
   return adminRequest<AdminAnalysisJobPromotionResponse>(`/api/admin/analysis-jobs/${encodeURIComponent(jobId)}/promote-financial`, {
+    token,
+    signal,
+    method: "POST",
+  });
+}
+
+export function promoteArAnalysisJob(
+  token: string,
+  jobId: string,
+  signal?: AbortSignal,
+): Promise<AdminAnalysisJobPromotionResponse> {
+  return adminRequest<AdminAnalysisJobPromotionResponse>(`/api/admin/analysis-jobs/${encodeURIComponent(jobId)}/promote-ar`, {
     token,
     signal,
     method: "POST",
