@@ -51,6 +51,7 @@ const activeJobStatuses = new Set(["queued", "processing", "intake_pending"]);
 const financialProcessingStatuses = new Set(["queued", "processing"]);
 const terminalJobStatuses = new Set(["completed", "error", "canceled", "cancelled"]);
 const allowedFinancialExtensions = [".csv", ".xlsx", ".pdf"];
+const processableFinancialExtensions = new Set([".csv", ".xlsx"]);
 const financialAnalyzerToolName = "Financial Analyzer";
 
 function formatNullable(value: string | number | null | undefined): string {
@@ -127,7 +128,7 @@ function isJobEligibleForFinancialProcessing(job: AdminAnalysisJob): boolean {
   return (
     financialProcessingStatuses.has(normalizedStatus)
     && Boolean(financialFile)
-    && fileExtensionFromNullable(financialFile?.originalFilename || null) === ".csv"
+    && processableFinancialExtensions.has(fileExtensionFromNullable(financialFile?.originalFilename || null))
   );
 }
 
@@ -438,11 +439,11 @@ export default function DocumentAnalysisPage() {
             <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#A380F6]">DA-3A intake</p>
             <h2 className="mt-2 text-2xl font-black text-[#0A1547]">Document Analysis</h2>
             <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#0A1547]/62">
-              Financial file intake is enabled. CSV processing can be run manually after intake. XLSX/PDF processing will be added later.
+              Financial file intake is enabled. CSV and XLSX processing can be run manually after intake. PDF processing will be added later.
             </p>
           </div>
           <span className="w-fit rounded-full border border-[#02ABE0]/25 bg-[#02ABE0]/10 px-3 py-1 text-xs font-extrabold text-[#0A1547]">
-            Manual CSV processing
+            Manual CSV/XLSX processing
           </span>
         </div>
       </section>
@@ -526,13 +527,13 @@ export default function DocumentAnalysisPage() {
           <StepHeader
             eyebrow="Step 2"
             title="Upload source file"
-            description="Financial Analyzer intake is active in this phase. CSV files can be processed manually after the durable job record is created."
+            description="Financial Analyzer intake is active in this phase. CSV and XLSX files can be processed manually after the durable job record is created."
           />
 
           <div className="mt-5 grid gap-4">
             <AnalyzerToolCard
               active
-              description="Accepts .csv, .xlsx, and .pdf financial files. CSV processing can be run manually after intake."
+              description="Accepts .csv, .xlsx, and .pdf financial files. CSV and XLSX processing can be run manually after intake."
               title="Financial Analyzer"
             >
               <label className="block">
@@ -565,7 +566,7 @@ export default function DocumentAnalysisPage() {
           <div className="mt-5 rounded-2xl border border-[#A380F6]/20 bg-[#A380F6]/10 p-4">
             <p className="text-sm font-black text-[#0A1547]">Intake and processing are separate steps.</p>
             <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
-              Creating the financial analysis stores the source file and durable job record. CSV jobs can then be processed manually; this still does not create a ClientSubmission, Upload, report, email, GHL update, or payment action.
+              Creating the financial analysis stores the source file and durable job record. CSV and XLSX jobs can then be processed manually; this still does not create a ClientSubmission, Upload, report, email, GHL update, or payment action.
             </p>
           </div>
 
@@ -744,11 +745,9 @@ function JobStatusCard({
     && !hasCompleteLinkedClientRecords,
   );
   const showLinkedRecords = Boolean(promotionMetadata || hasAnyLinkedClientRecord);
-  const showCsvOnlyNote = Boolean(
+  const showPdfProcessingNote = Boolean(
     financialFile
-    && [".xlsx", ".pdf"].includes(financialFileExtension)
-    && !terminalJobStatuses.has((job.status || "").toLowerCase())
-    && (job.status || "").toLowerCase() !== "cancel_requested",
+    && financialFileExtension === ".pdf",
   );
 
   return (
@@ -795,7 +794,7 @@ function JobStatusCard({
           <div>
             <p className="text-sm font-black text-[#0A1547]">Financial analysis processing</p>
             <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
-              CSV processing is manual in this phase. Processed output remains internal admin job output, not a final client report.
+              CSV and XLSX processing are manual in this phase. Processed output remains internal admin job output, not a final client report.
             </p>
           </div>
           {canProcessFinancial && (
@@ -809,9 +808,9 @@ function JobStatusCard({
             </button>
           )}
         </div>
-        {showCsvOnlyNote && (
+        {showPdfProcessingNote && (
           <p className="mt-3 rounded-xl border border-[#A380F6]/20 bg-white px-4 py-3 text-sm font-bold text-[#0A1547]/68">
-            CSV processing is available now. XLSX/PDF processing will be added later.
+            CSV and XLSX processing are available now. PDF processing will be added later.
           </p>
         )}
       </div>
