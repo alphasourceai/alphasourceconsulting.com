@@ -751,14 +751,9 @@ function JobStatusCard({
       <div className="mt-5 grid gap-3">
         {job.files.map((file) => (
           <article key={file.id} className="rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div>
-                <p className="text-sm font-black text-[#0A1547]">{formatNullable(file.originalFilename)}</p>
-                <p className="mt-1 text-xs font-bold text-[#0A1547]/50">{formatNullable(file.toolName)}</p>
-              </div>
-              <span className={`w-fit rounded-full border px-3 py-1 text-xs font-extrabold ${statusTone(file.status)}`}>
-                {formatNullable(file.status)}
-              </span>
+            <div>
+              <p className="text-sm font-black text-[#0A1547]">{formatNullable(file.originalFilename)}</p>
+              <p className="mt-1 text-xs font-bold text-[#0A1547]/50">{formatNullable(file.toolName)}</p>
             </div>
             <dl className="mt-4 grid gap-3 text-sm md:grid-cols-3">
               <Detail label="UploadFile ID" value={file.uploadFileId} />
