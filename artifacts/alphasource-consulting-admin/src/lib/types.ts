@@ -49,6 +49,77 @@ export type AdminClientsResponse = {
   hasMore: boolean;
 };
 
+export type AdminClientOption = {
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  officeName: string | null;
+  orgType: string | null;
+  phone: string | null;
+  ghlCid: string | null;
+  latestSubmittedAt: string | null;
+};
+
+export type AdminClientOptionsResponse = {
+  ok: true;
+  items: AdminClientOption[];
+  limit: number;
+  count: number;
+};
+
+export type AdminAnalysisError = {
+  code: string | null;
+  message: string | null;
+} | null;
+
+export type AdminAnalysisJobFile = {
+  id: string;
+  jobId: string;
+  toolName: string | null;
+  originalFilename: string | null;
+  contentType: string | null;
+  byteSize: number | null;
+  uploadFileId: string | null;
+  uploadId: string | null;
+  status: string | null;
+  createdAt: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  erroredAt: string | null;
+  error: AdminAnalysisError;
+};
+
+export type AdminAnalysisJob = {
+  id: string;
+  status: string | null;
+  progressPercent: number;
+  currentStep: string | null;
+  clientEmail: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  officeName: string | null;
+  orgType: string | null;
+  phone: string | null;
+  ghlCid: string | null;
+  clientMode: string | null;
+  analysisRunId: string | null;
+  submissionId: string | null;
+  createdByAdminUserId: string | null;
+  createdAt: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  canceledAt: string | null;
+  erroredAt: string | null;
+  updatedAt: string | null;
+  error: AdminAnalysisError;
+  files: AdminAnalysisJobFile[];
+};
+
+export type AdminAnalysisJobResponse = {
+  ok: true;
+  job: AdminAnalysisJob;
+};
+
 export type StripeCustomerSummary = {
   stripeCustomerId: string | null;
   livemode: boolean | null;

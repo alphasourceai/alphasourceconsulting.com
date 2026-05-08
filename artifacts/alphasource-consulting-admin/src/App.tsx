@@ -5,6 +5,7 @@ import AdminLayout from "@/components/AdminLayout";
 import BillingPage from "@/pages/BillingPage";
 import ClientDetailPage from "@/pages/ClientDetailPage";
 import ClientsPage from "@/pages/ClientsPage";
+import DocumentAnalysisPage from "@/pages/DocumentAnalysisPage";
 import LoginPage from "@/pages/LoginPage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 
@@ -139,12 +140,9 @@ function AnalysisRoute() {
   return (
     <ProtectedRoute
       title="Document Analysis"
-      description="Future React workflow for admin-created financial, AR, and claims analyses."
+      description="Create Financial Analyzer intake jobs and track durable file storage status."
     >
-      <PlaceholderPage
-        title="Document Analysis"
-        description="This section will preserve the existing Streamlit document analysis workflow after API parity is ready."
-      />
+      <DocumentAnalysisPage />
     </ProtectedRoute>
   );
 }

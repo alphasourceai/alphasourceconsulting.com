@@ -1,5 +1,7 @@
 import { getAdminApiBaseUrl } from "@/lib/env";
 import type {
+  AdminAnalysisJobResponse,
+  AdminClientOptionsResponse,
   AdminClientsResponse,
   AdminMeResponse,
   BillingOverviewResponse,
@@ -21,6 +23,11 @@ type ClientsQuery = {
   search?: string;
   limit?: number;
   offset?: number;
+};
+
+type ClientOptionsQuery = {
+  search?: string;
+  limit?: number;
 };
 
 type BillingOverviewQuery = {
@@ -59,19 +66,27 @@ function readErrorMessage(payload: unknown): { code: string; message: string } {
 }
 
 async function adminRequest<T>(path: string, options: RequestOptions): Promise<T> {
+  const isFormData = options.body instanceof FormData;
+  let requestBody: BodyInit | undefined;
   const headers: HeadersInit = {
     Accept: "application/json",
     Authorization: `Bearer ${options.token}`,
   };
 
-  if (options.body !== undefined) {
+  if (options.body !== undefined && !isFormData) {
     headers["Content-Type"] = "application/json";
+  }
+
+  if (options.body instanceof FormData) {
+    requestBody = options.body;
+  } else if (options.body !== undefined) {
+    requestBody = JSON.stringify(options.body);
   }
 
   const response = await fetch(`${getAdminApiBaseUrl()}${path}`, {
     method: options.method ?? "GET",
     headers,
-    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+    body: requestBody,
     signal: options.signal,
   });
   const payload = await readJson(response);
@@ -105,6 +120,61 @@ export function getAdminClients(
   return adminRequest<AdminClientsResponse>(`/api/admin/clients?${params.toString()}`, {
     token,
     signal,
+  });
+}
+
+export function getClientOptions(
+  token: string,
+  query: ClientOptionsQuery = {},
+  signal?: AbortSignal,
+): Promise<AdminClientOptionsResponse> {
+  const params = new URLSearchParams();
+  params.set("limit", String(query.limit ?? 75));
+
+  const search = query.search?.trim();
+  if (search) {
+    params.set("search", search);
+  }
+
+  return adminRequest<AdminClientOptionsResponse>(`/api/admin/client-options?${params.toString()}`, {
+    token,
+    signal,
+  });
+}
+
+export function createFinancialIntakeJob(
+  token: string,
+  formData: FormData,
+  signal?: AbortSignal,
+): Promise<AdminAnalysisJobResponse> {
+  return adminRequest<AdminAnalysisJobResponse>("/api/admin/analysis-jobs/financial-intake", {
+    token,
+    signal,
+    method: "POST",
+    body: formData,
+  });
+}
+
+export function getAnalysisJob(
+  token: string,
+  jobId: string,
+  signal?: AbortSignal,
+): Promise<AdminAnalysisJobResponse> {
+  return adminRequest<AdminAnalysisJobResponse>(`/api/admin/analysis-jobs/${encodeURIComponent(jobId)}`, {
+    token,
+    signal,
+  });
+}
+
+export function cancelAnalysisJob(
+  token: string,
+  jobId: string,
+  signal?: AbortSignal,
+): Promise<AdminAnalysisJobResponse> {
+  return adminRequest<AdminAnalysisJobResponse>(`/api/admin/analysis-jobs/${encodeURIComponent(jobId)}/cancel`, {
+    token,
+    signal,
+    method: "POST",
   });
 }
 
