@@ -1,6 +1,7 @@
 import { getAdminApiBaseUrl } from "@/lib/env";
 import type {
   AdminAnalysisJobResponse,
+  AdminAnalysisJobPromotionResponse,
   AdminClientOptionsResponse,
   AdminClientsResponse,
   AdminMeResponse,
@@ -184,6 +185,18 @@ export function processFinancialAnalysisJob(
   signal?: AbortSignal,
 ): Promise<AdminAnalysisJobResponse> {
   return adminRequest<AdminAnalysisJobResponse>(`/api/admin/analysis-jobs/${encodeURIComponent(jobId)}/process-financial`, {
+    token,
+    signal,
+    method: "POST",
+  });
+}
+
+export function promoteFinancialAnalysisJob(
+  token: string,
+  jobId: string,
+  signal?: AbortSignal,
+): Promise<AdminAnalysisJobPromotionResponse> {
+  return adminRequest<AdminAnalysisJobPromotionResponse>(`/api/admin/analysis-jobs/${encodeURIComponent(jobId)}/promote-financial`, {
     token,
     signal,
     method: "POST",

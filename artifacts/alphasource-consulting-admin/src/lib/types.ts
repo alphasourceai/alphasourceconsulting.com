@@ -150,6 +150,12 @@ export type AdminAnalysisJobResponse = {
   job: AdminAnalysisJob;
 };
 
+export type AdminAnalysisJobPromotionResponse = AdminAnalysisJobResponse & {
+  submissionId?: string | null;
+  uploadId?: string | null;
+  promoted?: boolean;
+};
+
 export type StripeCustomerSummary = {
   stripeCustomerId: string | null;
   livemode: boolean | null;

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { Link } from "wouter";
 import { useAuth } from "@/auth/AuthProvider";
 import {
   AdminApiError,
@@ -7,6 +8,7 @@ import {
   getAnalysisJob,
   getClientOptions,
   processFinancialAnalysisJob,
+  promoteFinancialAnalysisJob,
 } from "@/lib/adminApi";
 import type {
   AdminAnalysisData,
@@ -18,6 +20,12 @@ import type {
 } from "@/lib/types";
 
 type ClientMode = "existing" | "new";
+
+type PromotionMetadata = {
+  submissionId?: string | null;
+  uploadId?: string | null;
+  promoted?: boolean;
+};
 
 type ClientFormState = {
   clientEmail: string;
@@ -51,6 +59,10 @@ function formatNullable(value: string | number | null | undefined): string {
   }
 
   return String(value);
+}
+
+function hasRecordId(value: string | null | undefined): boolean {
+  return Boolean(value?.trim());
 }
 
 function formatDate(value: string | null): string {
@@ -123,6 +135,10 @@ function getFinancialJobFile(job: AdminAnalysisJob) {
   return job.files.find((file) => file.toolName === financialAnalyzerToolName) || null;
 }
 
+function clientDetailHref(email: string): string {
+  return `/clients/${encodeURIComponent(email)}`;
+}
+
 function statusTone(status: string | null): string {
   const normalized = (status || "").toLowerCase();
 
@@ -176,6 +192,8 @@ export default function DocumentAnalysisPage() {
   const [jobError, setJobError] = useState("");
   const [canceling, setCanceling] = useState(false);
   const [processingFinancial, setProcessingFinancial] = useState(false);
+  const [promotingFinancial, setPromotingFinancial] = useState(false);
+  const [promotionMetadata, setPromotionMetadata] = useState<PromotionMetadata | null>(null);
 
   const updateClientField = (field: keyof ClientFormState, value: string) => {
     setClientForm((current) => ({ ...current, [field]: value }));
@@ -327,6 +345,7 @@ export default function DocumentAnalysisPage() {
 
     try {
       const response = await createFinancialIntakeJob(token, formData);
+      setPromotionMetadata(null);
       setJob(response.job);
     } catch (intakeError) {
       if (intakeError instanceof AdminApiError) {
@@ -380,6 +399,34 @@ export default function DocumentAnalysisPage() {
       }
     } finally {
       setProcessingFinancial(false);
+    }
+  };
+
+  const handlePromoteFinancial = async () => {
+    if (!job || !token) {
+      return;
+    }
+
+    setPromotingFinancial(true);
+    setJobError("");
+    setPromotionMetadata(null);
+
+    try {
+      const response = await promoteFinancialAnalysisJob(token, job.id);
+      setJob(response.job);
+      setPromotionMetadata({
+        submissionId: response.submissionId,
+        uploadId: response.uploadId,
+        promoted: response.promoted,
+      });
+    } catch (promoteError) {
+      if (promoteError instanceof AdminApiError) {
+        setJobError(promoteError.message);
+      } else {
+        setJobError("Financial analysis could not be promoted to client records.");
+      }
+    } finally {
+      setPromotingFinancial(false);
     }
   };
 
@@ -541,7 +588,10 @@ export default function DocumentAnalysisPage() {
           jobError={jobError}
           onCancel={() => void handleCancel()}
           onProcessFinancial={() => void handleProcessFinancial()}
+          onPromoteFinancial={() => void handlePromoteFinancial()}
           processingFinancial={processingFinancial}
+          promotingFinancial={promotingFinancial}
+          promotionMetadata={promotionMetadata}
         />
       )}
     </div>
@@ -663,19 +713,37 @@ function JobStatusCard({
   jobError,
   onCancel,
   onProcessFinancial,
+  onPromoteFinancial,
   processingFinancial,
+  promotingFinancial,
+  promotionMetadata,
 }: {
   canceling: boolean;
   job: AdminAnalysisJob;
   jobError: string;
   onCancel: () => void;
   onProcessFinancial: () => void;
+  onPromoteFinancial: () => void;
   processingFinancial: boolean;
+  promotingFinancial: boolean;
+  promotionMetadata: PromotionMetadata | null;
 }) {
   const canCancel = isJobActive(job.status);
   const canProcessFinancial = isJobEligibleForFinancialProcessing(job);
   const financialFile = getFinancialJobFile(job);
   const financialFileExtension = fileExtensionFromNullable(financialFile?.originalFilename || null);
+  const jobCompleted = (job.status || "").toLowerCase() === "completed";
+  const hasSubmissionLink = hasRecordId(job.submissionId);
+  const hasUploadLink = hasRecordId(financialFile?.uploadId);
+  const hasAnyLinkedClientRecord = hasSubmissionLink || hasUploadLink;
+  const hasCompleteLinkedClientRecords = hasSubmissionLink && hasUploadLink;
+  const canPromoteFinancial = Boolean(
+    jobCompleted
+    && financialFile
+    && financialFile.analysisData
+    && !hasCompleteLinkedClientRecords,
+  );
+  const showLinkedRecords = Boolean(promotionMetadata || hasAnyLinkedClientRecord);
   const showCsvOnlyNote = Boolean(
     financialFile
     && [".xlsx", ".pdf"].includes(financialFileExtension)
@@ -748,6 +816,18 @@ function JobStatusCard({
         )}
       </div>
 
+      {(canPromoteFinancial || showLinkedRecords) && (
+        <PromotionSection
+          canPromote={canPromoteFinancial}
+          clientEmail={job.clientEmail}
+          jobSubmissionId={job.submissionId}
+          metadata={promotionMetadata}
+          onPromote={onPromoteFinancial}
+          promoting={promotingFinancial}
+          uploadId={financialFile?.uploadId || null}
+        />
+      )}
+
       <div className="mt-5 grid gap-3">
         {job.files.map((file) => (
           <article key={file.id} className="rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
@@ -765,6 +845,80 @@ function JobStatusCard({
         ))}
       </div>
     </section>
+  );
+}
+
+function PromotionSection({
+  canPromote,
+  clientEmail,
+  jobSubmissionId,
+  metadata,
+  onPromote,
+  promoting,
+  uploadId,
+}: {
+  canPromote: boolean;
+  clientEmail: string | null;
+  jobSubmissionId: string | null;
+  metadata: PromotionMetadata | null;
+  onPromote: () => void;
+  promoting: boolean;
+  uploadId: string | null;
+}) {
+  const submissionId = hasRecordId(metadata?.submissionId) ? metadata?.submissionId || null : jobSubmissionId;
+  const linkedUploadId = hasRecordId(metadata?.uploadId) ? metadata?.uploadId || null : uploadId;
+  const showPromoted = typeof metadata?.promoted === "boolean";
+  const hasLinkedRecord = hasRecordId(submissionId) || hasRecordId(linkedUploadId) || showPromoted;
+
+  return (
+    <div className="mt-5 rounded-2xl border border-[#02D99D]/25 bg-[#02D99D]/10 p-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <p className="text-sm font-black text-[#0A1547]">Client records promotion</p>
+          <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/68">
+            Promotion makes this admin job visible to Client Submissions and PDF Generator.
+          </p>
+          <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
+            No email, GHL update, PDF, or report delivery is triggered.
+          </p>
+        </div>
+        {canPromote && (
+          <button
+            type="button"
+            onClick={onPromote}
+            disabled={promoting}
+            className="admin-focus w-full rounded-xl bg-[#0A1547] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#1A2460] disabled:opacity-60 lg:w-auto"
+          >
+            {promoting ? "Promoting..." : "Promote to Client Records"}
+          </button>
+        )}
+      </div>
+
+      {hasLinkedRecord && (
+        <div className="mt-4 rounded-xl border border-[#02D99D]/25 bg-white p-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="text-sm font-black text-[#0A1547]">Linked client records</p>
+              <dl className="mt-3 grid gap-3 text-sm md:grid-cols-3">
+                <Detail label="Submission ID" value={submissionId} />
+                <Detail label="Upload ID" value={linkedUploadId} />
+                {showPromoted && (
+                  <Detail label="Promoted" value={metadata?.promoted ? "true" : "false"} />
+                )}
+              </dl>
+            </div>
+            {clientEmail && (
+              <Link
+                href={clientDetailHref(clientEmail)}
+                className="admin-focus w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-2 text-center text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/50 lg:w-auto"
+              >
+                Open client detail
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
