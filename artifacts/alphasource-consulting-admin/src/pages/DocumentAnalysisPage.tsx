@@ -6,6 +6,7 @@ import {
   createFinancialIntakeJob,
   getAnalysisJob,
   getClientOptions,
+  processFinancialAnalysisJob,
 } from "@/lib/adminApi";
 import type {
   AdminAnalysisData,
@@ -39,8 +40,10 @@ const emptyClientForm: ClientFormState = {
 };
 
 const activeJobStatuses = new Set(["queued", "processing", "intake_pending"]);
+const financialProcessingStatuses = new Set(["queued", "processing"]);
 const terminalJobStatuses = new Set(["completed", "error", "canceled", "cancelled"]);
 const allowedFinancialExtensions = [".csv", ".xlsx", ".pdf"];
+const financialAnalyzerToolName = "Financial Analyzer";
 
 function formatNullable(value: string | number | null | undefined): string {
   if (value === null || value === undefined || value === "") {
@@ -97,8 +100,27 @@ function fileExtension(filename: string): string {
   return index >= 0 ? filename.slice(index).toLowerCase() : "";
 }
 
+function fileExtensionFromNullable(filename: string | null): string {
+  return filename ? fileExtension(filename) : "";
+}
+
 function isJobActive(status: string | null): boolean {
   return activeJobStatuses.has((status || "").toLowerCase());
+}
+
+function isJobEligibleForFinancialProcessing(job: AdminAnalysisJob): boolean {
+  const normalizedStatus = (job.status || "").toLowerCase();
+  const financialFile = getFinancialJobFile(job);
+
+  return (
+    financialProcessingStatuses.has(normalizedStatus)
+    && Boolean(financialFile)
+    && fileExtensionFromNullable(financialFile?.originalFilename || null) === ".csv"
+  );
+}
+
+function getFinancialJobFile(job: AdminAnalysisJob) {
+  return job.files.find((file) => file.toolName === financialAnalyzerToolName) || null;
 }
 
 function statusTone(status: string | null): string {
@@ -153,6 +175,7 @@ export default function DocumentAnalysisPage() {
   const [job, setJob] = useState<AdminAnalysisJob | null>(null);
   const [jobError, setJobError] = useState("");
   const [canceling, setCanceling] = useState(false);
+  const [processingFinancial, setProcessingFinancial] = useState(false);
 
   const updateClientField = (field: keyof ClientFormState, value: string) => {
     setClientForm((current) => ({ ...current, [field]: value }));
@@ -338,6 +361,28 @@ export default function DocumentAnalysisPage() {
     }
   };
 
+  const handleProcessFinancial = async () => {
+    if (!job || !token) {
+      return;
+    }
+
+    setProcessingFinancial(true);
+    setJobError("");
+
+    try {
+      const response = await processFinancialAnalysisJob(token, job.id);
+      setJob(response.job);
+    } catch (processError) {
+      if (processError instanceof AdminApiError) {
+        setJobError(processError.message);
+      } else {
+        setJobError("Financial analysis could not be processed.");
+      }
+    } finally {
+      setProcessingFinancial(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <section className="admin-card p-5">
@@ -346,11 +391,11 @@ export default function DocumentAnalysisPage() {
             <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#A380F6]">DA-3A intake</p>
             <h2 className="mt-2 text-2xl font-black text-[#0A1547]">Document Analysis</h2>
             <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#0A1547]/62">
-              Financial file intake is enabled. AI analysis execution will be added in the next phase.
+              Financial file intake is enabled. CSV processing can be run manually after intake. XLSX/PDF processing will be added later.
             </p>
           </div>
           <span className="w-fit rounded-full border border-[#02ABE0]/25 bg-[#02ABE0]/10 px-3 py-1 text-xs font-extrabold text-[#0A1547]">
-            Intake only
+            Manual CSV processing
           </span>
         </div>
       </section>
@@ -434,13 +479,13 @@ export default function DocumentAnalysisPage() {
           <StepHeader
             eyebrow="Step 2"
             title="Upload source file"
-            description="Only Financial Analyzer intake is active in this phase. The file is stored and linked to a durable job record."
+            description="Financial Analyzer intake is active in this phase. CSV files can be processed manually after the durable job record is created."
           />
 
           <div className="mt-5 grid gap-4">
             <AnalyzerToolCard
               active
-              description="Accepts .csv, .xlsx, and .pdf financial files for storage-only intake."
+              description="Accepts .csv, .xlsx, and .pdf financial files. CSV processing can be run manually after intake."
               title="Financial Analyzer"
             >
               <label className="block">
@@ -471,9 +516,9 @@ export default function DocumentAnalysisPage() {
           </div>
 
           <div className="mt-5 rounded-2xl border border-[#A380F6]/20 bg-[#A380F6]/10 p-4">
-            <p className="text-sm font-black text-[#0A1547]">This does not run analysis yet.</p>
+            <p className="text-sm font-black text-[#0A1547]">Intake and processing are separate steps.</p>
             <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
-              Submitting creates a durable intake job and links the stored file audit record. It does not create a ClientSubmission, Upload, report, email, GHL update, or payment action.
+              Creating the financial analysis stores the source file and durable job record. CSV jobs can then be processed manually; this still does not create a ClientSubmission, Upload, report, email, GHL update, or payment action.
             </p>
           </div>
 
@@ -484,7 +529,7 @@ export default function DocumentAnalysisPage() {
             disabled={submitting}
             className="admin-focus mt-5 w-full rounded-xl bg-[#A380F6] px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-[#A380F6]/20 transition hover:bg-[#906cf2] disabled:opacity-60"
           >
-            {submitting ? "Creating intake job..." : "Create Financial Intake Job"}
+            {submitting ? "Creating financial analysis..." : "Create Financial Analysis"}
           </button>
         </section>
       </form>
@@ -495,6 +540,8 @@ export default function DocumentAnalysisPage() {
           job={job}
           jobError={jobError}
           onCancel={() => void handleCancel()}
+          onProcessFinancial={() => void handleProcessFinancial()}
+          processingFinancial={processingFinancial}
         />
       )}
     </div>
@@ -615,13 +662,26 @@ function JobStatusCard({
   job,
   jobError,
   onCancel,
+  onProcessFinancial,
+  processingFinancial,
 }: {
   canceling: boolean;
   job: AdminAnalysisJob;
   jobError: string;
   onCancel: () => void;
+  onProcessFinancial: () => void;
+  processingFinancial: boolean;
 }) {
   const canCancel = isJobActive(job.status);
+  const canProcessFinancial = isJobEligibleForFinancialProcessing(job);
+  const financialFile = getFinancialJobFile(job);
+  const financialFileExtension = fileExtensionFromNullable(financialFile?.originalFilename || null);
+  const showCsvOnlyNote = Boolean(
+    financialFile
+    && [".xlsx", ".pdf"].includes(financialFileExtension)
+    && !terminalJobStatuses.has((job.status || "").toLowerCase())
+    && (job.status || "").toLowerCase() !== "cancel_requested",
+  );
 
   return (
     <section className="admin-card p-5">
@@ -661,6 +721,32 @@ function JobStatusCard({
         <ErrorMessage message={job.error.message || "The intake job reported an error."} />
       )}
       {jobError && <ErrorMessage message={jobError} />}
+
+      <div className="mt-5 rounded-2xl border border-[#02ABE0]/20 bg-[#02ABE0]/[0.08] p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-sm font-black text-[#0A1547]">Financial analysis processing</p>
+            <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
+              CSV processing is manual in this phase. Processed output remains internal admin job output, not a final client report.
+            </p>
+          </div>
+          {canProcessFinancial && (
+            <button
+              type="button"
+              onClick={onProcessFinancial}
+              disabled={processingFinancial}
+              className="admin-focus w-full rounded-xl bg-[#0A1547] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#1A2460] disabled:opacity-60 lg:w-auto"
+            >
+              {processingFinancial ? "Running analysis..." : "Run Financial Analysis"}
+            </button>
+          )}
+        </div>
+        {showCsvOnlyNote && (
+          <p className="mt-3 rounded-xl border border-[#A380F6]/20 bg-white px-4 py-3 text-sm font-bold text-[#0A1547]/68">
+            CSV processing is available now. XLSX/PDF processing will be added later.
+          </p>
+        )}
+      </div>
 
       <div className="mt-5 grid gap-3">
         {job.files.map((file) => (

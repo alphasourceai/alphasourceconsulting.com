@@ -178,6 +178,18 @@ export function cancelAnalysisJob(
   });
 }
 
+export function processFinancialAnalysisJob(
+  token: string,
+  jobId: string,
+  signal?: AbortSignal,
+): Promise<AdminAnalysisJobResponse> {
+  return adminRequest<AdminAnalysisJobResponse>(`/api/admin/analysis-jobs/${encodeURIComponent(jobId)}/process-financial`, {
+    token,
+    signal,
+    method: "POST",
+  });
+}
+
 export function getClientBillingDetail(
   token: string,
   email: string,
