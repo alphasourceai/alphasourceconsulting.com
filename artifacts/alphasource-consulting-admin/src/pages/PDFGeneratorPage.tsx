@@ -4,7 +4,6 @@ import { AdminApiError, getPdfGeneratorClient, getPdfGeneratorOptions } from "@/
 import type {
   PdfGeneratorClientOption,
   PdfGeneratorClientResponse,
-  PdfGeneratorOpportunity,
   PdfGeneratorUpload,
 } from "@/lib/types";
 
@@ -44,12 +43,59 @@ function pdfLink(upload: PdfGeneratorUpload): string {
   return upload.pdf.signedUrl || upload.pdf.pdfUrl || "";
 }
 
+type DraftOpportunity = {
+  id: string;
+  selected: boolean;
+  title: string;
+  impact: string;
+  recommendation: string;
+};
+
+type DraftTextItem = {
+  id: string;
+  selected: boolean;
+  text: string;
+};
+
+type ReportDraft = {
+  uploadId: string;
+  opportunities: DraftOpportunity[];
+  trends: DraftTextItem[];
+  keyTrends: DraftTextItem[];
+  additionalNotes: string;
+};
+
+function createReportDraft(upload: PdfGeneratorUpload): ReportDraft {
+  return {
+    uploadId: upload.id,
+    opportunities: upload.analysis.opportunities.map((opportunity, index) => ({
+      id: `opportunity-${upload.id}-${index}`,
+      selected: true,
+      title: opportunity.title || "",
+      impact: opportunity.impact || "",
+      recommendation: opportunity.recommendation || "",
+    })),
+    trends: upload.analysis.trends.map((trend, index) => ({
+      id: `trend-${upload.id}-${index}`,
+      selected: true,
+      text: trend,
+    })),
+    keyTrends: upload.analysis.keyTrends.map((trend, index) => ({
+      id: `key-trend-${upload.id}-${index}`,
+      selected: true,
+      text: trend,
+    })),
+    additionalNotes: "",
+  };
+}
+
 export default function PDFGeneratorPage() {
   const { session } = useAuth();
   const [options, setOptions] = useState<PdfGeneratorClientOption[]>([]);
   const [selectedEmail, setSelectedEmail] = useState("");
   const [clientData, setClientData] = useState<PdfGeneratorClientResponse | null>(null);
   const [selectedUploadId, setSelectedUploadId] = useState("");
+  const [reportDraft, setReportDraft] = useState<ReportDraft | null>(null);
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [loadingClient, setLoadingClient] = useState(false);
   const [optionsError, setOptionsError] = useState("");
@@ -127,11 +173,13 @@ export default function PDFGeneratorPage() {
       setClientData(null);
       setClientError("");
       setSelectedUploadId("");
+      setReportDraft(null);
       return;
     }
 
     setClientData(null);
     setSelectedUploadId("");
+    setReportDraft(null);
 
     const controller = new AbortController();
     void loadClient(selectedEmail, controller.signal);
@@ -160,6 +208,10 @@ export default function PDFGeneratorPage() {
 
     return clientData.uploads.find((upload) => upload.id === selectedUploadId) ?? null;
   }, [clientData, selectedEmail, selectedUploadId]);
+
+  useEffect(() => {
+    setReportDraft(selectedUpload ? createReportDraft(selectedUpload) : null);
+  }, [selectedUpload]);
 
   const existingPdfCount = useMemo(() => {
     return clientData?.uploads.filter((upload) => upload.pdf.pdfUrl || upload.pdf.signedUrl).length ?? 0;
@@ -262,7 +314,12 @@ export default function PDFGeneratorPage() {
 
           <div>
             {selectedUpload ? (
-              <UploadDetail upload={selectedUpload} />
+              <UploadDetail
+                upload={selectedUpload}
+                draft={reportDraft}
+                onDraftChange={setReportDraft}
+                onResetDraft={() => setReportDraft(createReportDraft(selectedUpload))}
+              />
             ) : (
               <EmptyState
                 title="Select an upload"
@@ -389,8 +446,19 @@ function UploadList({
   );
 }
 
-function UploadDetail({ upload }: { upload: PdfGeneratorUpload }) {
+function UploadDetail({
+  draft,
+  onDraftChange,
+  onResetDraft,
+  upload,
+}: {
+  draft: ReportDraft | null;
+  onDraftChange: (draft: ReportDraft) => void;
+  onResetDraft: () => void;
+  upload: PdfGeneratorUpload;
+}) {
   const openUrl = pdfLink(upload);
+  const activeDraft = draft?.uploadId === upload.id ? draft : null;
 
   return (
     <article className="admin-card overflow-hidden">
@@ -428,9 +496,16 @@ function UploadDetail({ upload }: { upload: PdfGeneratorUpload }) {
       </div>
 
       <div className="grid gap-5 p-5">
-        <KeyTrendSection items={upload.analysis.keyTrends} />
-        <OpportunitySection items={upload.analysis.opportunities} />
-        <TextListSection title="Trends" items={upload.analysis.trends} emptyText="No trends were returned for this upload." />
+        {activeDraft ? (
+          <>
+            <DraftBuilder draft={activeDraft} onChange={onDraftChange} onReset={onResetDraft} />
+            <DraftPreview draft={activeDraft} upload={upload} />
+          </>
+        ) : (
+          <p className="rounded-2xl bg-[#F8F9FD] p-4 text-sm font-bold text-[#0A1547]/56">
+            Preparing draft builder...
+          </p>
+        )}
 
         <details className="rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3">
           <summary className="cursor-pointer text-xs font-extrabold uppercase tracking-[0.16em] text-[#0A1547]/50">
@@ -448,20 +523,126 @@ function UploadDetail({ upload }: { upload: PdfGeneratorUpload }) {
   );
 }
 
-function KeyTrendSection({ items }: { items: string[] }) {
+function DraftBuilder({
+  draft,
+  onChange,
+  onReset,
+}: {
+  draft: ReportDraft;
+  onChange: (draft: ReportDraft) => void;
+  onReset: () => void;
+}) {
+  const updateOpportunity = (id: string, patch: Partial<DraftOpportunity>) => {
+    onChange({
+      ...draft,
+      opportunities: draft.opportunities.map((item) => (
+        item.id === id ? { ...item, ...patch } : item
+      )),
+    });
+  };
+
+  const updateTextItem = (section: "keyTrends" | "trends", id: string, patch: Partial<DraftTextItem>) => {
+    onChange({
+      ...draft,
+      [section]: draft[section].map((item) => (
+        item.id === id ? { ...item, ...patch } : item
+      )),
+    });
+  };
+
+  return (
+    <section className="rounded-2xl border border-[#A380F6]/20 bg-[#A380F6]/8 p-4">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div>
+          <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#A380F6]">Draft builder only</p>
+          <h4 className="mt-2 text-lg font-black text-[#0A1547]">Edit report draft content</h4>
+          <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
+            PDF generation will be added in the next phase. These edits are local to this page and are not saved.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onReset}
+          className="admin-focus rounded-xl border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/60"
+        >
+          Reset draft from analysis
+        </button>
+      </div>
+
+      <div className="mt-5 grid gap-5">
+        <DraftOpportunityEditor items={draft.opportunities} onChange={updateOpportunity} />
+        <DraftTextEditor
+          emptyText="No key trends were returned for this upload."
+          items={draft.keyTrends}
+          label="Key trends"
+          onChange={(id, patch) => updateTextItem("keyTrends", id, patch)}
+        />
+        <DraftTextEditor
+          emptyText="No trends were returned for this upload."
+          items={draft.trends}
+          label="Trends"
+          onChange={(id, patch) => updateTextItem("trends", id, patch)}
+        />
+        <label className="block">
+          <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/45">Additional notes</span>
+          <textarea
+            value={draft.additionalNotes}
+            onChange={(event) => onChange({ ...draft, additionalNotes: event.target.value })}
+            rows={4}
+            placeholder="Add admin-only draft notes for the future report."
+            className="admin-focus mt-2 w-full resize-y rounded-xl border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-semibold leading-6 text-[#0A1547] placeholder:text-[#0A1547]/38"
+          />
+        </label>
+      </div>
+    </section>
+  );
+}
+
+function DraftOpportunityEditor({
+  items,
+  onChange,
+}: {
+  items: DraftOpportunity[];
+  onChange: (id: string, patch: Partial<DraftOpportunity>) => void;
+}) {
   return (
     <section>
-      <h4 className="text-lg font-black text-[#0A1547]">Key trends</h4>
+      <h5 className="text-sm font-black text-[#0A1547]">Opportunities</h5>
       {items.length === 0 ? (
-        <p className="mt-3 rounded-2xl bg-[#F8F9FD] p-4 text-sm font-bold text-[#0A1547]/56">
-          No key trends were returned for this upload.
+        <p className="mt-3 rounded-2xl bg-white p-4 text-sm font-bold text-[#0A1547]/56">
+          No opportunities were returned for this upload.
         </p>
       ) : (
         <div className="mt-3 grid gap-3">
-          {items.map((item, index) => (
-            <p key={`${item}-${index}`} className="rounded-2xl border border-[#02ABE0]/20 bg-[#02ABE0]/8 px-4 py-3 text-sm font-bold leading-6 text-[#0A1547]">
-              {item}
-            </p>
+          {items.map((item) => (
+            <article key={item.id} className="rounded-2xl border border-[#0A1547]/10 bg-white p-4">
+              <label className="inline-flex items-center gap-2 text-sm font-extrabold text-[#0A1547]">
+                <input
+                  type="checkbox"
+                  checked={item.selected}
+                  onChange={(event) => onChange(item.id, { selected: event.target.checked })}
+                  className="h-4 w-4 accent-[#A380F6]"
+                />
+                Include in draft
+              </label>
+              <div className="mt-4 grid gap-3">
+                <DraftInput
+                  label="Title"
+                  value={item.title}
+                  onChange={(value) => onChange(item.id, { title: value })}
+                />
+                <DraftTextarea
+                  label="Impact"
+                  value={item.impact}
+                  onChange={(value) => onChange(item.id, { impact: value })}
+                />
+                <DraftTextarea
+                  label="Recommendation"
+                  value={item.recommendation}
+                  onChange={(value) => onChange(item.id, { recommendation: value })}
+                />
+              </div>
+            </article>
           ))}
         </div>
       )}
@@ -469,19 +650,100 @@ function KeyTrendSection({ items }: { items: string[] }) {
   );
 }
 
-function OpportunitySection({ items }: { items: PdfGeneratorOpportunity[] }) {
+function DraftTextEditor({
+  emptyText,
+  items,
+  label,
+  onChange,
+}: {
+  emptyText: string;
+  items: DraftTextItem[];
+  label: string;
+  onChange: (id: string, patch: Partial<DraftTextItem>) => void;
+}) {
   return (
     <section>
-      <h4 className="text-lg font-black text-[#0A1547]">Opportunities</h4>
+      <h5 className="text-sm font-black text-[#0A1547]">{label}</h5>
       {items.length === 0 ? (
-        <p className="mt-3 rounded-2xl bg-[#F8F9FD] p-4 text-sm font-bold text-[#0A1547]/56">
-          No opportunities were returned for this upload.
+        <p className="mt-3 rounded-2xl bg-white p-4 text-sm font-bold text-[#0A1547]/56">
+          {emptyText}
         </p>
       ) : (
         <div className="mt-3 grid gap-3">
-          {items.map((item, index) => (
-            <article key={`${item.title}-${index}`} className="rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
-              <h5 className="text-sm font-black text-[#0A1547]">{formatNullable(item.title)}</h5>
+          {items.map((item) => (
+            <article key={item.id} className="rounded-2xl border border-[#0A1547]/10 bg-white p-4">
+              <label className="inline-flex items-center gap-2 text-sm font-extrabold text-[#0A1547]">
+                <input
+                  type="checkbox"
+                  checked={item.selected}
+                  onChange={(event) => onChange(item.id, { selected: event.target.checked })}
+                  className="h-4 w-4 accent-[#A380F6]"
+                />
+                Include in draft
+              </label>
+              <DraftTextarea
+                label={label.slice(0, -1)}
+                value={item.text}
+                onChange={(value) => onChange(item.id, { text: value })}
+              />
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function DraftPreview({ draft, upload }: { draft: ReportDraft; upload: PdfGeneratorUpload }) {
+  const selectedOpportunities = draft.opportunities.filter((item) => item.selected);
+  const selectedKeyTrends = draft.keyTrends.filter((item) => item.selected && item.text.trim());
+  const selectedTrends = draft.trends.filter((item) => item.selected && item.text.trim());
+  const notes = draft.additionalNotes.trim();
+
+  return (
+    <section className="rounded-2xl border border-[#02ABE0]/20 bg-[#02ABE0]/8 p-4">
+      <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#02ABE0]">Draft preview</p>
+      <h4 className="mt-2 text-lg font-black text-[#0A1547]">Selected report content</h4>
+      <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
+        Preview only. Nothing is generated, sent, uploaded, or saved from this page.
+      </p>
+
+      <dl className="mt-4 grid gap-3 text-sm md:grid-cols-2">
+        <Detail label="File" value={upload.fileName} />
+        <Detail label="Tool" value={upload.toolName} />
+        <Detail label="Client" value={upload.clientEmail} />
+        <Detail label="Upload time" value={formatNullable(upload.uploadTime)} />
+      </dl>
+
+      <PreviewTextList title="Key trends" items={selectedKeyTrends.map((item) => item.text)} />
+      <PreviewOpportunities items={selectedOpportunities} />
+      <PreviewTextList title="Trends" items={selectedTrends.map((item) => item.text)} />
+
+      {notes && (
+        <section className="mt-5">
+          <h5 className="text-sm font-black text-[#0A1547]">Additional notes</h5>
+          <p className="mt-3 rounded-2xl border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-bold leading-6 text-[#0A1547]/75">
+            {notes}
+          </p>
+        </section>
+      )}
+    </section>
+  );
+}
+
+function PreviewOpportunities({ items }: { items: DraftOpportunity[] }) {
+  return (
+    <section className="mt-5">
+      <h5 className="text-sm font-black text-[#0A1547]">Opportunities</h5>
+      {items.length === 0 ? (
+        <p className="mt-3 rounded-2xl bg-white p-4 text-sm font-bold text-[#0A1547]/56">
+          No opportunities selected.
+        </p>
+      ) : (
+        <div className="mt-3 grid gap-3">
+          {items.map((item) => (
+            <article key={item.id} className="rounded-2xl border border-[#0A1547]/10 bg-white p-4">
+              <h6 className="text-sm font-black text-[#0A1547]">{formatNullable(item.title)}</h6>
               <dl className="mt-3 grid gap-3 text-sm">
                 <Detail label="Impact" value={item.impact} />
                 <Detail label="Recommendation" value={item.recommendation} />
@@ -494,32 +756,52 @@ function OpportunitySection({ items }: { items: PdfGeneratorOpportunity[] }) {
   );
 }
 
-function TextListSection({
-  emptyText,
-  items,
-  title,
-}: {
-  emptyText: string;
-  items: string[];
-  title: string;
-}) {
+function PreviewTextList({ items, title }: { items: string[]; title: string }) {
   return (
-    <section>
-      <h4 className="text-lg font-black text-[#0A1547]">{title}</h4>
+    <section className="mt-5">
+      <h5 className="text-sm font-black text-[#0A1547]">{title}</h5>
       {items.length === 0 ? (
-        <p className="mt-3 rounded-2xl bg-[#F8F9FD] p-4 text-sm font-bold text-[#0A1547]/56">
-          {emptyText}
+        <p className="mt-3 rounded-2xl bg-white p-4 text-sm font-bold text-[#0A1547]/56">
+          No {title.toLowerCase()} selected.
         </p>
       ) : (
         <ul className="mt-3 grid gap-3">
           {items.map((item, index) => (
-            <li key={`${item}-${index}`} className="rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-bold leading-6 text-[#0A1547]/75">
+            <li key={`${item}-${index}`} className="rounded-2xl border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-bold leading-6 text-[#0A1547]/75">
               {item}
             </li>
           ))}
         </ul>
       )}
     </section>
+  );
+}
+
+function DraftInput({ label, onChange, value }: { label: string; onChange: (value: string) => void; value: string }) {
+  return (
+    <label className="block">
+      <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/45">{label}</span>
+      <input
+        type="text"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547]"
+      />
+    </label>
+  );
+}
+
+function DraftTextarea({ label, onChange, value }: { label: string; onChange: (value: string) => void; value: string }) {
+  return (
+    <label className="block">
+      <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/45">{label}</span>
+      <textarea
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        rows={3}
+        className="admin-focus mt-2 w-full resize-y rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold leading-6 text-[#0A1547]"
+      />
+    </label>
   );
 }
 
