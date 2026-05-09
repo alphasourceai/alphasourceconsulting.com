@@ -156,6 +156,77 @@ export type AdminAnalysisJobPromotionResponse = AdminAnalysisJobResponse & {
   promoted?: boolean;
 };
 
+export type PdfGeneratorClientOption = {
+  email: string;
+  submissionCount: number;
+  eligibleUploadCount: number;
+  latestSubmittedAt: string | null;
+  latestUploadTime: string | null;
+};
+
+export type PdfGeneratorSubmission = {
+  id: string;
+  clientEmail: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  officeName: string | null;
+  orgType: string | null;
+  phone: string | null;
+  source: string | null;
+  status: string | null;
+  submittedAt: string | null;
+  completedAt: string | null;
+  analysisRunId: string | null;
+};
+
+export type PdfGeneratorOpportunity = {
+  title: string;
+  impact: string;
+  recommendation: string;
+};
+
+export type PdfGeneratorAnalysis = {
+  hasAnalysisData: boolean;
+  opportunities: PdfGeneratorOpportunity[];
+  trends: string[];
+  keyTrends: string[];
+};
+
+export type PdfGeneratorMetadata = {
+  pdfVersion: number;
+  pdfUrl: string | null;
+  pdfGeneratedAt: string | null;
+  reportPath: string | null;
+  signedUrl: string | null;
+};
+
+export type PdfGeneratorUpload = {
+  id: string;
+  fileName: string | null;
+  toolName: string | null;
+  uploadTime: string | null;
+  clientEmail: string | null;
+  submissionId: string | null;
+  paid: boolean;
+  analysis: PdfGeneratorAnalysis;
+  pdf: PdfGeneratorMetadata;
+  warnings: string[];
+};
+
+export type PdfGeneratorOptionsResponse = {
+  ok: true;
+  clients: PdfGeneratorClientOption[];
+  count: number;
+};
+
+export type PdfGeneratorClientResponse = {
+  ok: true;
+  clientEmail: string;
+  submissions: PdfGeneratorSubmission[];
+  uploads: PdfGeneratorUpload[];
+  count: number;
+};
+
 export type StripeCustomerSummary = {
   stripeCustomerId: string | null;
   livemode: boolean | null;

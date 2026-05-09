@@ -7,6 +7,7 @@ import ClientDetailPage from "@/pages/ClientDetailPage";
 import ClientsPage from "@/pages/ClientsPage";
 import DocumentAnalysisPage from "@/pages/DocumentAnalysisPage";
 import LoginPage from "@/pages/LoginPage";
+import PDFGeneratorPage from "@/pages/PDFGeneratorPage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 
 function Navigate({ to }: { to: string }) {
@@ -165,12 +166,9 @@ function PdfGeneratorRoute() {
   return (
     <ProtectedRoute
       title="PDF Generator"
-      description="Future React workflow for report metadata, content selection, generation, and signed report links."
+      description="Read-only preview of existing report-ready analysis uploads and PDF metadata."
     >
-      <PlaceholderPage
-        title="PDF Generator"
-        description="This section remains read-only placeholder content until PDF API endpoints are implemented."
-      />
+      <PDFGeneratorPage />
     </ProtectedRoute>
   );
 }

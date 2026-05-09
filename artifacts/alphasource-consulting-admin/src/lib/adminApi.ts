@@ -10,6 +10,8 @@ import type {
   ClientBillingDetailResponse,
   CreateCheckoutSessionRequest,
   CreateCheckoutSessionResponse,
+  PdfGeneratorClientResponse,
+  PdfGeneratorOptionsResponse,
   SafeApiError,
 } from "@/lib/types";
 
@@ -274,6 +276,30 @@ export function promoteClaimsAnalysisJob(
     token,
     signal,
     method: "POST",
+  });
+}
+
+export function getPdfGeneratorOptions(
+  token: string,
+  signal?: AbortSignal,
+): Promise<PdfGeneratorOptionsResponse> {
+  return adminRequest<PdfGeneratorOptionsResponse>("/api/admin/pdf-generator/options", {
+    token,
+    signal,
+  });
+}
+
+export function getPdfGeneratorClient(
+  token: string,
+  email: string,
+  signal?: AbortSignal,
+): Promise<PdfGeneratorClientResponse> {
+  const params = new URLSearchParams();
+  params.set("email", email);
+
+  return adminRequest<PdfGeneratorClientResponse>(`/api/admin/pdf-generator/client?${params.toString()}`, {
+    token,
+    signal,
   });
 }
 
