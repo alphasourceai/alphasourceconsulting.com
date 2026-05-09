@@ -227,6 +227,21 @@ export type PdfGeneratorClientResponse = {
   count: number;
 };
 
+export type GeneratePdfReportRequest = {
+  uploadId: string;
+  opportunities: PdfGeneratorOpportunity[];
+  trends: string[];
+  keyTrends: string[];
+  additionalNotes: string;
+};
+
+export type GeneratePdfReportResponse = {
+  ok: true;
+  upload: PdfGeneratorUpload;
+  pdf: PdfGeneratorMetadata;
+  warnings: string[];
+};
+
 export type StripeCustomerSummary = {
   stripeCustomerId: string | null;
   livemode: boolean | null;

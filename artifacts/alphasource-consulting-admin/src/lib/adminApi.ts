@@ -10,6 +10,8 @@ import type {
   ClientBillingDetailResponse,
   CreateCheckoutSessionRequest,
   CreateCheckoutSessionResponse,
+  GeneratePdfReportRequest,
+  GeneratePdfReportResponse,
   PdfGeneratorClientResponse,
   PdfGeneratorOptionsResponse,
   SafeApiError,
@@ -300,6 +302,19 @@ export function getPdfGeneratorClient(
   return adminRequest<PdfGeneratorClientResponse>(`/api/admin/pdf-generator/client?${params.toString()}`, {
     token,
     signal,
+  });
+}
+
+export function generatePdfReport(
+  token: string,
+  payload: GeneratePdfReportRequest,
+  signal?: AbortSignal,
+): Promise<GeneratePdfReportResponse> {
+  return adminRequest<GeneratePdfReportResponse>("/api/admin/pdf-generator/generate", {
+    token,
+    signal,
+    method: "POST",
+    body: payload,
   });
 }
 

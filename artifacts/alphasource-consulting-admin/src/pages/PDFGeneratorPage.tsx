@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/auth/AuthProvider";
-import { AdminApiError, getPdfGeneratorClient, getPdfGeneratorOptions } from "@/lib/adminApi";
+import { AdminApiError, generatePdfReport, getPdfGeneratorClient, getPdfGeneratorOptions } from "@/lib/adminApi";
 import type {
+  GeneratePdfReportRequest,
   PdfGeneratorClientOption,
   PdfGeneratorClientResponse,
+  PdfGeneratorMetadata,
   PdfGeneratorUpload,
 } from "@/lib/types";
 
@@ -43,6 +45,10 @@ function pdfLink(upload: PdfGeneratorUpload): string {
   return upload.pdf.signedUrl || upload.pdf.pdfUrl || "";
 }
 
+function generatedPdfLink(result: PdfGenerationResult | null): string {
+  return result?.pdf.signedUrl || result?.pdf.pdfUrl || "";
+}
+
 type DraftOpportunity = {
   id: string;
   selected: boolean;
@@ -63,6 +69,17 @@ type ReportDraft = {
   trends: DraftTextItem[];
   keyTrends: DraftTextItem[];
   additionalNotes: string;
+};
+
+type PdfGenerationResult = {
+  uploadId: string;
+  pdf: PdfGeneratorMetadata;
+  warnings: string[];
+};
+
+type PdfGenerationError = {
+  uploadId: string;
+  message: string;
 };
 
 function createReportDraft(upload: PdfGeneratorUpload): ReportDraft {
@@ -89,6 +106,37 @@ function createReportDraft(upload: PdfGeneratorUpload): ReportDraft {
   };
 }
 
+function createGeneratePdfPayload(draft: ReportDraft): Omit<GeneratePdfReportRequest, "uploadId"> {
+  return {
+    opportunities: draft.opportunities
+      .filter((item) => item.selected)
+      .map((item) => ({
+        title: item.title.trim(),
+        impact: item.impact.trim(),
+        recommendation: item.recommendation.trim(),
+      }))
+      .filter((item) => item.title || item.impact || item.recommendation),
+    trends: draft.trends
+      .filter((item) => item.selected)
+      .map((item) => item.text.trim())
+      .filter(Boolean),
+    keyTrends: draft.keyTrends
+      .filter((item) => item.selected)
+      .map((item) => item.text.trim())
+      .filter(Boolean),
+    additionalNotes: draft.additionalNotes.trim(),
+  };
+}
+
+function hasGeneratePdfContent(payload: Omit<GeneratePdfReportRequest, "uploadId">): boolean {
+  return (
+    payload.opportunities.length > 0 ||
+    payload.trends.length > 0 ||
+    payload.keyTrends.length > 0 ||
+    Boolean(payload.additionalNotes)
+  );
+}
+
 export default function PDFGeneratorPage() {
   const { session } = useAuth();
   const [options, setOptions] = useState<PdfGeneratorClientOption[]>([]);
@@ -100,6 +148,9 @@ export default function PDFGeneratorPage() {
   const [loadingClient, setLoadingClient] = useState(false);
   const [optionsError, setOptionsError] = useState("");
   const [clientError, setClientError] = useState("");
+  const [generatingUploadId, setGeneratingUploadId] = useState("");
+  const [generationError, setGenerationError] = useState<PdfGenerationError | null>(null);
+  const [generationResult, setGenerationResult] = useState<PdfGenerationResult | null>(null);
 
   const token = session?.access_token || "";
 
@@ -174,12 +225,16 @@ export default function PDFGeneratorPage() {
       setClientError("");
       setSelectedUploadId("");
       setReportDraft(null);
+      setGenerationError(null);
+      setGenerationResult(null);
       return;
     }
 
     setClientData(null);
     setSelectedUploadId("");
     setReportDraft(null);
+    setGenerationError(null);
+    setGenerationResult(null);
 
     const controller = new AbortController();
     void loadClient(selectedEmail, controller.signal);
@@ -210,8 +265,72 @@ export default function PDFGeneratorPage() {
   }, [clientData, selectedEmail, selectedUploadId]);
 
   useEffect(() => {
-    setReportDraft(selectedUpload ? createReportDraft(selectedUpload) : null);
-  }, [selectedUpload]);
+    if (clientData?.clientEmail !== selectedEmail) {
+      setReportDraft(null);
+      return;
+    }
+
+    const upload = clientData?.uploads.find((item) => item.id === selectedUploadId) ?? null;
+    setReportDraft(upload ? createReportDraft(upload) : null);
+  }, [clientData?.clientEmail, selectedEmail, selectedUploadId]);
+
+  useEffect(() => {
+    setGenerationError(null);
+    setGenerationResult(null);
+  }, [selectedEmail, selectedUploadId]);
+
+  const handleGeneratePdf = useCallback(async () => {
+    if (generatingUploadId || !token || !selectedUpload || !reportDraft || reportDraft.uploadId !== selectedUpload.id) {
+      return;
+    }
+
+    const draftPayload = createGeneratePdfPayload(reportDraft);
+    if (!hasGeneratePdfContent(draftPayload)) {
+      setGenerationError({
+        uploadId: selectedUpload.id,
+        message: "Select at least one opportunity, trend, key trend, or add notes before generating.",
+      });
+      return;
+    }
+
+    const uploadId = selectedUpload.id;
+    setGeneratingUploadId(uploadId);
+    setGenerationError(null);
+    setGenerationResult(null);
+
+    try {
+      const response = await generatePdfReport(token, {
+        uploadId,
+        ...draftPayload,
+      });
+
+      setClientData((current) => {
+        if (!current || current.clientEmail !== selectedEmail) {
+          return current;
+        }
+
+        return {
+          ...current,
+          uploads: current.uploads.map((upload) => (
+            upload.id === response.upload.id ? response.upload : upload
+          )),
+        };
+      });
+      setGenerationResult({
+        uploadId: response.upload.id,
+        pdf: response.pdf,
+        warnings: response.warnings ?? [],
+      });
+    } catch (error) {
+      if (error instanceof AdminApiError) {
+        setGenerationError({ uploadId, message: error.message });
+      } else {
+        setGenerationError({ uploadId, message: "PDF could not be generated. Please try again." });
+      }
+    } finally {
+      setGeneratingUploadId((current) => (current === uploadId ? "" : current));
+    }
+  }, [generatingUploadId, reportDraft, selectedEmail, selectedUpload, token]);
 
   const existingPdfCount = useMemo(() => {
     return clientData?.uploads.filter((upload) => upload.pdf.pdfUrl || upload.pdf.signedUrl).length ?? 0;
@@ -222,10 +341,10 @@ export default function PDFGeneratorPage() {
       <section className="admin-card p-5">
         <div className="grid gap-5 lg:grid-cols-[1fr_360px] lg:items-end">
           <div>
-            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#A380F6]">Read-only PDF Generator preview</p>
-            <h2 className="mt-3 text-2xl font-black text-[#0A1547]">Review report-ready uploads</h2>
+            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#A380F6]">PDF Generator draft builder</p>
+            <h2 className="mt-3 text-2xl font-black text-[#0A1547]">Build PDF reports from promoted uploads</h2>
             <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#0A1547]/62">
-              PDF generation will be added in a later step. This page only previews existing analysis data and existing PDF metadata from the Admin API.
+              Select report content, generate the PDF, and store the PDF metadata. No email, GHL update, or report delivery is triggered.
             </p>
           </div>
 
@@ -317,6 +436,10 @@ export default function PDFGeneratorPage() {
               <UploadDetail
                 upload={selectedUpload}
                 draft={reportDraft}
+                generationError={generationError?.uploadId === selectedUpload.id ? generationError.message : ""}
+                generationResult={generationResult?.uploadId === selectedUpload.id ? generationResult : null}
+                generating={Boolean(generatingUploadId)}
+                onGeneratePdf={handleGeneratePdf}
                 onDraftChange={setReportDraft}
                 onResetDraft={() => setReportDraft(createReportDraft(selectedUpload))}
               />
@@ -362,7 +485,7 @@ function ClientSummary({
           </h3>
         </div>
         <span className="rounded-full border border-[#02ABE0]/20 bg-[#02ABE0]/10 px-3 py-1 text-xs font-extrabold text-[#0A1547]">
-          Read-only
+          Admin PDF
         </span>
       </div>
 
@@ -397,7 +520,7 @@ function UploadList({
         <div>
           <h3 className="text-lg font-black text-[#0A1547]">Eligible uploads</h3>
           <p className="mt-1 text-sm font-semibold text-[#0A1547]/58">
-            Existing analysis output only. No report is generated from this view.
+            Choose an upload to edit draft content and generate a stored PDF.
           </p>
         </div>
         <span className="rounded-full border border-[#0A1547]/10 bg-[#F8F9FD] px-3 py-1 text-xs font-extrabold text-[#0A1547]/65">
@@ -448,12 +571,20 @@ function UploadList({
 
 function UploadDetail({
   draft,
+  generationError,
+  generationResult,
+  generating,
   onDraftChange,
+  onGeneratePdf,
   onResetDraft,
   upload,
 }: {
   draft: ReportDraft | null;
+  generationError: string;
+  generationResult: PdfGenerationResult | null;
+  generating: boolean;
   onDraftChange: (draft: ReportDraft) => void;
+  onGeneratePdf: () => void;
   onResetDraft: () => void;
   upload: PdfGeneratorUpload;
 }) {
@@ -500,6 +631,13 @@ function UploadDetail({
           <>
             <DraftBuilder draft={activeDraft} onChange={onDraftChange} onReset={onResetDraft} />
             <DraftPreview draft={activeDraft} upload={upload} />
+            <GeneratePdfPanel
+              draft={activeDraft}
+              error={generationError}
+              generating={generating}
+              onGenerate={onGeneratePdf}
+              result={generationResult}
+            />
           </>
         ) : (
           <p className="rounded-2xl bg-[#F8F9FD] p-4 text-sm font-bold text-[#0A1547]/56">
@@ -520,6 +658,88 @@ function UploadDetail({
         </details>
       </div>
     </article>
+  );
+}
+
+function GeneratePdfPanel({
+  draft,
+  error,
+  generating,
+  onGenerate,
+  result,
+}: {
+  draft: ReportDraft;
+  error: string;
+  generating: boolean;
+  onGenerate: () => void;
+  result: PdfGenerationResult | null;
+}) {
+  const payload = createGeneratePdfPayload(draft);
+  const canGenerate = hasGeneratePdfContent(payload);
+  const openUrl = generatedPdfLink(result);
+
+  return (
+    <section className="rounded-2xl border border-[#02D99D]/25 bg-[#02D99D]/8 p-4">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div>
+          <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#02D99D]">Generate PDF</p>
+          <h4 className="mt-2 text-lg font-black text-[#0A1547]">Create stored PDF from draft</h4>
+          <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
+            This updates the upload PDF metadata only. Paid status, email, GHL, and report delivery are untouched.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onGenerate}
+          disabled={!canGenerate || generating}
+          className="admin-focus rounded-xl bg-[#0A1547] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#1A2460] disabled:cursor-not-allowed disabled:opacity-55"
+        >
+          {generating ? "Generating PDF…" : "Generate PDF"}
+        </button>
+      </div>
+
+      {!canGenerate && (
+        <p className="mt-4 rounded-xl bg-white px-4 py-3 text-sm font-bold text-[#0A1547]/58">
+          Select at least one opportunity, trend, key trend, or add notes to generate a PDF.
+        </p>
+      )}
+
+      {error && (
+        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+          {error}
+        </div>
+      )}
+
+      {result && (
+        <div className="mt-4 rounded-2xl border border-[#02D99D]/25 bg-white p-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="text-sm font-black text-[#0A1547]">
+                PDF generated and stored. No email, GHL update, or report delivery was triggered.
+              </p>
+              <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+                <Detail label="PDF version" value={result.pdf.pdfVersion} />
+                <Detail label="PDF generated" value={formatDate(result.pdf.pdfGeneratedAt)} />
+              </dl>
+            </div>
+            {openUrl && (
+              <a
+                href={openUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="admin-focus rounded-xl bg-[#02ABE0] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#0096C9]"
+              >
+                Open PDF
+              </a>
+            )}
+          </div>
+
+          {result.warnings.length > 0 && (
+            <WarningList warnings={result.warnings} />
+          )}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -557,7 +777,7 @@ function DraftBuilder({
           <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#A380F6]">Draft builder only</p>
           <h4 className="mt-2 text-lg font-black text-[#0A1547]">Edit report draft content</h4>
           <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
-            PDF generation will be added in the next phase. These edits are local to this page and are not saved.
+            These edits are used for this PDF generation request only and are not saved back to the analysis data.
           </p>
         </div>
         <button
@@ -705,7 +925,7 @@ function DraftPreview({ draft, upload }: { draft: ReportDraft; upload: PdfGenera
       <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#02ABE0]">Draft preview</p>
       <h4 className="mt-2 text-lg font-black text-[#0A1547]">Selected report content</h4>
       <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
-        Preview only. Nothing is generated, sent, uploaded, or saved from this page.
+        Only selected content will be used for the generated PDF. No email, GHL update, or report delivery is triggered.
       </p>
 
       <dl className="mt-4 grid gap-3 text-sm md:grid-cols-2">
