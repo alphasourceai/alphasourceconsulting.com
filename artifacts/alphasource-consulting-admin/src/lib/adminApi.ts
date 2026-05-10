@@ -15,6 +15,8 @@ import type {
   PdfGeneratorClientResponse,
   PdfGeneratorOptionsResponse,
   SafeApiError,
+  SecureUploadFilesQuery,
+  SecureUploadFilesResponse,
 } from "@/lib/types";
 
 type RequestOptions = {
@@ -315,6 +317,33 @@ export function generatePdfReport(
     signal,
     method: "POST",
     body: payload,
+  });
+}
+
+export function getSecureUploadFiles(
+  token: string,
+  query: SecureUploadFilesQuery = {},
+  signal?: AbortSignal,
+): Promise<SecureUploadFilesResponse> {
+  const params = new URLSearchParams();
+  params.set("completedOnly", String(query.completedOnly ?? true));
+  params.set("limit", String(query.limit ?? 50));
+  params.set("offset", String(query.offset ?? 0));
+
+  const email = query.email?.trim();
+  if (email) {
+    params.set("email", email);
+  }
+  if (query.startDate) {
+    params.set("startDate", query.startDate);
+  }
+  if (query.endDate) {
+    params.set("endDate", query.endDate);
+  }
+
+  return adminRequest<SecureUploadFilesResponse>(`/api/admin/secure-uploads/files?${params.toString()}`, {
+    token,
+    signal,
   });
 }
 

@@ -9,6 +9,7 @@ import DocumentAnalysisPage from "@/pages/DocumentAnalysisPage";
 import LoginPage from "@/pages/LoginPage";
 import PDFGeneratorPage from "@/pages/PDFGeneratorPage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
+import SecureUploadsPage from "@/pages/SecureUploadsPage";
 
 function Navigate({ to }: { to: string }) {
   const [, navigate] = useLocation();
@@ -152,12 +153,9 @@ function SecureUploadsRoute() {
   return (
     <ProtectedRoute
       title="Secure Uploads"
-      description="Future React workflow for team-assisted HIPAA-compliant file collection."
+      description="Read-only inbox for completed secure upload portal files."
     >
-      <PlaceholderPage
-        title="Secure Uploads"
-        description="This section will later manage secure upload requests and completed upload review."
-      />
+      <SecureUploadsPage />
     </ProtectedRoute>
   );
 }

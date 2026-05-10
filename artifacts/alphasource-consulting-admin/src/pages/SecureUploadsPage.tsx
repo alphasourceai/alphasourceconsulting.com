@@ -1,0 +1,359 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useAuth } from "@/auth/AuthProvider";
+import { AdminApiError, getSecureUploadFiles } from "@/lib/adminApi";
+import type { SecureUploadFile, SecureUploadFilesQuery, SecureUploadFilesResponse } from "@/lib/types";
+
+type SecureUploadFilters = {
+  completedOnly: boolean;
+  email: string;
+  startDate: string;
+  endDate: string;
+};
+
+const DEFAULT_LIMIT = 50;
+
+function formatNullable(value: string | number | null | undefined): string {
+  if (value === null || value === undefined || value === "") {
+    return "-";
+  }
+  return String(value);
+}
+
+function formatDate(value: string | null): string {
+  if (!value) {
+    return "-";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
+function formatBytes(value: number | null): string {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return "-";
+  }
+  if (value < 1024) {
+    return `${value} B`;
+  }
+  if (value < 1024 * 1024) {
+    return `${(value / 1024).toFixed(1)} KB`;
+  }
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function statusLabel(file: SecureUploadFile): "Completed" | "Incomplete" {
+  return file.completedAt ? "Completed" : "Incomplete";
+}
+
+function responseFallback(): SecureUploadFilesResponse {
+  return {
+    ok: true,
+    items: [],
+    count: 0,
+    limit: DEFAULT_LIMIT,
+    offset: 0,
+    hasMore: false,
+  };
+}
+
+export default function SecureUploadsPage() {
+  const { session } = useAuth();
+  const token = session?.access_token || "";
+  const [filters, setFilters] = useState<SecureUploadFilters>({
+    completedOnly: true,
+    email: "",
+    startDate: "",
+    endDate: "",
+  });
+  const [appliedFilters, setAppliedFilters] = useState<SecureUploadFilters>(filters);
+  const [offset, setOffset] = useState(0);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [response, setResponse] = useState<SecureUploadFilesResponse>(responseFallback);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const query = useMemo<SecureUploadFilesQuery>(() => ({
+    completedOnly: appliedFilters.completedOnly,
+    email: appliedFilters.email,
+    startDate: appliedFilters.startDate,
+    endDate: appliedFilters.endDate,
+    limit: DEFAULT_LIMIT,
+    offset,
+  }), [appliedFilters, offset]);
+
+  const loadFiles = useCallback(async (signal?: AbortSignal) => {
+    if (!token) {
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const filesResponse = await getSecureUploadFiles(token, query, signal);
+      setResponse(filesResponse);
+    } catch (loadError) {
+      if (loadError instanceof DOMException && loadError.name === "AbortError") {
+        return;
+      }
+
+      if (loadError instanceof AdminApiError) {
+        setError(loadError.message);
+      } else {
+        setError("Secure uploads could not be loaded.");
+      }
+    } finally {
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
+    }
+  }, [query, token]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void loadFiles(controller.signal);
+
+    return () => {
+      controller.abort();
+    };
+  }, [loadFiles, refreshKey]);
+
+  const handleRefresh = () => {
+    setOffset(0);
+    setAppliedFilters({ ...filters });
+    setRefreshKey((current) => current + 1);
+  };
+
+  const canGoBack = response.offset > 0;
+  const canGoNext = response.hasMore;
+
+  return (
+    <div className="space-y-6">
+      <section className="admin-card p-5">
+        <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+          <div className="max-w-3xl">
+            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#A380F6]">Secure Uploads Inbox</p>
+            <h2 className="mt-3 text-2xl font-black text-[#0A1547]">Review secure portal uploads</h2>
+            <p className="mt-2 text-sm font-semibold leading-6 text-[#0A1547]/62">
+              Read-only view of files uploaded through the secure upload portal. This page does not create upload requests, send email, generate links, download files, or import files into analysis.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={loading}
+            className="admin-focus rounded-xl bg-[#0A1547] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#1A2460] disabled:cursor-not-allowed disabled:opacity-55"
+          >
+            {loading ? "Refreshing..." : "Refresh"}
+          </button>
+        </div>
+      </section>
+
+      <section className="admin-card p-5">
+        <div className="grid gap-4 lg:grid-cols-[180px_1fr_180px_180px] lg:items-end">
+          <label className="flex items-center gap-3 rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3">
+            <input
+              type="checkbox"
+              checked={filters.completedOnly}
+              onChange={(event) => setFilters((current) => ({ ...current, completedOnly: event.target.checked }))}
+              className="h-4 w-4 accent-[#A380F6]"
+            />
+            <span className="text-sm font-extrabold text-[#0A1547]">Completed only</span>
+          </label>
+
+          <label>
+            <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/45">Email contains</span>
+            <input
+              type="search"
+              value={filters.email}
+              onChange={(event) => setFilters((current) => ({ ...current, email: event.target.value }))}
+              placeholder="name@example.com"
+              className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-bold text-[#0A1547] placeholder:text-[#0A1547]/35"
+            />
+          </label>
+
+          <label>
+            <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/45">Start date</span>
+            <input
+              type="date"
+              value={filters.startDate}
+              onChange={(event) => setFilters((current) => ({ ...current, startDate: event.target.value }))}
+              className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-bold text-[#0A1547]"
+            />
+          </label>
+
+          <label>
+            <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/45">End date</span>
+            <input
+              type="date"
+              value={filters.endDate}
+              onChange={(event) => setFilters((current) => ({ ...current, endDate: event.target.value }))}
+              className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-bold text-[#0A1547]"
+            />
+          </label>
+        </div>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-3">
+        <MetricCard label="Returned files" value={response.count} accent="#A380F6" />
+        <MetricCard label="Page offset" value={response.offset} accent="#02ABE0" />
+        <MetricCard label="More available" value={response.hasMore ? "Yes" : "No"} accent="#02D99D" />
+      </section>
+
+      {loading && (
+        <div className="admin-card p-8 text-center text-sm font-bold text-[#0A1547]/60">
+          Loading secure uploads...
+        </div>
+      )}
+
+      {error && !loading && (
+        <ErrorState message={error} />
+      )}
+
+      {!loading && !error && response.items.length === 0 && (
+        <EmptyState
+          title="No secure uploads found"
+          description="Try broadening the date range, email filter, or completed-only setting."
+        />
+      )}
+
+      {!loading && !error && response.items.length > 0 && (
+        <section className="grid gap-4">
+          {response.items.map((file) => (
+            <SecureUploadCard key={file.id} file={file} />
+          ))}
+        </section>
+      )}
+
+      {!error && (
+        <section className="admin-card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm font-bold text-[#0A1547]/58">
+            Showing {response.count} files from offset {response.offset}. {response.hasMore ? "More results are available." : "End of current result set."}
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setOffset(Math.max(0, offset - DEFAULT_LIMIT))}
+              disabled={loading || !canGoBack}
+              className="admin-focus rounded-xl border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/60 disabled:cursor-not-allowed disabled:opacity-55"
+            >
+              Previous
+            </button>
+            <button
+              type="button"
+              onClick={() => setOffset(offset + DEFAULT_LIMIT)}
+              disabled={loading || !canGoNext}
+              className="admin-focus rounded-xl bg-[#0A1547] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#1A2460] disabled:cursor-not-allowed disabled:opacity-55"
+            >
+              Next
+            </button>
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
+
+function MetricCard({ accent, label, value }: { accent: string; label: string; value: string | number }) {
+  return (
+    <div className="admin-card p-5">
+      <div className="h-1.5 w-12 rounded-full" style={{ backgroundColor: accent }} />
+      <p className="mt-4 text-xs font-extrabold uppercase tracking-[0.16em] text-[#0A1547]/45">{label}</p>
+      <p className="mt-2 break-words text-2xl font-black text-[#0A1547]">{value}</p>
+    </div>
+  );
+}
+
+function SecureUploadCard({ file }: { file: SecureUploadFile }) {
+  const status = statusLabel(file);
+
+  return (
+    <article className="admin-card overflow-hidden">
+      <div className="border-b border-[#0A1547]/10 p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#A380F6]">Secure upload file</p>
+            <h3 className="mt-2 break-words text-xl font-black text-[#0A1547]">
+              {formatNullable(file.originalFilename)}
+            </h3>
+            <p className="mt-2 break-all text-sm font-bold text-[#0A1547]/60">
+              {formatNullable(file.userEmail)}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${status === "Completed" ? "border-[#02D99D]/30 bg-[#02D99D]/12 text-[#0A1547]" : "border-amber-200 bg-amber-50 text-amber-700"}`}>
+              {status}
+            </span>
+            {file.consoleUrl && (
+              <a
+                href={file.consoleUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="admin-focus rounded-xl bg-[#02ABE0] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#0096C9]"
+              >
+                Open in Console
+              </a>
+            )}
+          </div>
+        </div>
+
+        <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
+          <Detail label="Content type" value={file.contentType} />
+          <Detail label="File size" value={formatBytes(file.byteSize)} />
+          <Detail label="Created" value={formatDate(file.createdAt)} />
+          <Detail label="Completed" value={formatDate(file.completedAt)} />
+        </dl>
+      </div>
+
+      <div className="p-5">
+        <details className="rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3">
+          <summary className="cursor-pointer text-xs font-extrabold uppercase tracking-[0.16em] text-[#0A1547]/50">
+            Technical and storage details
+          </summary>
+          <dl className="mt-4 grid gap-3 text-sm md:grid-cols-2">
+            <Detail label="GS path" value={file.gsPath} />
+            <Detail label="GCS bucket" value={file.gcsBucket} />
+            <Detail label="Object name" value={file.objectName} />
+            <Detail label="Request ID" value={file.requestId} />
+            <Detail label="Session ID" value={file.sessionId} />
+            <Detail label="User ID" value={file.userId} />
+            <Detail label="File ID" value={file.id} />
+          </dl>
+        </details>
+      </div>
+    </article>
+  );
+}
+
+function Detail({ label, value }: { label: string; value: string | number | null | undefined }) {
+  return (
+    <div>
+      <dt className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/40">{label}</dt>
+      <dd className="mt-1 break-words font-black text-[#0A1547]">{formatNullable(value)}</dd>
+    </div>
+  );
+}
+
+function ErrorState({ message }: { message: string }) {
+  return (
+    <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-bold text-red-700">
+      {message}
+    </div>
+  );
+}
+
+function EmptyState({ description, title }: { description: string; title: string }) {
+  return (
+    <div className="admin-card p-8 text-center">
+      <h3 className="text-lg font-black text-[#0A1547]">{title}</h3>
+      <p className="mt-2 text-sm font-medium text-[#0A1547]/60">{description}</p>
+    </div>
+  );
+}

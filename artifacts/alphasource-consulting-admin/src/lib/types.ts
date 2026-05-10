@@ -242,6 +242,41 @@ export type GeneratePdfReportResponse = {
   warnings: string[];
 };
 
+export type SecureUploadFile = {
+  id: string;
+  requestId: string | null;
+  sessionId: string | null;
+  userId: string | null;
+  userEmail: string | null;
+  originalFilename: string | null;
+  contentType: string | null;
+  byteSize: number | null;
+  gcsBucket: string | null;
+  objectName: string | null;
+  gsPath: string | null;
+  consoleUrl: string | null;
+  createdAt: string | null;
+  completedAt: string | null;
+};
+
+export type SecureUploadFilesQuery = {
+  completedOnly?: boolean;
+  email?: string;
+  startDate?: string;
+  endDate?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export type SecureUploadFilesResponse = {
+  ok: true;
+  items: SecureUploadFile[];
+  count: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+};
+
 export type StripeCustomerSummary = {
   stripeCustomerId: string | null;
   livemode: boolean | null;
