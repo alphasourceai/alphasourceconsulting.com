@@ -25,6 +25,7 @@ export type AdminMeResponse = {
 export type AdminAccessUser = {
   userId: string;
   email: string | null;
+  displayName?: string | null;
   role: string;
   status: string;
   createdAt: string | null;
@@ -37,7 +38,7 @@ export type AdminUsersResponse = {
 };
 
 export type CreateAdminUserAccessRequest = {
-  userId: string;
+  name: string;
   email: string;
   role: "admin" | "super_admin";
 };
@@ -45,6 +46,10 @@ export type CreateAdminUserAccessRequest = {
 export type CreateAdminUserAccessResponse = {
   ok: true;
   adminUser: AdminAccessUser;
+  auth?: {
+    existingUser?: boolean;
+    inviteSent?: boolean;
+  };
 };
 
 export type BillingSummary = {

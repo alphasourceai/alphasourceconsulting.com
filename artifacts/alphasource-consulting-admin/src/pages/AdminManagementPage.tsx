@@ -43,7 +43,7 @@ export default function AdminManagementPage() {
   const [canManageAdminAccess, setCanManageAdminAccess] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [newAdminUserId, setNewAdminUserId] = useState("");
+  const [newAdminName, setNewAdminName] = useState("");
   const [newAdminEmail, setNewAdminEmail] = useState("");
   const [newAdminRole, setNewAdminRole] = useState<CreateAdminUserAccessRequest["role"]>("admin");
   const [savingAdminAccess, setSavingAdminAccess] = useState(false);
@@ -102,14 +102,14 @@ export default function AdminManagementPage() {
   const handleAddAdminAccess = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const userId = newAdminUserId.trim();
+    const name = newAdminName.trim();
     const email = newAdminEmail.trim();
 
     setSaveError("");
     setSaveSuccess("");
 
-    if (!userId || !email) {
-      setSaveError("Supabase Auth user ID and email are required.");
+    if (!name || !email) {
+      setSaveError("Name and email are required.");
       return;
     }
 
@@ -121,16 +121,19 @@ export default function AdminManagementPage() {
 
     try {
       const response = await createAdminUserAccess(token, {
-        userId,
+        name,
         email,
         role: newAdminRole,
       });
       const addedEmail = response.adminUser.email || email;
-      setNewAdminUserId("");
+      const inviteMessage = response.auth?.inviteSent
+        ? " An invite email was sent."
+        : "";
+      setNewAdminName("");
       setNewAdminEmail("");
       setNewAdminRole("admin");
       await loadAdminAccess();
-      setSaveSuccess(`Admin access added for ${addedEmail}.`);
+      setSaveSuccess(`Admin access added for ${addedEmail}.${inviteMessage}`);
     } catch (saveFailure) {
       if (saveFailure instanceof AdminApiError) {
         setSaveError(saveFailure.message);
@@ -192,7 +195,7 @@ export default function AdminManagementPage() {
         <section className={`rounded-2xl border p-5 ${canManageAdminAccess ? "border-[#02D99D]/25 bg-[#02D99D]/10" : "border-[#A380F6]/25 bg-[#A380F6]/10"}`}>
           <p className="text-sm font-extrabold text-[#0A1547]">
             {canManageAdminAccess
-              ? "Admin access management is enabled for this account. Add dashboard access only for existing Supabase Auth users."
+              ? "Admin access management is enabled for this account. Add dashboard access by name, email, and role."
               : "You can view admin access, but this account cannot manage admin access."}
           </p>
         </section>
@@ -203,20 +206,20 @@ export default function AdminManagementPage() {
           <div className="max-w-3xl">
             <h3 className="text-lg font-black text-[#0A1547]">Add admin access</h3>
             <p className="mt-2 text-sm font-semibold leading-6 text-[#0A1547]/62">
-              Create or invite the person in Supabase Auth first, then paste their Supabase Auth user ID here.
+              Enter the admin&apos;s name, email, and role. If they do not already have a Supabase Auth account, an invite email will be sent.
             </p>
           </div>
 
-          <form onSubmit={handleAddAdminAccess} className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_180px_auto] lg:items-end">
+          <form onSubmit={handleAddAdminAccess} className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_180px_auto] lg:items-end">
             <label className="block">
               <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/45">
-                Supabase Auth user ID
+                Name
               </span>
               <input
                 type="text"
-                value={newAdminUserId}
-                onChange={(event) => setNewAdminUserId(event.target.value)}
-                placeholder="00000000-0000-0000-0000-000000000000"
+                value={newAdminName}
+                onChange={(event) => setNewAdminName(event.target.value)}
+                placeholder="Jane Smith"
                 className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/12 bg-white px-4 py-3 text-sm font-bold text-[#0A1547] outline-none"
               />
             </label>
@@ -273,7 +276,7 @@ export default function AdminManagementPage() {
           <div className="border-b border-[#0A1547]/10 p-5">
             <h3 className="text-lg font-black text-[#0A1547]">Admin access list</h3>
             <p className="mt-2 text-sm font-semibold leading-6 text-[#0A1547]/62">
-              Role editing and admin invitations are intentionally disabled until the permission model is finalized.
+              Role editing and deactivation are intentionally disabled until the permission model is finalized.
             </p>
           </div>
 
@@ -286,6 +289,7 @@ export default function AdminManagementPage() {
               <table className="min-w-full divide-y divide-[#0A1547]/10 text-left text-sm">
                 <thead className="bg-[#F8F9FD]">
                   <tr>
+                    <HeaderCell>Name</HeaderCell>
                     <HeaderCell>Email</HeaderCell>
                     <HeaderCell>Supabase Auth user ID</HeaderCell>
                     <HeaderCell>Role</HeaderCell>
@@ -297,6 +301,7 @@ export default function AdminManagementPage() {
                 <tbody className="divide-y divide-[#0A1547]/10 bg-white">
                   {adminUsers.map((adminUser) => (
                     <tr key={adminUser.userId}>
+                      <BodyCell>{adminUser.displayName || "-"}</BodyCell>
                       <BodyCell>{adminUser.email || "Email not stored yet"}</BodyCell>
                       <BodyCell>{formatNullable(adminUser.userId)}</BodyCell>
                       <BodyCell>{formatNullable(adminUser.role)}</BodyCell>

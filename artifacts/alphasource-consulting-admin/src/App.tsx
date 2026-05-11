@@ -2,6 +2,7 @@ import { useEffect, type ReactNode } from "react";
 import { Route, Router as WouterRouter, Switch, useLocation, type RouteComponentProps } from "wouter";
 import { AuthProvider, useAuth } from "@/auth/AuthProvider";
 import AdminLayout from "@/components/AdminLayout";
+import AcceptInvitePage from "@/pages/AcceptInvitePage";
 import AdminManagementPage from "@/pages/AdminManagementPage";
 import BillingPage from "@/pages/BillingPage";
 import ClientDetailPage from "@/pages/ClientDetailPage";
@@ -199,6 +200,7 @@ function AppRoutes() {
       <Switch>
         <Route path="/" component={RootRoute} />
         <Route path="/login" component={LoginPage} />
+        <Route path="/accept-invite" component={AcceptInvitePage} />
         <Route path="/clients/:email" component={ClientDetailRoute} />
         <Route path="/clients" component={ClientsRoute} />
         <Route path="/analysis" component={AnalysisRoute} />
