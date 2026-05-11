@@ -5,6 +5,7 @@ import type {
   AdminClientOptionsResponse,
   AdminClientsResponse,
   AdminMeResponse,
+  AdminUsersResponse,
   BillingOverviewResponse,
   BillingOverviewStatus,
   ClientBillingDetailResponse,
@@ -110,6 +111,10 @@ async function adminRequest<T>(path: string, options: RequestOptions): Promise<T
 
 export function getAdminMe(token: string, signal?: AbortSignal): Promise<AdminMeResponse> {
   return adminRequest<AdminMeResponse>("/api/admin/me", { token, signal });
+}
+
+export function getAdminUsers(token: string, signal?: AbortSignal): Promise<AdminUsersResponse> {
+  return adminRequest<AdminUsersResponse>("/api/admin/admin-users", { token, signal });
 }
 
 export function getAdminClients(

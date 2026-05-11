@@ -1,12 +1,36 @@
 export type AdminUser = {
   id: string;
   email: string;
+  role?: string;
+  status?: string;
+};
+
+export type AdminAccess = {
+  id: string;
+  email: string;
+  role: string;
+  status: string;
 };
 
 export type AdminMeResponse = {
   ok: true;
+  admin?: AdminAccess;
   user: AdminUser;
-  role: "admin";
+  role: string;
+};
+
+export type AdminAccessUser = {
+  userId: string;
+  email: string | null;
+  role: string;
+  status: string;
+  createdAt: string | null;
+  updatedAt: string | null;
+};
+
+export type AdminUsersResponse = {
+  ok: true;
+  items: AdminAccessUser[];
 };
 
 export type BillingSummary = {

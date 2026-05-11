@@ -2,13 +2,13 @@ import { useEffect, type ReactNode } from "react";
 import { Route, Router as WouterRouter, Switch, useLocation, type RouteComponentProps } from "wouter";
 import { AuthProvider, useAuth } from "@/auth/AuthProvider";
 import AdminLayout from "@/components/AdminLayout";
+import AdminManagementPage from "@/pages/AdminManagementPage";
 import BillingPage from "@/pages/BillingPage";
 import ClientDetailPage from "@/pages/ClientDetailPage";
 import ClientsPage from "@/pages/ClientsPage";
 import DocumentAnalysisPage from "@/pages/DocumentAnalysisPage";
 import LoginPage from "@/pages/LoginPage";
 import PDFGeneratorPage from "@/pages/PDFGeneratorPage";
-import PlaceholderPage from "@/pages/PlaceholderPage";
 import SecureUploadsPage from "@/pages/SecureUploadsPage";
 
 function Navigate({ to }: { to: string }) {
@@ -186,12 +186,9 @@ function AdminManagementRoute() {
   return (
     <ProtectedRoute
       title="Admin Management"
-      description="Future React workflow for admin account visibility and management."
+      description="Read-only visibility into Supabase Auth admin access granted by the Admin API."
     >
-      <PlaceholderPage
-        title="Admin Management"
-        description="This section will come after auth and core admin dashboard parity are stable."
-      />
+      <AdminManagementPage />
     </ProtectedRoute>
   );
 }

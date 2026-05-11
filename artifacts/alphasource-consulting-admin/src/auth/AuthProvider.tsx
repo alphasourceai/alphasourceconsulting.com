@@ -69,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const admin = await getAdminMe(nextSession.access_token);
-      setAdminUser(admin.user);
+      setAdminUser(admin.admin ?? { ...admin.user, role: admin.role, status: "active" });
       setStatus("authenticated");
     } catch (validationError) {
       setError(safeAuthMessage(validationError));
