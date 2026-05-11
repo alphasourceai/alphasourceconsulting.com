@@ -277,6 +277,23 @@ export type SecureUploadFilesResponse = {
   hasMore: boolean;
 };
 
+export type CreateSecureUploadRequestRequest = {
+  clientEmail: string;
+};
+
+export type SecureUploadRequestMetadata = {
+  requestId: string;
+  clientEmail: string;
+  expiresAt: string | null;
+  expiresInMinutes: number;
+  emailSent: boolean;
+};
+
+export type CreateSecureUploadRequestResponse = {
+  ok: true;
+  request: SecureUploadRequestMetadata;
+};
+
 export type StripeCustomerSummary = {
   stripeCustomerId: string | null;
   livemode: boolean | null;

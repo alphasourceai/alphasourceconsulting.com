@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/auth/AuthProvider";
-import { AdminApiError, getSecureUploadFiles } from "@/lib/adminApi";
-import type { SecureUploadFile, SecureUploadFilesQuery, SecureUploadFilesResponse } from "@/lib/types";
+import { AdminApiError, createSecureUploadRequest, getSecureUploadFiles } from "@/lib/adminApi";
+import type {
+  SecureUploadFile,
+  SecureUploadFilesQuery,
+  SecureUploadFilesResponse,
+  SecureUploadRequestMetadata,
+} from "@/lib/types";
 
 type SecureUploadFilters = {
   completedOnly: boolean;
@@ -79,6 +84,10 @@ export default function SecureUploadsPage() {
   const [response, setResponse] = useState<SecureUploadFilesResponse>(responseFallback);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [requestEmail, setRequestEmail] = useState("");
+  const [requestSending, setRequestSending] = useState(false);
+  const [requestError, setRequestError] = useState("");
+  const [requestSuccess, setRequestSuccess] = useState<SecureUploadRequestMetadata | null>(null);
 
   const query = useMemo<SecureUploadFilesQuery>(() => ({
     completedOnly: appliedFilters.completedOnly,
@@ -141,6 +150,31 @@ export default function SecureUploadsPage() {
     setRefreshKey((current) => current + 1);
   };
 
+  const handleSendRequest = async () => {
+    const clientEmail = requestEmail.trim();
+    if (!clientEmail || !token || requestSending) {
+      return;
+    }
+
+    setRequestSending(true);
+    setRequestError("");
+    setRequestSuccess(null);
+
+    try {
+      const result = await createSecureUploadRequest(token, { clientEmail });
+      setRequestSuccess(result.request);
+      setRefreshKey((current) => current + 1);
+    } catch (sendError) {
+      if (sendError instanceof AdminApiError) {
+        setRequestError(sendError.message);
+      } else {
+        setRequestError("Secure upload request could not be sent.");
+      }
+    } finally {
+      setRequestSending(false);
+    }
+  };
+
   const canGoBack = response.offset > 0;
   const canGoNext = response.hasMore;
 
@@ -164,6 +198,59 @@ export default function SecureUploadsPage() {
             {loading ? "Refreshing..." : "Refresh results"}
           </button>
         </div>
+      </section>
+
+      <section className="admin-card p-5">
+        <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
+          <div>
+            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#A380F6]">Send secure upload request</p>
+            <h3 className="mt-2 text-xl font-black text-[#0A1547]">Email an existing client user</h3>
+            <p className="mt-2 text-sm font-semibold leading-6 text-[#0A1547]/62">
+              This sends the existing secure upload portal email. It only works for an email that already belongs to a client user.
+            </p>
+            <label className="mt-4 block">
+              <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/45">Client email</span>
+              <input
+                type="email"
+                value={requestEmail}
+                onChange={(event) => {
+                  setRequestEmail(event.target.value);
+                  setRequestError("");
+                  setRequestSuccess(null);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    void handleSendRequest();
+                  }
+                }}
+                placeholder="client@example.com"
+                className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-bold text-[#0A1547] placeholder:text-[#0A1547]/35"
+              />
+            </label>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => void handleSendRequest()}
+            disabled={requestSending || !requestEmail.trim()}
+            className="admin-focus rounded-xl bg-[#0A1547] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#1A2460] disabled:cursor-not-allowed disabled:opacity-55"
+          >
+            {requestSending ? "Sending..." : "Send request"}
+          </button>
+        </div>
+
+        {requestSuccess && (
+          <div className="mt-4 rounded-2xl border border-[#02D99D]/25 bg-[#02D99D]/10 p-4 text-sm font-bold text-[#0A1547]">
+            Secure upload request emailed to {requestSuccess.clientEmail}. Link expires {formatDate(requestSuccess.expiresAt)} ({requestSuccess.expiresInMinutes} minutes).
+          </div>
+        )}
+
+        {requestError && (
+          <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
+            {requestError}
+          </div>
+        )}
       </section>
 
       <section className="admin-card p-5">

@@ -10,6 +10,8 @@ import type {
   ClientBillingDetailResponse,
   CreateCheckoutSessionRequest,
   CreateCheckoutSessionResponse,
+  CreateSecureUploadRequestRequest,
+  CreateSecureUploadRequestResponse,
   GeneratePdfReportRequest,
   GeneratePdfReportResponse,
   PdfGeneratorClientResponse,
@@ -344,6 +346,19 @@ export function getSecureUploadFiles(
   return adminRequest<SecureUploadFilesResponse>(`/api/admin/secure-uploads/files?${params.toString()}`, {
     token,
     signal,
+  });
+}
+
+export function createSecureUploadRequest(
+  token: string,
+  payload: CreateSecureUploadRequestRequest,
+  signal?: AbortSignal,
+): Promise<CreateSecureUploadRequestResponse> {
+  return adminRequest<CreateSecureUploadRequestResponse>("/api/admin/secure-uploads/requests", {
+    token,
+    signal,
+    method: "POST",
+    body: payload,
   });
 }
 
