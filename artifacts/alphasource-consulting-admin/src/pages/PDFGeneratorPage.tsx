@@ -333,19 +333,15 @@ export default function PDFGeneratorPage() {
     }
   }, [canGeneratePdf, generatingUploadId, reportDraft, selectedEmail, selectedUpload, token]);
 
-  const existingPdfCount = useMemo(() => {
-    return clientData?.uploads.filter((upload) => upload.pdf.pdfUrl || upload.pdf.signedUrl).length ?? 0;
-  }, [clientData]);
-
   return (
     <div className="space-y-6">
       <section className="admin-card p-5">
-        <div className="grid gap-5 lg:grid-cols-[1fr_360px] lg:items-end">
+        <div className="grid gap-4 lg:grid-cols-[1fr_380px] lg:items-end">
           <div>
-            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#A380F6]">PDF Reports</p>
-            <h2 className="mt-3 text-2xl font-black text-[#0A1547]">Review and generate client-ready reports</h2>
-            <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#0A1547]/62">
-              Review promoted analysis outputs, refine report content, generate the PDF, and store report metadata. No email, GHL update, or report delivery is triggered.
+            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#A380F6]">Client selection</p>
+            <h3 className="mt-2 text-lg font-black text-[#0A1547]">Search eligible clients</h3>
+            <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/60">
+              Choose a client with promoted analysis uploads to edit draft report content.
             </p>
           </div>
 
@@ -355,7 +351,7 @@ export default function PDFGeneratorPage() {
               value={selectedEmail}
               onChange={(event) => setSelectedEmail(event.target.value)}
               disabled={loadingOptions || options.length === 0}
-              className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-bold text-[#0A1547]"
+              className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547]"
             >
               <option value="">Select a client</option>
               {options.map((option) => (
@@ -369,7 +365,7 @@ export default function PDFGeneratorPage() {
       </section>
 
       {loadingOptions && (
-        <div className="admin-card p-8 text-center text-sm font-bold text-[#0A1547]/60">
+        <div className="admin-card p-8 text-center text-sm font-medium text-[#0A1547]/60">
           Loading PDF Reports options...
         </div>
       )}
@@ -385,18 +381,6 @@ export default function PDFGeneratorPage() {
         />
       )}
 
-      {!loadingOptions && !optionsError && options.length > 0 && (
-        <section className="grid gap-4 md:grid-cols-3">
-          <MetricCard label="Eligible Clients" value={options.length} accent="#A380F6" />
-          <MetricCard
-            label="Eligible Uploads"
-            value={options.reduce((total, option) => total + option.eligibleUploadCount, 0)}
-            accent="#02ABE0"
-          />
-          <MetricCard label="Selected PDFs" value={existingPdfCount} accent="#02D99D" />
-        </section>
-      )}
-
       {selectedEmail && (
         <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
           <div className="space-y-6">
@@ -407,7 +391,7 @@ export default function PDFGeneratorPage() {
             />
 
             {loadingClient && (
-              <div className="admin-card p-8 text-center text-sm font-bold text-[#0A1547]/60">
+              <div className="admin-card p-8 text-center text-sm font-medium text-[#0A1547]/60">
                 Loading client uploads...
               </div>
             )}
@@ -458,16 +442,6 @@ export default function PDFGeneratorPage() {
   );
 }
 
-function MetricCard({ accent, label, value }: { accent: string; label: string; value: string | number }) {
-  return (
-    <div className="admin-card p-5">
-      <div className="h-1.5 w-12 rounded-full" style={{ backgroundColor: accent }} />
-      <p className="mt-4 text-xs font-extrabold uppercase tracking-[0.16em] text-[#0A1547]/45">{label}</p>
-      <p className="mt-2 break-words text-2xl font-black text-[#0A1547]">{value}</p>
-    </div>
-  );
-}
-
 function ClientSummary({
   clientData,
   loading,
@@ -499,7 +473,7 @@ function ClientSummary({
       </dl>
 
       {loading && (
-        <p className="mt-4 rounded-xl bg-[#F8F9FD] px-4 py-3 text-sm font-bold text-[#0A1547]/58">
+        <p className="mt-4 rounded-xl bg-[#F8F9FD] px-4 py-3 text-sm font-medium text-[#0A1547]/58">
           Refreshing client records...
         </p>
       )}
@@ -521,7 +495,7 @@ function UploadList({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-lg font-black text-[#0A1547]">Eligible uploads</h3>
-          <p className="mt-1 text-sm font-semibold text-[#0A1547]/58">
+          <p className="mt-1 text-sm font-medium text-[#0A1547]/58">
             Choose an upload to edit draft content and generate a stored PDF.
           </p>
         </div>
@@ -532,39 +506,45 @@ function UploadList({
 
       <div className="mt-4 grid gap-3">
         {uploads.map((upload) => (
-          <button
+          <article
             key={upload.id}
-            type="button"
-            onClick={() => onSelect(upload.id)}
-            className={`admin-focus rounded-2xl border p-4 text-left transition ${
+            className={`rounded-2xl border text-left transition ${
               upload.id === selectedUploadId
                 ? "border-[#A380F6]/70 bg-[#A380F6]/10"
                 : "border-[#0A1547]/10 bg-[#F8F9FD] hover:border-[#02ABE0]/40"
             }`}
           >
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="break-words text-sm font-black text-[#0A1547]">{formatNullable(upload.fileName)}</p>
-                <p className="mt-1 text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/45">
+            <button
+              type="button"
+              onClick={() => onSelect(upload.id)}
+              className="admin-focus grid w-full grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-2xl p-3 text-left"
+            >
+              <div className="min-w-0 pr-1">
+                <p className="break-words text-sm font-black leading-5 text-[#0A1547]">{formatNullable(upload.fileName)}</p>
+                <p className="mt-1 truncate text-xs font-semibold uppercase tracking-[0.12em] text-[#0A1547]/45">
                   {formatNullable(upload.toolName)}
                 </p>
               </div>
               <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${upload.paid ? "border-[#02D99D]/30 bg-[#02D99D]/12 text-[#0A1547]" : "border-[#0A1547]/10 bg-white text-[#0A1547]/62"}`}>
                 {upload.paid ? "Paid" : "Unpaid"}
               </span>
-            </div>
+            </button>
 
-            <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-              <Detail label="Upload time" value={formatNullable(upload.uploadTime)} />
-              <Detail label="PDF version" value={upload.pdf.pdfVersion > 0 ? upload.pdf.pdfVersion : "-"} />
-              <Detail label="PDF generated" value={formatDate(upload.pdf.pdfGeneratedAt)} />
-              <Detail label="Warnings" value={upload.warnings.length} />
-            </dl>
-
-            {upload.warnings.length > 0 && (
-              <WarningList warnings={upload.warnings} />
-            )}
-          </button>
+            <details className="border-t border-[#0A1547]/10 px-3 py-2">
+              <summary className="cursor-pointer text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/45">
+                Upload details
+              </summary>
+              <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+                <Detail label="Upload time" value={formatNullable(upload.uploadTime)} />
+                <Detail label="PDF version" value={upload.pdf.pdfVersion > 0 ? upload.pdf.pdfVersion : "-"} />
+                <Detail label="PDF generated" value={formatDate(upload.pdf.pdfGeneratedAt)} />
+                <Detail label="Warnings" value={upload.warnings.length} />
+              </dl>
+              {upload.warnings.length > 0 && (
+                <WarningList warnings={upload.warnings} />
+              )}
+            </details>
+          </article>
         ))}
       </div>
     </section>
@@ -594,6 +574,11 @@ function UploadDetail({
 }) {
   const openUrl = pdfLink(upload);
   const activeDraft = draft?.uploadId === upload.id ? draft : null;
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  useEffect(() => {
+    setPreviewOpen(false);
+  }, [upload.id]);
 
   return (
     <article className="admin-card overflow-hidden">
@@ -602,7 +587,7 @@ function UploadDetail({
           <div className="min-w-0">
             <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#A380F6]">Upload preview</p>
             <h3 className="mt-2 break-words text-2xl font-black text-[#0A1547]">{formatNullable(upload.fileName)}</h3>
-            <p className="mt-2 text-sm font-bold text-[#0A1547]/60">{formatNullable(upload.toolName)}</p>
+            <p className="mt-2 text-sm font-medium text-[#0A1547]/60">{formatNullable(upload.toolName)}</p>
           </div>
           {openUrl && (
             <a
@@ -634,7 +619,15 @@ function UploadDetail({
         {activeDraft ? (
           <>
             <DraftBuilder draft={activeDraft} onChange={onDraftChange} onReset={onResetDraft} />
-            <DraftPreview draft={activeDraft} upload={upload} />
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setPreviewOpen(true)}
+                className="admin-focus rounded-xl border border-[#02ABE0]/35 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#02ABE0]"
+              >
+                Preview draft
+              </button>
+            </div>
             {canGeneratePdf ? (
               <GeneratePdfPanel
                 draft={activeDraft}
@@ -646,14 +639,14 @@ function UploadDetail({
             ) : (
               <section className="rounded-2xl border border-[#A380F6]/25 bg-[#A380F6]/10 p-4">
                 <p className="text-sm font-black text-[#0A1547]">Read-only PDF access</p>
-                <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
+                <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/62">
                   You can inspect PDF Reports data and draft content. Generate actions are hidden unless your role includes PDF generation permission.
                 </p>
               </section>
             )}
           </>
         ) : (
-          <p className="rounded-2xl bg-[#F8F9FD] p-4 text-sm font-bold text-[#0A1547]/56">
+          <p className="rounded-2xl bg-[#F8F9FD] p-4 text-sm font-medium text-[#0A1547]/56">
             Preparing draft builder...
           </p>
         )}
@@ -670,6 +663,14 @@ function UploadDetail({
           </dl>
         </details>
       </div>
+
+      {activeDraft && previewOpen && (
+        <DraftPreviewModal
+          draft={activeDraft}
+          onClose={() => setPreviewOpen(false)}
+          upload={upload}
+        />
+      )}
     </article>
   );
 }
@@ -697,7 +698,7 @@ function GeneratePdfPanel({
         <div>
           <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#02D99D]">Generate PDF</p>
           <h4 className="mt-2 text-lg font-black text-[#0A1547]">Create stored PDF from draft</h4>
-          <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
+          <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/62">
             This updates the upload PDF metadata only. Paid status, email, GHL, and report delivery are untouched.
           </p>
         </div>
@@ -712,7 +713,7 @@ function GeneratePdfPanel({
       </div>
 
       {!canGenerate && (
-        <p className="mt-4 rounded-xl bg-white px-4 py-3 text-sm font-bold text-[#0A1547]/58">
+        <p className="mt-4 rounded-xl bg-white px-4 py-3 text-sm font-medium text-[#0A1547]/58">
           Select at least one opportunity, trend, key trend, or add notes to generate a PDF.
         </p>
       )}
@@ -727,7 +728,7 @@ function GeneratePdfPanel({
         <div className="mt-4 rounded-2xl border border-[#02D99D]/25 bg-white p-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
-              <p className="text-sm font-black text-[#0A1547]">
+              <p className="text-sm font-semibold text-[#0A1547]">
                 PDF generated and stored. No email, GHL update, or report delivery was triggered.
               </p>
               <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
@@ -789,7 +790,7 @@ function DraftBuilder({
         <div>
           <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#A380F6]">Draft builder only</p>
           <h4 className="mt-2 text-lg font-black text-[#0A1547]">Edit report draft content</h4>
-          <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
+          <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/62">
             These edits are used for this PDF generation request only and are not saved back to the analysis data.
           </p>
         </div>
@@ -817,13 +818,13 @@ function DraftBuilder({
           onChange={(id, patch) => updateTextItem("trends", id, patch)}
         />
         <label className="block">
-          <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/45">Additional notes</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0A1547]/45">Additional notes</span>
           <textarea
             value={draft.additionalNotes}
             onChange={(event) => onChange({ ...draft, additionalNotes: event.target.value })}
             rows={4}
             placeholder="Add admin-only draft notes for the future report."
-            className="admin-focus mt-2 w-full resize-y rounded-xl border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-semibold leading-6 text-[#0A1547] placeholder:text-[#0A1547]/38"
+            className="admin-focus mt-2 w-full resize-y rounded-xl border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-medium leading-6 text-[#0A1547] placeholder:text-[#0A1547]/38"
           />
         </label>
       </div>
@@ -842,39 +843,59 @@ function DraftOpportunityEditor({
     <section>
       <h5 className="text-sm font-black text-[#0A1547]">Opportunities</h5>
       {items.length === 0 ? (
-        <p className="mt-3 rounded-2xl bg-white p-4 text-sm font-bold text-[#0A1547]/56">
+        <p className="mt-3 rounded-2xl bg-white p-4 text-sm font-medium text-[#0A1547]/56">
           No opportunities were returned for this upload.
         </p>
       ) : (
         <div className="mt-3 grid gap-3">
           {items.map((item) => (
-            <article key={item.id} className="rounded-2xl border border-[#0A1547]/10 bg-white p-4">
-              <label className="inline-flex items-center gap-2 text-sm font-extrabold text-[#0A1547]">
-                <input
-                  type="checkbox"
-                  checked={item.selected}
-                  onChange={(event) => onChange(item.id, { selected: event.target.checked })}
-                  className="h-4 w-4 accent-[#A380F6]"
-                />
-                Include in draft
-              </label>
-              <div className="mt-4 grid gap-3">
-                <DraftInput
-                  label="Title"
-                  value={item.title}
-                  onChange={(value) => onChange(item.id, { title: value })}
-                />
-                <DraftTextarea
-                  label="Impact"
-                  value={item.impact}
-                  onChange={(value) => onChange(item.id, { impact: value })}
-                />
-                <DraftTextarea
-                  label="Recommendation"
-                  value={item.recommendation}
-                  onChange={(value) => onChange(item.id, { recommendation: value })}
-                />
-              </div>
+            <article key={item.id} className="rounded-2xl border border-[#0A1547]/10 bg-white p-3">
+              {item.selected ? (
+                <label className="inline-flex items-center gap-2 text-sm font-semibold text-[#0A1547]">
+                  <input
+                    type="checkbox"
+                    checked={item.selected}
+                    onChange={(event) => onChange(item.id, { selected: event.target.checked })}
+                    className="h-4 w-4 accent-[#A380F6]"
+                  />
+                  Include in draft
+                </label>
+              ) : (
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                  <p className="break-words text-sm font-black leading-5 text-[#0A1547]">
+                    {formatNullable(item.title)}
+                  </p>
+                  <label className="inline-flex items-center gap-2 text-sm font-semibold text-[#0A1547]">
+                    <input
+                      type="checkbox"
+                      checked={item.selected}
+                      onChange={(event) => onChange(item.id, { selected: event.target.checked })}
+                      className="h-4 w-4 accent-[#A380F6]"
+                    />
+                    Include
+                  </label>
+                </div>
+              )}
+
+              {item.selected && (
+                <div className="mt-3 grid gap-3">
+                  <DraftInput
+                    label="Title"
+                    value={item.title}
+                    onChange={(value) => onChange(item.id, { title: value })}
+                  />
+                  <DraftTextarea
+                    label="Impact"
+                    value={item.impact}
+                    onChange={(value) => onChange(item.id, { impact: value })}
+                  />
+                  <DraftTextarea
+                    label="Recommendation"
+                    value={item.recommendation}
+                    onChange={(value) => onChange(item.id, { recommendation: value })}
+                  />
+                </div>
+              )}
             </article>
           ))}
         </div>
@@ -898,14 +919,14 @@ function DraftTextEditor({
     <section>
       <h5 className="text-sm font-black text-[#0A1547]">{label}</h5>
       {items.length === 0 ? (
-        <p className="mt-3 rounded-2xl bg-white p-4 text-sm font-bold text-[#0A1547]/56">
+        <p className="mt-3 rounded-2xl bg-white p-4 text-sm font-medium text-[#0A1547]/56">
           {emptyText}
         </p>
       ) : (
         <div className="mt-3 grid gap-3">
           {items.map((item) => (
             <article key={item.id} className="rounded-2xl border border-[#0A1547]/10 bg-white p-4">
-              <label className="inline-flex items-center gap-2 text-sm font-extrabold text-[#0A1547]">
+              <label className="inline-flex items-center gap-2 text-sm font-semibold text-[#0A1547]">
                 <input
                   type="checkbox"
                   checked={item.selected}
@@ -927,7 +948,47 @@ function DraftTextEditor({
   );
 }
 
-function DraftPreview({ draft, upload }: { draft: ReportDraft; upload: PdfGeneratorUpload }) {
+function DraftPreviewModal({
+  draft,
+  onClose,
+  upload,
+}: {
+  draft: ReportDraft;
+  onClose: () => void;
+  upload: PdfGeneratorUpload;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0A1547]/45 p-4">
+      <div
+        aria-labelledby="draft-preview-title"
+        aria-modal="true"
+        role="dialog"
+        className="max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-2xl"
+      >
+        <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-[#0A1547]/10 bg-white px-5 py-4">
+          <div className="min-w-0">
+            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#02ABE0]">Draft preview</p>
+            <h4 id="draft-preview-title" className="mt-1 break-words text-lg font-black text-[#0A1547]">
+              {formatNullable(upload.fileName)}
+            </h4>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="admin-focus rounded-xl border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/60"
+          >
+            Close
+          </button>
+        </div>
+        <div className="p-5">
+          <DraftPreview draft={draft} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DraftPreview({ draft }: { draft: ReportDraft }) {
   const selectedOpportunities = draft.opportunities.filter((item) => item.selected);
   const selectedKeyTrends = draft.keyTrends.filter((item) => item.selected && item.text.trim());
   const selectedTrends = draft.trends.filter((item) => item.selected && item.text.trim());
@@ -935,18 +996,10 @@ function DraftPreview({ draft, upload }: { draft: ReportDraft; upload: PdfGenera
 
   return (
     <section className="rounded-2xl border border-[#02ABE0]/20 bg-[#02ABE0]/8 p-4">
-      <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#02ABE0]">Draft preview</p>
       <h4 className="mt-2 text-lg font-black text-[#0A1547]">Selected report content</h4>
-      <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
+      <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/62">
         Only selected content will be used for the generated PDF. No email, GHL update, or report delivery is triggered.
       </p>
-
-      <dl className="mt-4 grid gap-3 text-sm md:grid-cols-2">
-        <Detail label="File" value={upload.fileName} />
-        <Detail label="Tool" value={upload.toolName} />
-        <Detail label="Client" value={upload.clientEmail} />
-        <Detail label="Upload time" value={formatNullable(upload.uploadTime)} />
-      </dl>
 
       <PreviewTextList title="Key trends" items={selectedKeyTrends.map((item) => item.text)} />
       <PreviewOpportunities items={selectedOpportunities} />
@@ -955,7 +1008,7 @@ function DraftPreview({ draft, upload }: { draft: ReportDraft; upload: PdfGenera
       {notes && (
         <section className="mt-5">
           <h5 className="text-sm font-black text-[#0A1547]">Additional notes</h5>
-          <p className="mt-3 rounded-2xl border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-bold leading-6 text-[#0A1547]/75">
+          <p className="mt-3 rounded-2xl border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-medium leading-6 text-[#0A1547]/75">
             {notes}
           </p>
         </section>
@@ -969,7 +1022,7 @@ function PreviewOpportunities({ items }: { items: DraftOpportunity[] }) {
     <section className="mt-5">
       <h5 className="text-sm font-black text-[#0A1547]">Opportunities</h5>
       {items.length === 0 ? (
-        <p className="mt-3 rounded-2xl bg-white p-4 text-sm font-bold text-[#0A1547]/56">
+        <p className="mt-3 rounded-2xl bg-white p-4 text-sm font-medium text-[#0A1547]/56">
           No opportunities selected.
         </p>
       ) : (
@@ -994,13 +1047,13 @@ function PreviewTextList({ items, title }: { items: string[]; title: string }) {
     <section className="mt-5">
       <h5 className="text-sm font-black text-[#0A1547]">{title}</h5>
       {items.length === 0 ? (
-        <p className="mt-3 rounded-2xl bg-white p-4 text-sm font-bold text-[#0A1547]/56">
+        <p className="mt-3 rounded-2xl bg-white p-4 text-sm font-medium text-[#0A1547]/56">
           No {title.toLowerCase()} selected.
         </p>
       ) : (
         <ul className="mt-3 grid gap-3">
           {items.map((item, index) => (
-            <li key={`${item}-${index}`} className="rounded-2xl border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-bold leading-6 text-[#0A1547]/75">
+            <li key={`${item}-${index}`} className="rounded-2xl border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-medium leading-6 text-[#0A1547]/75">
               {item}
             </li>
           ))}
@@ -1013,12 +1066,12 @@ function PreviewTextList({ items, title }: { items: string[]; title: string }) {
 function DraftInput({ label, onChange, value }: { label: string; onChange: (value: string) => void; value: string }) {
   return (
     <label className="block">
-      <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/45">{label}</span>
+      <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0A1547]/45">{label}</span>
       <input
         type="text"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547]"
+        className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-medium text-[#0A1547]"
       />
     </label>
   );
@@ -1027,12 +1080,12 @@ function DraftInput({ label, onChange, value }: { label: string; onChange: (valu
 function DraftTextarea({ label, onChange, value }: { label: string; onChange: (value: string) => void; value: string }) {
   return (
     <label className="block">
-      <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/45">{label}</span>
+      <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0A1547]/45">{label}</span>
       <textarea
         value={value}
         onChange={(event) => onChange(event.target.value)}
         rows={3}
-        className="admin-focus mt-2 w-full resize-y rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold leading-6 text-[#0A1547]"
+        className="admin-focus mt-2 w-full resize-y rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-medium leading-6 text-[#0A1547]"
       />
     </label>
   );
@@ -1046,7 +1099,7 @@ function WarningList({ warnings }: { warnings: string[] }) {
   return (
     <div className="mt-4 flex flex-wrap gap-2">
       {warnings.map((warning) => (
-        <span key={warning} className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-extrabold capitalize text-amber-700">
+        <span key={warning} className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold capitalize text-amber-700">
           {warningLabel(warning)}
         </span>
       ))}
@@ -1058,7 +1111,7 @@ function Detail({ label, value }: { label: string; value: string | number | bool
   return (
     <div>
       <dt className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/40">{label}</dt>
-      <dd className="mt-1 break-words font-black text-[#0A1547]">{formatNullable(value)}</dd>
+      <dd className="mt-1 break-words font-medium text-[#0A1547]">{formatNullable(value)}</dd>
     </div>
   );
 }
