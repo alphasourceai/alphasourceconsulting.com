@@ -4,6 +4,13 @@ import { AdminApiError, createAdminUserAccess, getAdminMe, getAdminUsers, update
 import type { AdminAccess, AdminAccessUser, AdminRole, CreateAdminUserAccessRequest, UpdateAdminUserAccessRequest } from "@/lib/types";
 
 const adminRoleOptions: AdminRole[] = ["admin", "super_admin", "analyst", "billing_admin", "viewer"];
+const adminRoleLabels: Record<AdminRole, string> = {
+  super_admin: "Super Admin",
+  admin: "Admin",
+  analyst: "Analyst",
+  billing_admin: "Billing Admin",
+  viewer: "Viewer",
+};
 const adminStatusFilters = ["active", "inactive", "all"] as const;
 
 type AdminStatusFilter = (typeof adminStatusFilters)[number];
@@ -46,6 +53,10 @@ function fallbackAdminFromResponse(admin: AdminAccess | undefined, userId: strin
 
 function normalizeAdminRole(role: string | null | undefined): AdminRole {
   return adminRoleOptions.includes(role as AdminRole) ? (role as AdminRole) : "admin";
+}
+
+function roleLabel(role: string | null | undefined): string {
+  return adminRoleLabels[normalizeAdminRole(role)];
 }
 
 function normalizeAdminStatus(status: string | null | undefined): "active" | "inactive" {
@@ -309,7 +320,7 @@ export default function AdminManagementPage() {
           <div className="max-w-3xl">
             <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#A380F6]">Admin Access</p>
             <h2 className="mt-3 text-2xl font-black text-[#0A1547]">Dashboard access and roles</h2>
-            <p className="mt-2 text-sm font-semibold leading-6 text-[#0A1547]/62">
+            <p className="mt-2 text-sm font-medium leading-6 text-[#0A1547]/62">
               Supabase Auth controls sign-in. The Admin API controls dashboard access, role assignment, and active or inactive admin status through the admin_users access list.
             </p>
           </div>
@@ -325,7 +336,7 @@ export default function AdminManagementPage() {
       </section>
 
       {loading && (
-        <div className="admin-card p-8 text-center text-sm font-bold text-[#0A1547]/60">
+        <div className="admin-card p-8 text-center text-sm font-medium text-[#0A1547]/60">
           Loading admin access...
         </div>
       )}
@@ -339,18 +350,25 @@ export default function AdminManagementPage() {
       {!loading && !error && currentAdmin && (
         <section className="admin-card p-5">
           <h3 className="text-lg font-black text-[#0A1547]">Current admin session</h3>
-          <dl className="mt-5 grid gap-4 text-sm md:grid-cols-2 xl:grid-cols-4">
+          <dl className="mt-5 grid gap-4 text-sm md:grid-cols-3">
             <Detail label="Email" value={currentAdmin.email} />
-            <Detail label="Supabase Auth user ID" value={currentAdmin.id} />
-            <Detail label="Role" value={currentAdmin.role} />
+            <Detail label="Role" value={roleLabel(currentAdmin.role)} />
             <Detail label="Status" value={currentAdmin.status} />
           </dl>
+          <details className="mt-4 rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3">
+            <summary className="cursor-pointer text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/45">
+              Technical details
+            </summary>
+            <dl className="mt-3 grid gap-3 text-sm md:grid-cols-2">
+              <Detail label="Supabase Auth user ID" value={currentAdmin.id} />
+            </dl>
+          </details>
         </section>
       )}
 
       {!loading && !error && (
         <section className={`rounded-2xl border p-5 ${canManageAdminAccess ? "border-[#02D99D]/25 bg-[#02D99D]/10" : "border-[#A380F6]/25 bg-[#A380F6]/10"}`}>
-          <p className="text-sm font-extrabold text-[#0A1547]">
+          <p className="text-sm font-medium text-[#0A1547]">
             {canManageAdminAccess
               ? "Admin access management is enabled for this account. Add, edit, activate, and deactivate dashboard access without deleting admin rows."
               : "You can view admin access, but this account cannot manage admin access."}
@@ -362,7 +380,7 @@ export default function AdminManagementPage() {
         <section className="admin-card p-5">
           <div className="max-w-3xl">
             <h3 className="text-lg font-black text-[#0A1547]">Add admin access</h3>
-            <p className="mt-2 text-sm font-semibold leading-6 text-[#0A1547]/62">
+            <p className="mt-2 text-sm font-medium leading-6 text-[#0A1547]/62">
               Enter the admin&apos;s name, email, and role. If they do not already have a Supabase Auth account, an invite email will be sent.
             </p>
           </div>
@@ -377,7 +395,7 @@ export default function AdminManagementPage() {
                 value={newAdminName}
                 onChange={(event) => setNewAdminName(event.target.value)}
                 placeholder="Jane Smith"
-                className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/12 bg-white px-4 py-3 text-sm font-bold text-[#0A1547] outline-none"
+                className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/12 bg-white px-4 py-3 text-sm font-medium text-[#0A1547] outline-none"
               />
             </label>
             <label className="block">
@@ -389,7 +407,7 @@ export default function AdminManagementPage() {
                 value={newAdminEmail}
                 onChange={(event) => setNewAdminEmail(event.target.value)}
                 placeholder="person@example.com"
-                className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/12 bg-white px-4 py-3 text-sm font-bold text-[#0A1547] outline-none"
+                className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/12 bg-white px-4 py-3 text-sm font-medium text-[#0A1547] outline-none"
               />
             </label>
             <label className="block">
@@ -399,10 +417,10 @@ export default function AdminManagementPage() {
               <select
                 value={newAdminRole}
                 onChange={(event) => setNewAdminRole(event.target.value as CreateAdminUserAccessRequest["role"])}
-                className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/12 bg-white px-4 py-3 text-sm font-bold text-[#0A1547] outline-none"
+                className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/12 bg-white px-4 py-3 text-sm font-medium text-[#0A1547] outline-none"
               >
                 {adminRoleOptions.map((role) => (
-                  <option key={role} value={role}>{role}</option>
+                  <option key={role} value={role}>{roleLabel(role)}</option>
                 ))}
               </select>
             </label>
@@ -435,7 +453,7 @@ export default function AdminManagementPage() {
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div>
                 <h3 className="text-lg font-black text-[#0A1547]">Admin access list</h3>
-                <p className="mt-2 text-sm font-semibold leading-6 text-[#0A1547]/62">
+                <p className="mt-2 text-sm font-medium leading-6 text-[#0A1547]/62">
                   {canManageAdminAccess
                     ? "Edit names and roles or activate/deactivate access. Admin users are never hard-deleted."
                     : "Role editing and activation controls require admin access management permission."}
@@ -476,11 +494,11 @@ export default function AdminManagementPage() {
           </div>
 
           {adminUsers.length === 0 ? (
-            <div className="p-8 text-center text-sm font-bold text-[#0A1547]/60">
+            <div className="p-8 text-center text-sm font-medium text-[#0A1547]/60">
               No admin access rows were returned.
             </div>
           ) : filteredAdminUsers.length === 0 ? (
-            <div className="p-8 text-center text-sm font-bold text-[#0A1547]/60">
+            <div className="p-8 text-center text-sm font-medium text-[#0A1547]/60">
               No admin access rows match the selected filter.
             </div>
           ) : (
@@ -490,11 +508,11 @@ export default function AdminManagementPage() {
                   <tr>
                     <HeaderCell>Name</HeaderCell>
                     <HeaderCell>Email</HeaderCell>
-                    <HeaderCell>Supabase Auth user ID</HeaderCell>
                     <HeaderCell>Role</HeaderCell>
                     <HeaderCell>Status</HeaderCell>
                     <HeaderCell>Created</HeaderCell>
                     <HeaderCell>Updated</HeaderCell>
+                    <HeaderCell>Details</HeaderCell>
                     {canManageAdminAccess && <HeaderCell>Actions</HeaderCell>}
                   </tr>
                 </thead>
@@ -514,7 +532,7 @@ export default function AdminManagementPage() {
                               type="text"
                               value={draft.displayName}
                               onChange={(event) => setAdminUserDraft(adminUser.userId, { displayName: event.target.value })}
-                              className="admin-focus w-full min-w-[170px] rounded-xl border border-[#0A1547]/12 bg-white px-3 py-2 text-sm font-bold text-[#0A1547] outline-none"
+                              className="admin-focus w-full min-w-[170px] rounded-xl border border-[#0A1547]/12 bg-white px-3 py-2 text-sm font-medium text-[#0A1547] outline-none"
                               aria-label={`Display name for ${adminUser.email || adminUser.userId}`}
                             />
                           ) : (
@@ -522,22 +540,21 @@ export default function AdminManagementPage() {
                           )}
                         </BodyCell>
                         <BodyCell>{adminUser.email || "Email not stored yet"}</BodyCell>
-                        <BodyCell>{formatNullable(adminUser.userId)}</BodyCell>
                         <BodyCell>
                           {canManageAdminAccess ? (
                             <select
                               value={draft.role}
                               onChange={(event) => setAdminUserDraft(adminUser.userId, { role: event.target.value as AdminRole })}
                               disabled={isCurrentSuperAdminRow || isRowSaving}
-                              className="admin-focus min-w-[150px] rounded-xl border border-[#0A1547]/12 bg-white px-3 py-2 text-sm font-bold text-[#0A1547] outline-none disabled:cursor-not-allowed disabled:opacity-55"
+                              className="admin-focus min-w-[150px] rounded-xl border border-[#0A1547]/12 bg-white px-3 py-2 text-sm font-medium text-[#0A1547] outline-none disabled:cursor-not-allowed disabled:opacity-55"
                               aria-label={`Role for ${adminUser.email || adminUser.userId}`}
                             >
                               {adminRoleOptions.map((role) => (
-                                <option key={role} value={role}>{role}</option>
+                                <option key={role} value={role}>{roleLabel(role)}</option>
                               ))}
                             </select>
                           ) : (
-                            formatNullable(adminUser.role)
+                            roleLabel(adminUser.role)
                           )}
                         </BodyCell>
                         <BodyCell>
@@ -545,6 +562,16 @@ export default function AdminManagementPage() {
                         </BodyCell>
                         <BodyCell>{formatDate(adminUser.createdAt)}</BodyCell>
                         <BodyCell>{formatDate(adminUser.updatedAt)}</BodyCell>
+                        <BodyCell>
+                          <details className="min-w-[190px] rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-3 py-2">
+                            <summary className="cursor-pointer text-xs font-extrabold uppercase tracking-[0.12em] text-[#0A1547]/45">
+                              Technical details
+                            </summary>
+                            <dl className="mt-3 grid gap-3 text-xs">
+                              <Detail label="Supabase Auth user ID" value={adminUser.userId} />
+                            </dl>
+                          </details>
+                        </BodyCell>
                         {canManageAdminAccess && (
                           <BodyCell>
                             <div className="flex min-w-[210px] flex-col gap-2">
@@ -578,7 +605,7 @@ export default function AdminManagementPage() {
                                 )}
                               </div>
                               {isCurrentSuperAdminRow && (
-                                <p className="text-xs font-bold leading-5 text-[#0A1547]/55">
+                                <p className="text-xs font-medium leading-5 text-[#0A1547]/55">
                                   You cannot deactivate or demote your own super admin access.
                                 </p>
                               )}
@@ -602,7 +629,7 @@ function Detail({ label, value }: { label: string; value: string | number | null
   return (
     <div>
       <dt className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/40">{label}</dt>
-      <dd className="mt-1 break-words font-black text-[#0A1547]">{formatNullable(value)}</dd>
+      <dd className="mt-1 break-words font-medium text-[#0A1547]">{formatNullable(value)}</dd>
     </div>
   );
 }
@@ -617,7 +644,7 @@ function HeaderCell({ children }: { children: ReactNode }) {
 
 function BodyCell({ children }: { children: ReactNode }) {
   return (
-    <td className="max-w-[260px] break-words px-4 py-4 align-top font-bold text-[#0A1547]">
+    <td className="max-w-[260px] break-words px-4 py-4 align-top font-medium text-[#0A1547]">
       {children}
     </td>
   );

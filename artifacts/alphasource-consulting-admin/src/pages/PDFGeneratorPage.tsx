@@ -87,19 +87,19 @@ function createReportDraft(upload: PdfGeneratorUpload): ReportDraft {
     uploadId: upload.id,
     opportunities: upload.analysis.opportunities.map((opportunity, index) => ({
       id: `opportunity-${upload.id}-${index}`,
-      selected: true,
+      selected: false,
       title: opportunity.title || "",
       impact: opportunity.impact || "",
       recommendation: opportunity.recommendation || "",
     })),
     trends: upload.analysis.trends.map((trend, index) => ({
       id: `trend-${upload.id}-${index}`,
-      selected: true,
+      selected: false,
       text: trend,
     })),
     keyTrends: upload.analysis.keyTrends.map((trend, index) => ({
       id: `key-trend-${upload.id}-${index}`,
-      selected: true,
+      selected: false,
       text: trend,
     })),
     additionalNotes: "",
@@ -517,7 +517,7 @@ function UploadList({
             <button
               type="button"
               onClick={() => onSelect(upload.id)}
-              className="admin-focus grid w-full grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-2xl p-3 text-left"
+              className="admin-focus grid w-full grid-cols-[minmax(0,1fr)_auto] items-start gap-3 rounded-2xl p-3 text-left"
             >
               <div className="min-w-0 pr-1">
                 <p className="break-words text-sm font-black leading-5 text-[#0A1547]">{formatNullable(upload.fileName)}</p>
@@ -525,7 +525,7 @@ function UploadList({
                   {formatNullable(upload.toolName)}
                 </p>
               </div>
-              <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${upload.paid ? "border-[#02D99D]/30 bg-[#02D99D]/12 text-[#0A1547]" : "border-[#0A1547]/10 bg-white text-[#0A1547]/62"}`}>
+              <span className={`shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-xs font-extrabold leading-none ${upload.paid ? "border-[#02D99D]/30 bg-[#02D99D]/12 text-[#0A1547]" : "border-[#0A1547]/10 bg-white text-[#0A1547]/62"}`}>
                 {upload.paid ? "Paid" : "Unpaid"}
               </span>
             </button>
