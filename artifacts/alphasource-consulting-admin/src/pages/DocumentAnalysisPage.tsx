@@ -678,21 +678,6 @@ export default function DocumentAnalysisPage() {
 
   return (
     <div className="space-y-6">
-      <section className="admin-card p-5">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#A380F6]">Manual analysis</p>
-            <h2 className="mt-2 text-2xl font-black text-[#0A1547]">Document Analysis</h2>
-            <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#0A1547]/62">
-              Run admin-managed AI analysis only for approved, sanitized, and appropriate files. Secure Uploads is the separate intake/review workflow for potentially sensitive or PHI-related files.
-            </p>
-          </div>
-          <span className="w-fit rounded-full border border-[#02ABE0]/25 bg-[#02ABE0]/10 px-3 py-1 text-xs font-extrabold text-[#0A1547]">
-            Manual CSV/XLSX processing
-          </span>
-        </div>
-      </section>
-
       <WorkflowInfoPanel
         items={[
           {

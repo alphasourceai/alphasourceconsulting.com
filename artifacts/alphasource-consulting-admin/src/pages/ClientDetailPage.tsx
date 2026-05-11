@@ -195,21 +195,11 @@ export default function ClientDetailPage({ email }: ClientDetailPageProps) {
         </div>
         <div className="admin-card px-5 py-4">
           <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#0A1547]/45">
-            Stripe customer
+            Stripe Customer
           </p>
-          <p className="mt-2 text-sm font-semibold text-[#0A1547]">
-            {detail?.customer?.stripeCustomerId ? "Available" : "Not linked"}
+          <p className="mt-2 max-w-xs break-all text-sm font-semibold text-[#0A1547]">
+            {detail?.customer?.stripeCustomerId || "Not linked"}
           </p>
-          {detail?.customer?.stripeCustomerId && (
-            <details className="mt-3">
-              <summary className="cursor-pointer text-xs font-bold text-[#0A1547]/50">
-                Technical details
-              </summary>
-              <p className="mt-2 max-w-xs break-all text-xs font-medium text-[#0A1547]/62">
-                {detail.customer.stripeCustomerId}
-              </p>
-            </details>
-          )}
         </div>
       </div>
 
@@ -561,37 +551,52 @@ function BillingSummaryPanel({ summary }: { summary: ClientBillingDetailResponse
           label="Sessions"
           value={summary.checkoutSessionCount}
           helpText="Number of checkout sessions created for this client."
+          valueClassName="text-[#A380F6]"
         />
         <SummaryFact
           label="Paid"
           value={summary.paidCheckoutSessionCount}
           helpText="Checkout sessions marked paid."
+          valueClassName="text-[#02D99D]"
         />
         <SummaryFact
           label="Open"
           value={summary.openCheckoutSessionCount}
           helpText="Unpaid or open checkout sessions."
+          valueClassName="text-[#02ABE0]"
         />
         <SummaryFact
           label="Overrides"
           value={summary.manualOverrideCount}
           helpText="Manual billing status overrides."
+          valueClassName="text-[#A380F6]"
         />
         <SummaryFact
           label="Latest"
           value={formatNullable(summary.latestPaymentStatus)}
           helpText="Latest known payment status."
+          valueClassName="text-[#0A1547]"
         />
       </div>
     </section>
   );
 }
 
-function SummaryFact({ helpText, label, value }: { helpText: string; label: string; value: string | number }) {
+function SummaryFact({
+  helpText,
+  label,
+  value,
+  valueClassName,
+}: {
+  helpText: string;
+  label: string;
+  value: string | number;
+  valueClassName: string;
+}) {
   return (
     <div title={helpText} className="rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
       <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#0A1547]/45">{label}</p>
-      <p className="mt-2 break-words text-xl font-black text-[#0A1547]">{value}</p>
+      <p className={`mt-2 break-words text-xl font-black ${valueClassName}`}>{value}</p>
       <p className="mt-1 text-xs font-medium leading-5 text-[#0A1547]/55">{helpText}</p>
     </div>
   );
