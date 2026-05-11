@@ -43,13 +43,14 @@ function statusTone(status: string | null): string {
 }
 
 export default function ClientsPage() {
-  const { session } = useAuth();
+  const { permissions, session } = useAuth();
   const [clients, setClients] = useState<AdminClient[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const token = session?.access_token || "";
+  const canReadBilling = permissions.canReadBilling;
 
   const loadClients = useCallback(async (signal?: AbortSignal) => {
     if (!token) {
@@ -120,7 +121,7 @@ export default function ClientsPage() {
           <div>
             <h2 className="text-xl font-black text-[#0A1547]">Client Submissions</h2>
             <p className="mt-1 text-sm font-medium text-[#0A1547]/58">
-              Read-only view from the Admin API. Billing counts are local summary data only.
+              Read-only view from the Admin API. Billing counts are shown only when your role includes billing access.
             </p>
           </div>
           <label className="w-full md:w-80">
@@ -160,7 +161,7 @@ export default function ClientsPage() {
       {!loading && !error && clients.length > 0 && (
         <section className="grid gap-4">
           {clients.map((client) => (
-            <ClientCard key={client.email} client={client} />
+            <ClientCard key={client.email} canReadBilling={canReadBilling} client={client} />
           ))}
         </section>
       )}
@@ -178,7 +179,7 @@ function MetricCard({ accent, label, value }: { accent: string; label: string; v
   );
 }
 
-function ClientCard({ client }: { client: AdminClient }) {
+function ClientCard({ canReadBilling, client }: { canReadBilling: boolean; client: AdminClient }) {
   return (
     <article className="admin-card overflow-hidden">
       <div className="grid gap-5 border-b border-[#0A1547]/10 p-5 lg:grid-cols-[1.4fr_1fr]">
@@ -192,12 +193,18 @@ function ClientCard({ client }: { client: AdminClient }) {
           <p className="mt-2 text-sm font-bold text-[#0A1547]/62">
             {formatNullable(client.latestName)} · {formatNullable(client.latestOfficeName)}
           </p>
-          <Link
-            href={`/clients/${encodeURIComponent(client.email)}`}
-            className="admin-focus mt-4 inline-flex rounded-xl bg-[#0A1547] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#1A2460]"
-          >
-            View details
-          </Link>
+          {canReadBilling ? (
+            <Link
+              href={`/clients/${encodeURIComponent(client.email)}`}
+              className="admin-focus mt-4 inline-flex rounded-xl bg-[#0A1547] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#1A2460]"
+            >
+              View details
+            </Link>
+          ) : (
+            <p className="mt-4 rounded-xl border border-[#A380F6]/20 bg-[#A380F6]/10 px-4 py-2 text-sm font-bold text-[#0A1547]/68">
+              Billing detail requires billing access.
+            </p>
+          )}
         </div>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-2">
           <Fact label="Submissions" value={client.submissionCount} />

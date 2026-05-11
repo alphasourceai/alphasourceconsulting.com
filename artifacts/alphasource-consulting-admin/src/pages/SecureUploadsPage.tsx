@@ -75,8 +75,9 @@ function responseFallback(): SecureUploadFilesResponse {
 }
 
 export default function SecureUploadsPage() {
-  const { session } = useAuth();
+  const { permissions, session } = useAuth();
   const token = session?.access_token || "";
+  const canWriteSecureUploads = permissions.canWriteSecureUploads;
   const [filters, setFilters] = useState<SecureUploadFilters>(DEFAULT_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<SecureUploadFilters>(filters);
   const [offset, setOffset] = useState(0);
@@ -152,7 +153,7 @@ export default function SecureUploadsPage() {
 
   const handleSendRequest = async () => {
     const clientEmail = requestEmail.trim();
-    if (!clientEmail || !token || requestSending) {
+    if (!clientEmail || !token || requestSending || !canWriteSecureUploads) {
       return;
     }
 
@@ -200,58 +201,67 @@ export default function SecureUploadsPage() {
         </div>
       </section>
 
-      <section className="admin-card p-5">
-        <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
-          <div>
-            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#A380F6]">Send secure upload request</p>
-            <h3 className="mt-2 text-xl font-black text-[#0A1547]">Email an existing client user</h3>
-            <p className="mt-2 text-sm font-semibold leading-6 text-[#0A1547]/62">
-              This sends the existing secure upload portal email. It only works for an email that already belongs to a client user.
-            </p>
-            <label className="mt-4 block">
-              <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/45">Client email</span>
-              <input
-                type="email"
-                value={requestEmail}
-                onChange={(event) => {
-                  setRequestEmail(event.target.value);
-                  setRequestError("");
-                  setRequestSuccess(null);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    void handleSendRequest();
-                  }
-                }}
-                placeholder="client@example.com"
-                className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-bold text-[#0A1547] placeholder:text-[#0A1547]/35"
-              />
-            </label>
+      {canWriteSecureUploads ? (
+        <section className="admin-card p-5">
+          <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
+            <div>
+              <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#A380F6]">Send secure upload request</p>
+              <h3 className="mt-2 text-xl font-black text-[#0A1547]">Email an existing client user</h3>
+              <p className="mt-2 text-sm font-semibold leading-6 text-[#0A1547]/62">
+                This sends the existing secure upload portal email. It only works for an email that already belongs to a client user.
+              </p>
+              <label className="mt-4 block">
+                <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/45">Client email</span>
+                <input
+                  type="email"
+                  value={requestEmail}
+                  onChange={(event) => {
+                    setRequestEmail(event.target.value);
+                    setRequestError("");
+                    setRequestSuccess(null);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      void handleSendRequest();
+                    }
+                  }}
+                  placeholder="client@example.com"
+                  className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-bold text-[#0A1547] placeholder:text-[#0A1547]/35"
+                />
+              </label>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => void handleSendRequest()}
+              disabled={requestSending || !requestEmail.trim()}
+              className="admin-focus rounded-xl bg-[#0A1547] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#1A2460] disabled:cursor-not-allowed disabled:opacity-55"
+            >
+              {requestSending ? "Sending..." : "Send request"}
+            </button>
           </div>
 
-          <button
-            type="button"
-            onClick={() => void handleSendRequest()}
-            disabled={requestSending || !requestEmail.trim()}
-            className="admin-focus rounded-xl bg-[#0A1547] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#1A2460] disabled:cursor-not-allowed disabled:opacity-55"
-          >
-            {requestSending ? "Sending..." : "Send request"}
-          </button>
-        </div>
+          {requestSuccess && (
+            <div className="mt-4 rounded-2xl border border-[#02D99D]/25 bg-[#02D99D]/10 p-4 text-sm font-bold text-[#0A1547]">
+              Secure upload request emailed to {requestSuccess.clientEmail}. Link expires {formatDate(requestSuccess.expiresAt)} ({requestSuccess.expiresInMinutes} minutes).
+            </div>
+          )}
 
-        {requestSuccess && (
-          <div className="mt-4 rounded-2xl border border-[#02D99D]/25 bg-[#02D99D]/10 p-4 text-sm font-bold text-[#0A1547]">
-            Secure upload request emailed to {requestSuccess.clientEmail}. Link expires {formatDate(requestSuccess.expiresAt)} ({requestSuccess.expiresInMinutes} minutes).
-          </div>
-        )}
-
-        {requestError && (
-          <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
-            {requestError}
-          </div>
-        )}
-      </section>
+          {requestError && (
+            <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
+              {requestError}
+            </div>
+          )}
+        </section>
+      ) : (
+        <section className="rounded-2xl border border-[#A380F6]/25 bg-[#A380F6]/10 p-5">
+          <p className="text-sm font-black text-[#0A1547]">Read-only secure uploads access</p>
+          <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
+            You can inspect secure upload files, but sending upload request emails requires secure uploads write permission.
+          </p>
+        </section>
+      )}
 
       <section className="admin-card p-5">
         <p className="mb-4 text-sm font-bold text-[#0A1547]/58">

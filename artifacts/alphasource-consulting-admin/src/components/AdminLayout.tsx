@@ -70,7 +70,7 @@ export default function AdminLayout({ title, description, children }: AdminLayou
 
 function LinkLogo() {
   return (
-    <a href="/clients" className="admin-focus flex items-center rounded-xl">
+    <a href="/" className="admin-focus flex items-center rounded-xl">
       <img
         src={`${import.meta.env.BASE_URL}logo-dark-text.png`}
         alt="alphaSource Consulting"

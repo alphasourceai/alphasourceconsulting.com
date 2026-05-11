@@ -83,7 +83,7 @@ function clientHref(email: string | null): string {
 }
 
 export default function BillingPage() {
-  const { session } = useAuth();
+  const { permissions, session } = useAuth();
   const [overview, setOverview] = useState<BillingOverviewResponse | null>(null);
   const [status, setStatus] = useState<BillingOverviewStatus>("open");
   const [search, setSearch] = useState("");
@@ -91,6 +91,7 @@ export default function BillingPage() {
   const [error, setError] = useState("");
 
   const token = session?.access_token || "";
+  const canWriteBilling = permissions.canWriteBilling;
 
   const loadOverview = useCallback(async (signal?: AbortSignal) => {
     if (!token) {
@@ -165,6 +166,11 @@ export default function BillingPage() {
             <p className="mt-1 max-w-2xl text-sm font-medium leading-6 text-[#0A1547]/60">
               Read-only visibility into local checkout session, payment status, and manual override records.
             </p>
+            {!canWriteBilling && (
+              <p className="mt-2 text-sm font-bold text-[#0A1547]/58">
+                Checkout creation and billing override actions require billing write permission.
+              </p>
+            )}
           </div>
 
           <div className="flex flex-col gap-3 md:flex-row md:items-center">

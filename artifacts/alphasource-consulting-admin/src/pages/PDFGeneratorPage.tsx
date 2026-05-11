@@ -138,7 +138,7 @@ function hasGeneratePdfContent(payload: Omit<GeneratePdfReportRequest, "uploadId
 }
 
 export default function PDFGeneratorPage() {
-  const { session } = useAuth();
+  const { permissions, session } = useAuth();
   const [options, setOptions] = useState<PdfGeneratorClientOption[]>([]);
   const [selectedEmail, setSelectedEmail] = useState("");
   const [clientData, setClientData] = useState<PdfGeneratorClientResponse | null>(null);
@@ -153,6 +153,7 @@ export default function PDFGeneratorPage() {
   const [generationResult, setGenerationResult] = useState<PdfGenerationResult | null>(null);
 
   const token = session?.access_token || "";
+  const canGeneratePdf = permissions.canGeneratePdf;
 
   const loadOptions = useCallback(async (signal?: AbortSignal) => {
     if (!token) {
@@ -280,7 +281,7 @@ export default function PDFGeneratorPage() {
   }, [selectedEmail, selectedUploadId]);
 
   const handleGeneratePdf = useCallback(async () => {
-    if (generatingUploadId || !token || !selectedUpload || !reportDraft || reportDraft.uploadId !== selectedUpload.id) {
+    if (!canGeneratePdf || generatingUploadId || !token || !selectedUpload || !reportDraft || reportDraft.uploadId !== selectedUpload.id) {
       return;
     }
 
@@ -330,7 +331,7 @@ export default function PDFGeneratorPage() {
     } finally {
       setGeneratingUploadId((current) => (current === uploadId ? "" : current));
     }
-  }, [generatingUploadId, reportDraft, selectedEmail, selectedUpload, token]);
+  }, [canGeneratePdf, generatingUploadId, reportDraft, selectedEmail, selectedUpload, token]);
 
   const existingPdfCount = useMemo(() => {
     return clientData?.uploads.filter((upload) => upload.pdf.pdfUrl || upload.pdf.signedUrl).length ?? 0;
@@ -434,6 +435,7 @@ export default function PDFGeneratorPage() {
           <div>
             {selectedUpload ? (
               <UploadDetail
+                canGeneratePdf={canGeneratePdf}
                 upload={selectedUpload}
                 draft={reportDraft}
                 generationError={generationError?.uploadId === selectedUpload.id ? generationError.message : ""}
@@ -570,6 +572,7 @@ function UploadList({
 }
 
 function UploadDetail({
+  canGeneratePdf,
   draft,
   generationError,
   generationResult,
@@ -579,6 +582,7 @@ function UploadDetail({
   onResetDraft,
   upload,
 }: {
+  canGeneratePdf: boolean;
   draft: ReportDraft | null;
   generationError: string;
   generationResult: PdfGenerationResult | null;
@@ -631,13 +635,22 @@ function UploadDetail({
           <>
             <DraftBuilder draft={activeDraft} onChange={onDraftChange} onReset={onResetDraft} />
             <DraftPreview draft={activeDraft} upload={upload} />
-            <GeneratePdfPanel
-              draft={activeDraft}
-              error={generationError}
-              generating={generating}
-              onGenerate={onGeneratePdf}
-              result={generationResult}
-            />
+            {canGeneratePdf ? (
+              <GeneratePdfPanel
+                draft={activeDraft}
+                error={generationError}
+                generating={generating}
+                onGenerate={onGeneratePdf}
+                result={generationResult}
+              />
+            ) : (
+              <section className="rounded-2xl border border-[#A380F6]/25 bg-[#A380F6]/10 p-4">
+                <p className="text-sm font-black text-[#0A1547]">Read-only PDF access</p>
+                <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
+                  You can inspect PDF Generator data and draft content, but generating PDFs requires PDF generation permission.
+                </p>
+              </section>
+            )}
           </>
         ) : (
           <p className="rounded-2xl bg-[#F8F9FD] p-4 text-sm font-bold text-[#0A1547]/56">

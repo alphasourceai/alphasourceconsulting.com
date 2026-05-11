@@ -10,7 +10,7 @@ import {
 import type { Session } from "@supabase/supabase-js";
 import { AdminApiError, getAdminMe } from "@/lib/adminApi";
 import { getSupabaseClient } from "@/lib/supabase";
-import type { AdminUser } from "@/lib/types";
+import type { AdminMeResponse, AdminPermissions, AdminUser } from "@/lib/types";
 
 type AuthStatus =
   | "loading"
@@ -23,6 +23,7 @@ type AuthContextValue = {
   status: AuthStatus;
   session: Session | null;
   adminUser: AdminUser | null;
+  permissions: AdminPermissions;
   error: string;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -30,6 +31,27 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+const defaultAdminPermissions: AdminPermissions = {
+  canReadClients: false,
+  canReadBilling: false,
+  canWriteBilling: false,
+  canReadAnalysis: false,
+  canWriteAnalysis: false,
+  canReadPdf: false,
+  canGeneratePdf: false,
+  canReadSecureUploads: false,
+  canWriteSecureUploads: false,
+  canReadAdminManagement: false,
+  canManageAdminAccess: false,
+};
+
+function normalizeAdminPermissions(response: AdminMeResponse): AdminPermissions {
+  return {
+    ...defaultAdminPermissions,
+    ...response.permissions,
+  };
+}
 
 function safeAuthMessage(error: unknown): string {
   if (error instanceof AdminApiError) {
@@ -53,11 +75,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>("loading");
   const [session, setSession] = useState<Session | null>(null);
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
+  const [permissions, setPermissions] = useState<AdminPermissions>(defaultAdminPermissions);
   const [error, setError] = useState("");
 
   const validateSession = useCallback(async (nextSession: Session | null) => {
     setSession(nextSession);
     setAdminUser(null);
+    setPermissions(defaultAdminPermissions);
     setError("");
 
     if (!nextSession?.access_token) {
@@ -70,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const admin = await getAdminMe(nextSession.access_token);
       setAdminUser(admin.admin ?? { ...admin.user, role: admin.role, status: "active" });
+      setPermissions(normalizeAdminPermissions(admin));
       setStatus("authenticated");
     } catch (validationError) {
       setError(safeAuthMessage(validationError));
@@ -145,6 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       setAdminUser(null);
       setSession(null);
+      setPermissions(defaultAdminPermissions);
       setError("Sign in failed. Check your email and password, then try again.");
       setStatus("unauthenticated");
     }
@@ -157,6 +183,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setSession(null);
       setAdminUser(null);
+      setPermissions(defaultAdminPermissions);
       setError("");
       setStatus("unauthenticated");
     }
@@ -170,11 +197,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     status,
     session,
     adminUser,
+    permissions,
     error,
     signIn,
     signOut,
     refreshAdmin,
-  }), [adminUser, error, refreshAdmin, session, signIn, signOut, status]);
+  }), [adminUser, error, permissions, refreshAdmin, session, signIn, signOut, status]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

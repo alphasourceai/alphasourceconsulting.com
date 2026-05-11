@@ -99,7 +99,7 @@ function dollarsToCents(value: string): number | null {
 }
 
 export default function ClientDetailPage({ email }: ClientDetailPageProps) {
-  const { session } = useAuth();
+  const { permissions, session } = useAuth();
   const [detail, setDetail] = useState<ClientBillingDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -107,6 +107,7 @@ export default function ClientDetailPage({ email }: ClientDetailPageProps) {
 
   const token = session?.access_token || "";
   const validEmail = email.trim();
+  const canWriteBilling = permissions.canWriteBilling;
 
   const loadDetail = useCallback(async (
     signal?: AbortSignal,
@@ -233,12 +234,21 @@ export default function ClientDetailPage({ email }: ClientDetailPageProps) {
             <MetricCard label="Latest" value={formatNullable(summary?.latestPaymentStatus)} accent="#A380F6" />
           </section>
 
-          <CreateCheckoutLinkCard
-            clientEmail={detail.clientEmail}
-            onCreated={() => loadDetail(undefined, { showLoading: false })}
-            token={token}
-            uploads={sortedUploads}
-          />
+          {canWriteBilling ? (
+            <CreateCheckoutLinkCard
+              clientEmail={detail.clientEmail}
+              onCreated={() => loadDetail(undefined, { showLoading: false })}
+              token={token}
+              uploads={sortedUploads}
+            />
+          ) : (
+            <section className="rounded-2xl border border-[#A380F6]/25 bg-[#A380F6]/10 p-5">
+              <p className="text-sm font-black text-[#0A1547]">Read-only billing access</p>
+              <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
+                You can inspect billing and upload records, but creating checkout links requires billing write permission.
+              </p>
+            </section>
+          )}
 
           <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
             <Panel title="Checkout Sessions" emptyText="No checkout sessions found.">

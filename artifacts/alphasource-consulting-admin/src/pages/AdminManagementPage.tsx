@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { useAuth } from "@/auth/AuthProvider";
 import { AdminApiError, createAdminUserAccess, getAdminMe, getAdminUsers } from "@/lib/adminApi";
-import type { AdminAccess, AdminAccessUser, CreateAdminUserAccessRequest } from "@/lib/types";
+import type { AdminAccess, AdminAccessUser, AdminRole, CreateAdminUserAccessRequest } from "@/lib/types";
+
+const adminRoleOptions: AdminRole[] = ["admin", "super_admin", "analyst", "billing_admin", "viewer"];
 
 function formatNullable(value: string | number | null | undefined): string {
   if (value === null || value === undefined || value === "") {
@@ -244,8 +246,9 @@ export default function AdminManagementPage() {
                 onChange={(event) => setNewAdminRole(event.target.value as CreateAdminUserAccessRequest["role"])}
                 className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/12 bg-white px-4 py-3 text-sm font-bold text-[#0A1547] outline-none"
               >
-                <option value="admin">admin</option>
-                <option value="super_admin">super_admin</option>
+                {adminRoleOptions.map((role) => (
+                  <option key={role} value={role}>{role}</option>
+                ))}
               </select>
             </label>
             <button

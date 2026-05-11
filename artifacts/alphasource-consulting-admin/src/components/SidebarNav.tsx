@@ -1,20 +1,24 @@
 import { Link, useLocation } from "wouter";
+import { useAuth } from "@/auth/AuthProvider";
+import type { AdminPermissions } from "@/lib/types";
 
 const navItems = [
-  { href: "/clients", label: "Client Submissions" },
-  { href: "/analysis", label: "Document Analysis" },
-  { href: "/secure-uploads", label: "Secure Uploads" },
-  { href: "/pdf-generator", label: "PDF Generator" },
-  { href: "/billing", label: "Billing" },
-  { href: "/admin-management", label: "Admin Management" },
+  { href: "/clients", label: "Client Submissions", canShow: (permissions: AdminPermissions) => permissions.canReadClients },
+  { href: "/analysis", label: "Document Analysis", canShow: (permissions: AdminPermissions) => permissions.canReadAnalysis || permissions.canWriteAnalysis },
+  { href: "/secure-uploads", label: "Secure Uploads", canShow: (permissions: AdminPermissions) => permissions.canReadSecureUploads },
+  { href: "/pdf-generator", label: "PDF Generator", canShow: (permissions: AdminPermissions) => permissions.canReadPdf },
+  { href: "/billing", label: "Billing", canShow: (permissions: AdminPermissions) => permissions.canReadBilling },
+  { href: "/admin-management", label: "Admin Management", canShow: (permissions: AdminPermissions) => permissions.canReadAdminManagement },
 ];
 
 export default function SidebarNav() {
   const [location] = useLocation();
+  const { permissions } = useAuth();
+  const visibleItems = navItems.filter((item) => item.canShow(permissions));
 
   return (
     <nav className="flex flex-col gap-2" aria-label="Admin navigation">
-      {navItems.map((item) => {
+      {visibleItems.map((item) => {
         const active = location === item.href;
 
         return (

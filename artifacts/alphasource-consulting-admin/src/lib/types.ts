@@ -1,23 +1,37 @@
+export type AdminRole = "super_admin" | "admin" | "analyst" | "billing_admin" | "viewer";
+
+export type AdminPermissions = {
+  canReadClients: boolean;
+  canReadBilling: boolean;
+  canWriteBilling: boolean;
+  canReadAnalysis: boolean;
+  canWriteAnalysis: boolean;
+  canReadPdf: boolean;
+  canGeneratePdf: boolean;
+  canReadSecureUploads: boolean;
+  canWriteSecureUploads: boolean;
+  canReadAdminManagement: boolean;
+  canManageAdminAccess: boolean;
+};
+
 export type AdminUser = {
   id: string;
   email: string;
-  role?: string;
+  role?: AdminRole | string;
   status?: string;
 };
 
 export type AdminAccess = {
   id: string;
   email: string;
-  role: string;
+  role: AdminRole | string;
   status: string;
 };
 
 export type AdminMeResponse = {
   ok: true;
   admin?: AdminAccess;
-  permissions?: {
-    canManageAdminAccess?: boolean;
-  };
+  permissions?: Partial<AdminPermissions>;
   user: AdminUser;
   role: string;
 };
@@ -40,7 +54,7 @@ export type AdminUsersResponse = {
 export type CreateAdminUserAccessRequest = {
   name: string;
   email: string;
-  role: "admin" | "super_admin";
+  role: AdminRole;
 };
 
 export type CreateAdminUserAccessResponse = {

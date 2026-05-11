@@ -260,8 +260,9 @@ function formFromOption(option: AdminClientOption): ClientFormState {
 }
 
 export default function DocumentAnalysisPage() {
-  const { session } = useAuth();
+  const { permissions, session } = useAuth();
   const token = session?.access_token || "";
+  const canWriteAnalysis = permissions.canWriteAnalysis;
   const [mode, setMode] = useState<ClientMode>("existing");
   const [clientForm, setClientForm] = useState<ClientFormState>(emptyClientForm);
   const [clientSearch, setClientSearch] = useState("");
@@ -291,7 +292,7 @@ export default function DocumentAnalysisPage() {
   };
 
   const loadClientOptions = useCallback(async (signal?: AbortSignal) => {
-    if (!token || mode !== "existing") {
+    if (!token || mode !== "existing" || !canWriteAnalysis) {
       return;
     }
 
@@ -319,7 +320,7 @@ export default function DocumentAnalysisPage() {
         setClientOptionsLoading(false);
       }
     }
-  }, [clientSearch, mode, token]);
+  }, [canWriteAnalysis, clientSearch, mode, token]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -429,6 +430,11 @@ export default function DocumentAnalysisPage() {
     setSubmitError("");
     setJobError("");
 
+    if (!canWriteAnalysis) {
+      setSubmitError("Analysis write permission is required to create intake jobs.");
+      return;
+    }
+
     const validationMessage = validateForm();
     if (validationMessage) {
       setSubmitError(validationMessage);
@@ -499,7 +505,7 @@ export default function DocumentAnalysisPage() {
   };
 
   const handleCancel = async () => {
-    if (!job || !token) {
+    if (!job || !token || !canWriteAnalysis) {
       return;
     }
 
@@ -521,7 +527,7 @@ export default function DocumentAnalysisPage() {
   };
 
   const handleProcessFinancial = async () => {
-    if (!job || !token) {
+    if (!job || !token || !canWriteAnalysis) {
       return;
     }
 
@@ -543,7 +549,7 @@ export default function DocumentAnalysisPage() {
   };
 
   const handleProcessAr = async () => {
-    if (!job || !token) {
+    if (!job || !token || !canWriteAnalysis) {
       return;
     }
 
@@ -565,7 +571,7 @@ export default function DocumentAnalysisPage() {
   };
 
   const handleProcessClaims = async () => {
-    if (!job || !token) {
+    if (!job || !token || !canWriteAnalysis) {
       return;
     }
 
@@ -587,7 +593,7 @@ export default function DocumentAnalysisPage() {
   };
 
   const handlePromoteFinancial = async () => {
-    if (!job || !token) {
+    if (!job || !token || !canWriteAnalysis) {
       return;
     }
 
@@ -615,7 +621,7 @@ export default function DocumentAnalysisPage() {
   };
 
   const handlePromoteAr = async () => {
-    if (!job || !token) {
+    if (!job || !token || !canWriteAnalysis) {
       return;
     }
 
@@ -643,7 +649,7 @@ export default function DocumentAnalysisPage() {
   };
 
   const handlePromoteClaims = async () => {
-    if (!job || !token) {
+    if (!job || !token || !canWriteAnalysis) {
       return;
     }
 
@@ -687,13 +693,14 @@ export default function DocumentAnalysisPage() {
         </div>
       </section>
 
-      <form onSubmit={handleSubmit} className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-        <section className="admin-card p-5">
-          <StepHeader
-            eyebrow="Step 1"
-            title="Select or create client"
-            description="Use an existing client record when available, or enter new client details for this intake job."
-          />
+      {canWriteAnalysis ? (
+        <form onSubmit={handleSubmit} className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+          <section className="admin-card p-5">
+            <StepHeader
+              eyebrow="Step 1"
+              title="Select or create client"
+              description="Use an existing client record when available, or enter new client details for this intake job."
+            />
 
           <div className="mt-5 flex rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-1">
             {(["existing", "new"] as const).map((option) => (
@@ -760,14 +767,14 @@ export default function DocumentAnalysisPage() {
             form={clientForm}
             onChange={updateClientField}
           />
-        </section>
+          </section>
 
-        <section className="admin-card p-5">
-          <StepHeader
-            eyebrow="Step 2"
-            title="Choose analysis and upload source file"
-            description="Financial, AR, and Claims Analyzer intake are active. Processing stays manual after the durable job record is created."
-          />
+          <section className="admin-card p-5">
+            <StepHeader
+              eyebrow="Step 2"
+              title="Choose analysis and upload source file"
+              description="Financial, AR, and Claims Analyzer intake are active. Processing stays manual after the durable job record is created."
+            />
 
           <div className="mt-5 grid gap-4">
             <div className="grid gap-2 rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-1 sm:grid-cols-3">
@@ -877,11 +884,20 @@ export default function DocumentAnalysisPage() {
           >
             {submitting ? "Creating analysis..." : analysisCreateLabels[analysisKind]}
           </button>
+          </section>
+        </form>
+      ) : (
+        <section className="rounded-2xl border border-[#A380F6]/25 bg-[#A380F6]/10 p-5">
+          <p className="text-sm font-black text-[#0A1547]">Read-only analysis access</p>
+          <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
+            You can view analysis data available to your role, but intake, processing, cancel, and promotion actions require analysis write permission.
+          </p>
         </section>
-      </form>
+      )}
 
       {job && (
         <JobStatusCard
+          canWriteAnalysis={canWriteAnalysis}
           canceling={canceling}
           job={job}
           jobError={jobError}
@@ -1043,6 +1059,7 @@ function AnalyzerToolCard({
 }
 
 function JobStatusCard({
+  canWriteAnalysis,
   canceling,
   job,
   jobError,
@@ -1061,6 +1078,7 @@ function JobStatusCard({
   promotingFinancial,
   promotionMetadata,
 }: {
+  canWriteAnalysis: boolean;
   canceling: boolean;
   job: AdminAnalysisJob;
   jobError: string;
@@ -1079,10 +1097,10 @@ function JobStatusCard({
   promotingFinancial: boolean;
   promotionMetadata: PromotionMetadata | null;
 }) {
-  const canCancel = isJobActive(job.status);
+  const canCancel = canWriteAnalysis && isJobActive(job.status);
   const analysisKind = getJobAnalysisKind(job);
   const analysisFile = getJobAnalysisFile(job);
-  const canProcess = isJobEligibleForManualProcessing(job);
+  const canProcess = canWriteAnalysis && isJobEligibleForManualProcessing(job);
   const fileExtension = fileExtensionFromNullable(analysisFile?.originalFilename || null);
   const jobCompleted = (job.status || "").toLowerCase() === "completed";
   const hasSubmissionLink = hasRecordId(job.submissionId);
@@ -1090,7 +1108,8 @@ function JobStatusCard({
   const hasAnyLinkedClientRecord = hasSubmissionLink || hasUploadLink;
   const hasCompleteLinkedClientRecords = hasSubmissionLink && hasUploadLink;
   const canPromote = Boolean(
-    jobCompleted
+    canWriteAnalysis
+    && jobCompleted
     && analysisKind
     && analysisFile
     && analysisFile.analysisData
@@ -1185,6 +1204,11 @@ function JobStatusCard({
         {showPdfProcessingNote && (
           <p className="mt-3 rounded-xl border border-[#A380F6]/20 bg-white px-4 py-3 text-sm font-bold text-[#0A1547]/68">
             CSV and XLSX processing are available now. PDF processing will be added later.
+          </p>
+        )}
+        {!canWriteAnalysis && (
+          <p className="mt-3 rounded-xl border border-[#A380F6]/20 bg-white px-4 py-3 text-sm font-bold text-[#0A1547]/68">
+            Analysis write permission is required to run, cancel, or promote jobs.
           </p>
         )}
       </div>
