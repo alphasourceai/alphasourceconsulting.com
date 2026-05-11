@@ -15,6 +15,9 @@ export type AdminAccess = {
 export type AdminMeResponse = {
   ok: true;
   admin?: AdminAccess;
+  permissions?: {
+    canManageAdminAccess?: boolean;
+  };
   user: AdminUser;
   role: string;
 };

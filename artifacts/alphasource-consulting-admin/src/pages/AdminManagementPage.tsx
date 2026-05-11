@@ -40,6 +40,7 @@ export default function AdminManagementPage() {
   const token = session?.access_token || "";
   const [currentAdmin, setCurrentAdmin] = useState<AdminAccess | null>(null);
   const [adminUsers, setAdminUsers] = useState<AdminAccessUser[]>([]);
+  const [canManageAdminAccess, setCanManageAdminAccess] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -64,6 +65,7 @@ export default function AdminManagementPage() {
           meResponse.role,
         ),
       );
+      setCanManageAdminAccess(meResponse.permissions?.canManageAdminAccess === true);
       setAdminUsers(usersResponse.items);
     } catch (loadError) {
       if (loadError instanceof DOMException && loadError.name === "AbortError") {
@@ -134,6 +136,16 @@ export default function AdminManagementPage() {
             <Detail label="Role" value={currentAdmin.role} />
             <Detail label="Status" value={currentAdmin.status} />
           </dl>
+        </section>
+      )}
+
+      {!loading && !error && (
+        <section className={`rounded-2xl border p-5 ${canManageAdminAccess ? "border-[#02D99D]/25 bg-[#02D99D]/10" : "border-[#A380F6]/25 bg-[#A380F6]/10"}`}>
+          <p className="text-sm font-extrabold text-[#0A1547]">
+            {canManageAdminAccess
+              ? "Admin access management is enabled for this account. Write controls are still intentionally disabled until the next rollout step."
+              : "You can view admin access, but this account cannot manage admin access."}
+          </p>
         </section>
       )}
 
