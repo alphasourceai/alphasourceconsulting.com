@@ -205,26 +205,6 @@ export default function SecureUploadsPage() {
 
   return (
     <div className="space-y-6">
-      <section className="admin-card p-5">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-          <div className="max-w-3xl">
-            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#A380F6]">Secure Uploads</p>
-            <h2 className="mt-3 text-2xl font-black text-[#0A1547]">Secure file intake review</h2>
-            <p className="mt-2 text-sm font-semibold leading-6 text-[#0A1547]/62">
-              Review files uploaded through the secure portal. This workflow is intentionally separate from AI Document Analysis.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={handleRefresh}
-            disabled={loading}
-            className="admin-focus rounded-xl bg-[#0A1547] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#1A2460] disabled:cursor-not-allowed disabled:opacity-55"
-          >
-            {loading ? "Refreshing..." : "Refresh results"}
-          </button>
-        </div>
-      </section>
-
       <WorkflowInfoPanel
         items={[
           {
@@ -255,7 +235,7 @@ export default function SecureUploadsPage() {
               <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#A380F6]">Send secure upload request</p>
               <h3 className="mt-2 text-xl font-black text-[#0A1547]">Email an existing client user</h3>
               <p className="mt-2 text-sm font-semibold leading-6 text-[#0A1547]/62">
-                This sends the existing secure upload portal email. It only works for an email that already belongs to a client user.
+                This sends the existing secure upload portal email. It only works for an email that already belongs to an existing client.
               </p>
               <label className="mt-4 block">
                 <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/45">Client email</span>
@@ -311,9 +291,19 @@ export default function SecureUploadsPage() {
       )}
 
       <section className="admin-card p-5">
-        <p className="mb-4 text-sm font-bold text-[#0A1547]/58">
-          Change filters, then click Apply filters.
-        </p>
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm font-medium text-[#0A1547]/58">
+            Change filters, then click Apply filters.
+          </p>
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={loading}
+            className="admin-focus w-fit rounded-xl border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/60 disabled:cursor-not-allowed disabled:opacity-55"
+          >
+            {loading ? "Refreshing..." : "Refresh results"}
+          </button>
+        </div>
         <div className="grid gap-4 lg:grid-cols-[180px_1fr_180px_180px_auto_auto] lg:items-end">
           <label className="flex items-center gap-3 rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3">
             <input
@@ -382,12 +372,6 @@ export default function SecureUploadsPage() {
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-3">
-        <MetricCard label="Returned files" value={response.count} accent="#A380F6" />
-        <MetricCard label="Page offset" value={response.offset} accent="#02ABE0" />
-        <MetricCard label="More available" value={response.hasMore ? "Yes" : "No"} accent="#02D99D" />
-      </section>
-
       {loading && (
         <div className="admin-card p-8 text-center text-sm font-bold text-[#0A1547]/60">
           Loading secure uploads...
@@ -442,63 +426,49 @@ export default function SecureUploadsPage() {
   );
 }
 
-function MetricCard({ accent, label, value }: { accent: string; label: string; value: string | number }) {
-  return (
-    <div className="admin-card p-5">
-      <div className="h-1.5 w-12 rounded-full" style={{ backgroundColor: accent }} />
-      <p className="mt-4 text-xs font-extrabold uppercase tracking-[0.16em] text-[#0A1547]/45">{label}</p>
-      <p className="mt-2 break-words text-2xl font-black text-[#0A1547]">{value}</p>
-    </div>
-  );
-}
-
 function SecureUploadCard({ file }: { file: SecureUploadFile }) {
   const status = statusLabel(file);
 
   return (
-    <article className="admin-card overflow-hidden">
-      <div className="border-b border-[#0A1547]/10 p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="min-w-0">
-            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#A380F6]">Secure upload file</p>
-            <h3 className="mt-2 break-words text-xl font-black text-[#0A1547]">
-              {formatNullable(file.originalFilename)}
-            </h3>
-            <p className="mt-2 break-all text-sm font-bold text-[#0A1547]/60">
-              {formatNullable(file.userEmail)}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${status === "Completed" ? "border-[#02D99D]/30 bg-[#02D99D]/12 text-[#0A1547]" : "border-amber-200 bg-amber-50 text-amber-700"}`}>
-              {status}
-            </span>
-            {file.consoleUrl && (
-              <a
-                href={file.consoleUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="admin-focus rounded-xl bg-[#02ABE0] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#0096C9]"
-              >
-                Open in Console
-              </a>
-            )}
-          </div>
+    <article className="admin-card p-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#A380F6]">Secure upload file</p>
+          <h3 className="mt-1 break-words text-lg font-black text-[#0A1547]">
+            {formatNullable(file.originalFilename)}
+          </h3>
+          <p className="mt-1 break-all text-sm font-medium text-[#0A1547]/62">
+            {formatNullable(file.userEmail)}
+          </p>
+          <p className="mt-1 text-xs font-medium text-[#0A1547]/52">
+            Created {formatDate(file.createdAt)} / Completed {formatDate(file.completedAt)}
+          </p>
         </div>
-
-        <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
-          <Detail label="Content type" value={file.contentType} />
-          <Detail label="File size" value={formatBytes(file.byteSize)} />
-          <Detail label="Created" value={formatDate(file.createdAt)} />
-          <Detail label="Completed" value={formatDate(file.completedAt)} />
-        </dl>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${status === "Completed" ? "border-[#02D99D]/30 bg-[#02D99D]/12 text-[#0A1547]" : "border-amber-200 bg-amber-50 text-amber-700"}`}>
+            {status}
+          </span>
+          {file.consoleUrl && (
+            <a
+              href={file.consoleUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="admin-focus rounded-xl bg-[#02ABE0] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#0096C9]"
+            >
+              Open in Console
+            </a>
+          )}
+        </div>
       </div>
 
-      <div className="p-5">
-        <details className="rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3">
+      <div className="mt-3">
+        <details className="rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3">
           <summary className="cursor-pointer text-xs font-extrabold uppercase tracking-[0.16em] text-[#0A1547]/50">
             Technical and storage details
           </summary>
-          <dl className="mt-4 grid gap-3 text-sm md:grid-cols-2">
+          <dl className="mt-3 grid gap-3 text-sm md:grid-cols-2">
+            <Detail label="Content type" value={file.contentType} />
+            <Detail label="File size" value={formatBytes(file.byteSize)} />
             <Detail label="GS path" value={file.gsPath} />
             <Detail label="GCS bucket" value={file.gcsBucket} />
             <Detail label="Object name" value={file.objectName} />
@@ -517,7 +487,7 @@ function Detail({ label, value }: { label: string; value: string | number | null
   return (
     <div>
       <dt className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/40">{label}</dt>
-      <dd className="mt-1 break-words font-black text-[#0A1547]">{formatNullable(value)}</dd>
+      <dd className="mt-1 break-words font-semibold text-[#0A1547]">{formatNullable(value)}</dd>
     </div>
   );
 }
