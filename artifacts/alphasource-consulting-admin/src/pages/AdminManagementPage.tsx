@@ -355,14 +355,6 @@ export default function AdminManagementPage() {
             <Detail label="Role" value={roleLabel(currentAdmin.role)} />
             <Detail label="Status" value={currentAdmin.status} />
           </dl>
-          <details className="mt-4 rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3">
-            <summary className="cursor-pointer text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/45">
-              Technical details
-            </summary>
-            <dl className="mt-3 grid gap-3 text-sm md:grid-cols-2">
-              <Detail label="Supabase Auth user ID" value={currentAdmin.id} />
-            </dl>
-          </details>
         </section>
       )}
 
@@ -512,7 +504,6 @@ export default function AdminManagementPage() {
                     <HeaderCell>Status</HeaderCell>
                     <HeaderCell>Created</HeaderCell>
                     <HeaderCell>Updated</HeaderCell>
-                    <HeaderCell>Details</HeaderCell>
                     {canManageAdminAccess && <HeaderCell>Actions</HeaderCell>}
                   </tr>
                 </thead>
@@ -533,7 +524,7 @@ export default function AdminManagementPage() {
                               value={draft.displayName}
                               onChange={(event) => setAdminUserDraft(adminUser.userId, { displayName: event.target.value })}
                               className="admin-focus w-full min-w-[170px] rounded-xl border border-[#0A1547]/12 bg-white px-3 py-2 text-sm font-medium text-[#0A1547] outline-none"
-                              aria-label={`Display name for ${adminUser.email || adminUser.userId}`}
+                              aria-label={`Display name for ${adminUser.email || "admin user"}`}
                             />
                           ) : (
                             adminUser.displayName || "-"
@@ -547,7 +538,7 @@ export default function AdminManagementPage() {
                               onChange={(event) => setAdminUserDraft(adminUser.userId, { role: event.target.value as AdminRole })}
                               disabled={isCurrentSuperAdminRow || isRowSaving}
                               className="admin-focus min-w-[150px] rounded-xl border border-[#0A1547]/12 bg-white px-3 py-2 text-sm font-medium text-[#0A1547] outline-none disabled:cursor-not-allowed disabled:opacity-55"
-                              aria-label={`Role for ${adminUser.email || adminUser.userId}`}
+                              aria-label={`Role for ${adminUser.email || "admin user"}`}
                             >
                               {adminRoleOptions.map((role) => (
                                 <option key={role} value={role}>{roleLabel(role)}</option>
@@ -562,16 +553,6 @@ export default function AdminManagementPage() {
                         </BodyCell>
                         <BodyCell>{formatDate(adminUser.createdAt)}</BodyCell>
                         <BodyCell>{formatDate(adminUser.updatedAt)}</BodyCell>
-                        <BodyCell>
-                          <details className="min-w-[190px] rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-3 py-2">
-                            <summary className="cursor-pointer text-xs font-extrabold uppercase tracking-[0.12em] text-[#0A1547]/45">
-                              Technical details
-                            </summary>
-                            <dl className="mt-3 grid gap-3 text-xs">
-                              <Detail label="Supabase Auth user ID" value={adminUser.userId} />
-                            </dl>
-                          </details>
-                        </BodyCell>
                         {canManageAdminAccess && (
                           <BodyCell>
                             <div className="flex min-w-[210px] flex-col gap-2">

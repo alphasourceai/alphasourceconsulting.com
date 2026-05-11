@@ -9,14 +9,13 @@ import type {
   CheckoutSessionSummary,
 } from "@/lib/types";
 
-type BillingRecordFilter = "all" | "paid" | "open" | "overrides" | "needs_review";
+type BillingRecordFilter = "all" | "paid" | "open" | "overrides";
 
 const billingRecordFilters: Array<{ accent: string; label: string; value: BillingRecordFilter }> = [
   { label: "Total Sessions", value: "all", accent: "#A380F6" },
   { label: "Paid", value: "paid", accent: "#02D99D" },
   { label: "Open", value: "open", accent: "#02ABE0" },
   { label: "Overrides", value: "overrides", accent: "#1A2460" },
-  { label: "Needs Review", value: "needs_review", accent: "#A380F6" },
 ];
 
 function formatNullable(value: string | number | boolean | null | undefined): string {
@@ -106,12 +105,6 @@ function isOpenSession(session: CheckoutSessionSummary): boolean {
   return status === "open" || paymentStatus === "open" || paymentStatus === "unpaid";
 }
 
-function needsReviewSession(session: CheckoutSessionSummary): boolean {
-  const status = session.status?.toLowerCase();
-  const paymentStatus = session.paymentStatus?.toLowerCase();
-  return status === "needs_review" || status === "failed" || paymentStatus === "needs_review" || paymentStatus === "failed";
-}
-
 export default function BillingPage() {
   const { permissions, session } = useAuth();
   const [overview, setOverview] = useState<BillingOverviewResponse | null>(null);
@@ -180,10 +173,6 @@ export default function BillingPage() {
       return sessions.filter(isOpenSession);
     }
 
-    if (recordFilter === "needs_review") {
-      return sessions.filter(needsReviewSession);
-    }
-
     if (recordFilter === "overrides") {
       return [];
     }
@@ -203,7 +192,7 @@ export default function BillingPage() {
 
   return (
     <div className="space-y-6">
-      <section className="grid gap-4 md:grid-cols-5">
+      <section className="grid gap-4 md:grid-cols-4">
         {billingRecordFilters.map((filter) => (
           <MetricCard
             key={filter.value}
@@ -215,8 +204,7 @@ export default function BillingPage() {
               filter.value === "all" ? summary?.checkoutSessionCount ?? 0 :
                 filter.value === "paid" ? summary?.paidCheckoutSessionCount ?? 0 :
                   filter.value === "open" ? summary?.openCheckoutSessionCount ?? 0 :
-                    filter.value === "overrides" ? summary?.manualOverrideCount ?? 0 :
-                      summary?.needsReviewEventCount ?? 0
+                    summary?.manualOverrideCount ?? 0
             }
           />
         ))}

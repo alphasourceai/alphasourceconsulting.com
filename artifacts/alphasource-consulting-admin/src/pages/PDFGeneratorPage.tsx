@@ -799,7 +799,7 @@ function DraftBuilder({
           onClick={onReset}
           className="admin-focus rounded-xl border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/60"
         >
-          Reset draft from analysis
+          Reset
         </button>
       </div>
 
