@@ -190,16 +190,26 @@ export default function ClientDetailPage({ email }: ClientDetailPageProps) {
           <BackLink />
           <h2 className="mt-4 text-2xl font-black text-[#0A1547]">{detail?.clientEmail || validEmail}</h2>
           <p className="mt-1 text-sm font-medium text-[#0A1547]/60">
-            Read-only billing and upload visibility from local admin records.
+            Client billing, checkout, and upload visibility from local admin records.
           </p>
         </div>
         <div className="admin-card px-5 py-4">
           <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#0A1547]/45">
             Stripe customer
           </p>
-          <p className="mt-2 max-w-xs truncate text-sm font-black text-[#0A1547]">
-            {formatNullable(detail?.customer?.stripeCustomerId)}
+          <p className="mt-2 text-sm font-semibold text-[#0A1547]">
+            {detail?.customer?.stripeCustomerId ? "Available" : "Not linked"}
           </p>
+          {detail?.customer?.stripeCustomerId && (
+            <details className="mt-3">
+              <summary className="cursor-pointer text-xs font-bold text-[#0A1547]/50">
+                Technical details
+              </summary>
+              <p className="mt-2 max-w-xs break-all text-xs font-medium text-[#0A1547]/62">
+                {detail.customer.stripeCustomerId}
+              </p>
+            </details>
+          )}
         </div>
       </div>
 
@@ -226,14 +236,6 @@ export default function ClientDetailPage({ email }: ClientDetailPageProps) {
 
       {detail && !loading && !error && (
         <>
-          <section className="grid gap-4 md:grid-cols-5">
-            <MetricCard label="Sessions" value={summary?.checkoutSessionCount ?? 0} accent="#A380F6" />
-            <MetricCard label="Paid" value={summary?.paidCheckoutSessionCount ?? 0} accent="#02D99D" />
-            <MetricCard label="Open" value={summary?.openCheckoutSessionCount ?? 0} accent="#02ABE0" />
-            <MetricCard label="Overrides" value={summary?.manualOverrideCount ?? 0} accent="#1A2460" />
-            <MetricCard label="Latest" value={formatNullable(summary?.latestPaymentStatus)} accent="#A380F6" />
-          </section>
-
           {canWriteBilling ? (
             <CreateCheckoutLinkCard
               clientEmail={detail.clientEmail}
@@ -250,10 +252,16 @@ export default function ClientDetailPage({ email }: ClientDetailPageProps) {
             </section>
           )}
 
+          <BillingSummaryPanel summary={detail.summary} />
+
           <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
             <Panel title="Checkout Sessions" emptyText="No checkout sessions found.">
               {detail.checkoutSessions.map((session) => (
-                <CheckoutSessionCard key={session.id} session={session} />
+                <CheckoutSessionCard
+                  key={session.id}
+                  session={session}
+                  upload={sortedUploads.find((upload) => upload.id === session.uploadId)}
+                />
               ))}
             </Panel>
 
@@ -451,7 +459,7 @@ function CreateCheckoutLinkCard({
             <div>
               <p className="text-sm font-black text-[#0A1547]">Checkout link created.</p>
               <p className="mt-1 max-w-xl text-sm font-semibold text-[#0A1547]/62">
-                Session {formatNullable(createdSession.checkoutSessionId)} is ready to send manually.
+                The checkout link is ready to send manually.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
@@ -479,9 +487,10 @@ function CreateCheckoutLinkCard({
             <summary className="cursor-pointer text-xs font-extrabold uppercase tracking-[0.16em] text-[#0A1547]/50">
               Technical details
             </summary>
-            <p className="mt-3 break-all text-sm font-semibold text-[#0A1547]/68">
-              {createdSession.url}
-            </p>
+            <dl className="mt-3 grid gap-3 text-sm">
+              <Detail label="Checkout session ID" value={createdSession.checkoutSessionId} />
+              <Detail label="Checkout URL" value={createdSession.url} />
+            </dl>
           </details>
         </div>
       )}
@@ -529,7 +538,7 @@ function UploadsPanel({
         {uploads.length > 0 ? uploads.map((upload) => (
           <UploadCard key={upload.id} upload={upload} />
         )) : (
-          <p className="rounded-2xl bg-[#F8F9FD] p-4 text-sm font-bold text-[#0A1547]/56">
+          <p className="rounded-2xl bg-[#F8F9FD] p-4 text-sm font-medium text-[#0A1547]/56">
             No uploads found.
           </p>
         )}
@@ -538,12 +547,52 @@ function UploadsPanel({
   );
 }
 
-function MetricCard({ accent, label, value }: { accent: string; label: string; value: string | number }) {
+function BillingSummaryPanel({ summary }: { summary: ClientBillingDetailResponse["summary"] }) {
   return (
-    <div className="admin-card p-5">
-      <div className="h-1.5 w-12 rounded-full" style={{ backgroundColor: accent }} />
-      <p className="mt-4 text-xs font-extrabold uppercase tracking-[0.16em] text-[#0A1547]/45">{label}</p>
-      <p className="mt-2 break-words text-2xl font-black text-[#0A1547]">{value}</p>
+    <section className="admin-card p-5">
+      <div>
+        <h3 className="text-lg font-black text-[#0A1547]">Billing summary</h3>
+        <p className="mt-1 text-sm font-medium text-[#0A1547]/60">
+          High-level checkout and override status for this client.
+        </p>
+      </div>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <SummaryFact
+          label="Sessions"
+          value={summary.checkoutSessionCount}
+          helpText="Number of checkout sessions created for this client."
+        />
+        <SummaryFact
+          label="Paid"
+          value={summary.paidCheckoutSessionCount}
+          helpText="Checkout sessions marked paid."
+        />
+        <SummaryFact
+          label="Open"
+          value={summary.openCheckoutSessionCount}
+          helpText="Unpaid or open checkout sessions."
+        />
+        <SummaryFact
+          label="Overrides"
+          value={summary.manualOverrideCount}
+          helpText="Manual billing status overrides."
+        />
+        <SummaryFact
+          label="Latest"
+          value={formatNullable(summary.latestPaymentStatus)}
+          helpText="Latest known payment status."
+        />
+      </div>
+    </section>
+  );
+}
+
+function SummaryFact({ helpText, label, value }: { helpText: string; label: string; value: string | number }) {
+  return (
+    <div title={helpText} className="rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+      <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#0A1547]/45">{label}</p>
+      <p className="mt-2 break-words text-xl font-black text-[#0A1547]">{value}</p>
+      <p className="mt-1 text-xs font-medium leading-5 text-[#0A1547]/55">{helpText}</p>
     </div>
   );
 }
@@ -562,7 +611,7 @@ function Panel({
       <h3 className="text-lg font-black text-[#0A1547]">{title}</h3>
       <div className="mt-4 grid gap-3">
         {children.length > 0 ? children : (
-          <p className="rounded-2xl bg-[#F8F9FD] p-4 text-sm font-bold text-[#0A1547]/56">
+          <p className="rounded-2xl bg-[#F8F9FD] p-4 text-sm font-medium text-[#0A1547]/56">
             {emptyText}
           </p>
         )}
@@ -571,7 +620,7 @@ function Panel({
   );
 }
 
-function CheckoutSessionCard({ session }: { session: CheckoutSessionSummary }) {
+function CheckoutSessionCard({ session, upload }: { session: CheckoutSessionSummary; upload?: BillingUploadSummary }) {
   const [copyStatus, setCopyStatus] = useState("");
   const checkoutUrl = session.checkoutUrl?.trim() || "";
   const paymentStatus = session.paymentStatus?.toLowerCase() || "";
@@ -595,7 +644,9 @@ function CheckoutSessionCard({ session }: { session: CheckoutSessionSummary }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm font-black text-[#0A1547]">{formatNullable(session.purpose)}</p>
-          <p className="mt-1 text-xs font-bold text-[#0A1547]/50">{formatNullable(session.stripeCheckoutSessionId)}</p>
+          <p className="mt-1 text-sm font-medium text-[#0A1547]/58">
+            {formatCurrency(session.amountTotal, session.currency)}
+          </p>
         </div>
         <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${statusTone(session.paymentStatus)}`}>
           {formatNullable(session.paymentStatus)}
@@ -604,10 +655,9 @@ function CheckoutSessionCard({ session }: { session: CheckoutSessionSummary }) {
       <dl className="mt-4 grid gap-3 text-sm md:grid-cols-2">
         <Detail label="Amount" value={formatCurrency(session.amountTotal, session.currency)} />
         <Detail label="Status" value={session.status} />
-        <Detail label="Mode" value={session.mode} />
+        <Detail label="Payment" value={session.paymentStatus} />
         <Detail label="Created" value={formatDate(session.createdAt)} />
-        <Detail label="Upload ID" value={session.uploadId} />
-        <Detail label="Submission ID" value={session.clientSubmissionId} />
+        <Detail label="Related upload" value={upload ? upload.fileName || upload.toolName || "Linked upload" : session.uploadId ? "Linked upload" : "—"} />
       </dl>
 
       {canUseCheckoutLink && (
@@ -647,10 +697,25 @@ function CheckoutSessionCard({ session }: { session: CheckoutSessionSummary }) {
       )}
 
       {!checkoutUrl && (
-        <p className="mt-4 rounded-xl border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-bold text-[#0A1547]/50">
+        <p className="mt-4 rounded-xl border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-medium text-[#0A1547]/50">
           Checkout link unavailable for older session.
         </p>
       )}
+
+      <details className="mt-4 rounded-xl border border-[#0A1547]/10 bg-white px-4 py-3">
+        <summary className="cursor-pointer text-xs font-bold uppercase tracking-[0.14em] text-[#0A1547]/50">
+          Technical details
+        </summary>
+        <dl className="mt-3 grid gap-3 text-sm md:grid-cols-2">
+          <Detail label="Stripe session ID" value={session.stripeCheckoutSessionId} />
+          <Detail label="Local session ID" value={session.id} />
+          <Detail label="Upload ID" value={session.uploadId} />
+          <Detail label="Submission ID" value={session.clientSubmissionId} />
+          <Detail label="Mode" value={session.mode} />
+          <Detail label="Live mode" value={session.livemode} />
+          <Detail label="Updated" value={formatDate(session.updatedAt)} />
+        </dl>
+      </details>
     </article>
   );
 }
@@ -661,7 +726,7 @@ function UploadCard({ upload }: { upload: BillingUploadSummary }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm font-black text-[#0A1547]">{formatNullable(upload.fileName)}</p>
-          <p className="mt-1 text-xs font-bold text-[#0A1547]/50">{formatNullable(upload.id)}</p>
+          <p className="mt-1 text-sm font-medium text-[#0A1547]/58">{formatNullable(upload.toolName)}</p>
         </div>
         <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${statusTone(upload.paid ? "paid" : "unpaid")}`}>
           {upload.paid ? "Paid" : "Not paid"}
@@ -671,6 +736,14 @@ function UploadCard({ upload }: { upload: BillingUploadSummary }) {
         <Detail label="Tool" value={upload.toolName} />
         <Detail label="Upload time" value={formatDate(upload.uploadTime)} />
       </dl>
+      <details className="mt-4 rounded-xl border border-[#0A1547]/10 bg-white px-4 py-3">
+        <summary className="cursor-pointer text-xs font-bold uppercase tracking-[0.14em] text-[#0A1547]/50">
+          Technical details
+        </summary>
+        <dl className="mt-3 grid gap-3 text-sm">
+          <Detail label="Upload ID" value={upload.id} />
+        </dl>
+      </details>
     </article>
   );
 }
@@ -688,10 +761,18 @@ function OverrideCard({ override }: { override: BillingOverrideSummary }) {
         {formatNullable(override.reason)}
       </p>
       <dl className="mt-4 grid gap-3 text-sm md:grid-cols-2">
-        <Detail label="Target ID" value={override.targetId} />
-        <Detail label="Admin user" value={override.adminUserId} />
+        <Detail label="Target" value={override.targetType} />
         <Detail label="Created" value={formatDate(override.createdAt)} />
       </dl>
+      <details className="mt-4 rounded-xl border border-[#0A1547]/10 bg-white px-4 py-3">
+        <summary className="cursor-pointer text-xs font-bold uppercase tracking-[0.14em] text-[#0A1547]/50">
+          Technical details
+        </summary>
+        <dl className="mt-3 grid gap-3 text-sm md:grid-cols-2">
+          <Detail label="Target ID" value={override.targetId} />
+          <Detail label="Admin user" value={override.adminUserId} />
+        </dl>
+      </details>
     </article>
   );
 }
@@ -719,8 +800,8 @@ function PlaceholderList({ label, values }: { label: string; values: unknown[] |
 function Detail({ label, value }: { label: string; value: string | number | boolean | null | undefined }) {
   return (
     <div>
-      <dt className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/40">{label}</dt>
-      <dd className="mt-1 break-words font-black text-[#0A1547]">{formatNullable(value)}</dd>
+      <dt className="text-xs font-bold uppercase tracking-[0.12em] text-[#0A1547]/42">{label}</dt>
+      <dd className="mt-1 break-words font-semibold text-[#0A1547]">{formatNullable(value)}</dd>
     </div>
   );
 }
