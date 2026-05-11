@@ -74,6 +74,30 @@ function responseFallback(): SecureUploadFilesResponse {
   };
 }
 
+function WorkflowInfoPanel({
+  items,
+}: {
+  items: Array<{
+    title: string;
+    lines: string[];
+  }>;
+}) {
+  return (
+    <section className="grid gap-4 md:grid-cols-3">
+      {items.map((item) => (
+        <div key={item.title} className="rounded-2xl border border-[#0A1547]/10 bg-white p-5 shadow-sm">
+          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#A380F6]">{item.title}</p>
+          <ul className="mt-3 space-y-2 text-sm font-semibold leading-6 text-[#0A1547]/68">
+            {item.lines.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </section>
+  );
+}
+
 export default function SecureUploadsPage() {
   const { permissions, session } = useAuth();
   const token = session?.access_token || "";
@@ -187,7 +211,7 @@ export default function SecureUploadsPage() {
             <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#A380F6]">Secure Uploads</p>
             <h2 className="mt-3 text-2xl font-black text-[#0A1547]">Secure file intake review</h2>
             <p className="mt-2 text-sm font-semibold leading-6 text-[#0A1547]/62">
-              Review files uploaded through the secure portal, including files that may contain sensitive or PHI-related information. Files on this page are not sent to AI analysis or imported into Document Analysis.
+              Review files uploaded through the secure portal. This workflow is intentionally separate from AI Document Analysis.
             </p>
           </div>
           <button
@@ -200,6 +224,29 @@ export default function SecureUploadsPage() {
           </button>
         </div>
       </section>
+
+      <WorkflowInfoPanel
+        items={[
+          {
+            title: "Purpose",
+            lines: ["Secure intake and review for files submitted through the secure upload portal."],
+          },
+          {
+            title: "Boundary",
+            lines: [
+              "Files may contain sensitive or PHI-related information.",
+              "Files are not sent to AI analysis or imported into Document Analysis from this page.",
+            ],
+          },
+          {
+            title: "Actions",
+            lines: [
+              "Super/admin-approved users can send upload request emails.",
+              "Authorized users can review inbox records and storage metadata.",
+            ],
+          },
+        ]}
+      />
 
       {canWriteSecureUploads ? (
         <section className="admin-card p-5">

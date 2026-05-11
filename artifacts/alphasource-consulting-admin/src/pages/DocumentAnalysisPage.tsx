@@ -693,6 +693,30 @@ export default function DocumentAnalysisPage() {
         </div>
       </section>
 
+      <WorkflowInfoPanel
+        items={[
+          {
+            title: "Purpose",
+            lines: ["Admin-run AI analysis for Financial, AR, and Claims files."],
+          },
+          {
+            title: "Boundary",
+            lines: [
+              "Upload only approved, sanitized, and analysis-appropriate files.",
+              "Do not use this page for unsanitized secure-upload or PHI files.",
+            ],
+          },
+          {
+            title: "Actions",
+            lines: [
+              "Create intake jobs.",
+              "Run processing manually.",
+              "Promote completed analysis into client-visible records when ready.",
+            ],
+          },
+        ]}
+      />
+
       {canWriteAnalysis ? (
         <form onSubmit={handleSubmit} className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
           <section className="admin-card p-5">
@@ -1334,6 +1358,30 @@ function Detail({ label, value }: { label: string; value: string | null }) {
       <dt className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/42">{label}</dt>
       <dd className="mt-1 break-all font-black text-[#0A1547]">{formatNullable(value)}</dd>
     </div>
+  );
+}
+
+function WorkflowInfoPanel({
+  items,
+}: {
+  items: Array<{
+    title: string;
+    lines: string[];
+  }>;
+}) {
+  return (
+    <section className="grid gap-4 md:grid-cols-3">
+      {items.map((item) => (
+        <div key={item.title} className="rounded-2xl border border-[#0A1547]/10 bg-white p-5 shadow-sm">
+          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#A380F6]">{item.title}</p>
+          <ul className="mt-3 space-y-2 text-sm font-semibold leading-6 text-[#0A1547]/68">
+            {item.lines.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </section>
   );
 }
 
