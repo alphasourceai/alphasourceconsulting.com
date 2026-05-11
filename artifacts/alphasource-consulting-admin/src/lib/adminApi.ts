@@ -22,12 +22,14 @@ import type {
   SafeApiError,
   SecureUploadFilesQuery,
   SecureUploadFilesResponse,
+  UpdateAdminUserAccessRequest,
+  UpdateAdminUserAccessResponse,
 } from "@/lib/types";
 
 type RequestOptions = {
   token: string;
   signal?: AbortSignal;
-  method?: "GET" | "POST";
+  method?: "GET" | "POST" | "PATCH";
   body?: unknown;
 };
 
@@ -128,6 +130,20 @@ export function createAdminUserAccess(
     token,
     signal,
     method: "POST",
+    body: payload,
+  });
+}
+
+export function updateAdminUserAccess(
+  token: string,
+  userId: string,
+  payload: UpdateAdminUserAccessRequest,
+  signal?: AbortSignal,
+): Promise<UpdateAdminUserAccessResponse> {
+  return adminRequest<UpdateAdminUserAccessResponse>(`/api/admin/admin-users/${encodeURIComponent(userId)}`, {
+    token,
+    signal,
+    method: "PATCH",
     body: payload,
   });
 }

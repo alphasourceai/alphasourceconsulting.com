@@ -66,6 +66,17 @@ export type CreateAdminUserAccessResponse = {
   };
 };
 
+export type UpdateAdminUserAccessRequest = {
+  name?: string;
+  role?: AdminRole;
+  status?: "active" | "inactive";
+};
+
+export type UpdateAdminUserAccessResponse = {
+  ok: true;
+  adminUser: AdminAccessUser;
+};
+
 export type BillingSummary = {
   checkoutSessionCount: number;
   paidCheckoutSessionCount: number;
