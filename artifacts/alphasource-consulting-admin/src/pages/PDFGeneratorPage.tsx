@@ -174,7 +174,7 @@ export default function PDFGeneratorPage() {
       if (error instanceof AdminApiError) {
         setOptionsError(error.message);
       } else {
-        setOptionsError("PDF Generator clients could not be loaded.");
+        setOptionsError("PDF Reports clients could not be loaded.");
       }
     } finally {
       if (!signal?.aborted) {
@@ -202,7 +202,7 @@ export default function PDFGeneratorPage() {
       if (error instanceof AdminApiError) {
         setClientError(error.message);
       } else {
-        setClientError("PDF Generator client details could not be loaded.");
+        setClientError("PDF Reports client details could not be loaded.");
       }
     } finally {
       if (!signal?.aborted) {
@@ -342,10 +342,10 @@ export default function PDFGeneratorPage() {
       <section className="admin-card p-5">
         <div className="grid gap-5 lg:grid-cols-[1fr_360px] lg:items-end">
           <div>
-            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#A380F6]">PDF Generator draft builder</p>
-            <h2 className="mt-3 text-2xl font-black text-[#0A1547]">Build PDF reports from promoted uploads</h2>
+            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#A380F6]">PDF Reports</p>
+            <h2 className="mt-3 text-2xl font-black text-[#0A1547]">Review and generate client-ready reports</h2>
             <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#0A1547]/62">
-              Select report content, generate the PDF, and store the PDF metadata. No email, GHL update, or report delivery is triggered.
+              Review promoted analysis outputs, refine report content, generate the PDF, and store report metadata. No email, GHL update, or report delivery is triggered.
             </p>
           </div>
 
@@ -370,7 +370,7 @@ export default function PDFGeneratorPage() {
 
       {loadingOptions && (
         <div className="admin-card p-8 text-center text-sm font-bold text-[#0A1547]/60">
-          Loading PDF Generator options...
+          Loading PDF Reports options...
         </div>
       )}
 
@@ -647,7 +647,7 @@ function UploadDetail({
               <section className="rounded-2xl border border-[#A380F6]/25 bg-[#A380F6]/10 p-4">
                 <p className="text-sm font-black text-[#0A1547]">Read-only PDF access</p>
                 <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
-                  You can inspect PDF Generator data and draft content, but generating PDFs requires PDF generation permission.
+                  You can inspect PDF Reports data and draft content. Generate actions are hidden unless your role includes PDF generation permission.
                 </p>
               </section>
             )}

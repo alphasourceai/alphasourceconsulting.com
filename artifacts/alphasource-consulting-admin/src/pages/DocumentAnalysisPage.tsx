@@ -684,7 +684,7 @@ export default function DocumentAnalysisPage() {
             <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#A380F6]">Manual analysis</p>
             <h2 className="mt-2 text-2xl font-black text-[#0A1547]">Document Analysis</h2>
             <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#0A1547]/62">
-              Financial, AR, and Claims intake are enabled. CSV and XLSX processing can be run manually after intake; PDF processing will be added later.
+              Run admin-managed AI analysis only for approved, sanitized, and appropriate files. Secure Uploads is the separate intake/review workflow for potentially sensitive or PHI-related files.
             </p>
           </div>
           <span className="w-fit rounded-full border border-[#02ABE0]/25 bg-[#02ABE0]/10 px-3 py-1 text-xs font-extrabold text-[#0A1547]">
@@ -773,7 +773,7 @@ export default function DocumentAnalysisPage() {
             <StepHeader
               eyebrow="Step 2"
               title="Choose analysis and upload source file"
-              description="Financial, AR, and Claims Analyzer intake are active. Processing stays manual after the durable job record is created."
+              description="Upload only approved, sanitized, and analysis-appropriate files. Processing stays manual after the durable job record is created."
             />
 
           <div className="mt-5 grid gap-4">
@@ -871,7 +871,7 @@ export default function DocumentAnalysisPage() {
           <div className="mt-5 rounded-2xl border border-[#A380F6]/20 bg-[#A380F6]/10 p-4">
             <p className="text-sm font-black text-[#0A1547]">Intake and processing are separate steps.</p>
             <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
-              Creating the analysis stores the source file and durable job record. CSV and XLSX jobs can then be processed manually; this still does not create a client report, email, GHL update, PDF, report delivery, or payment action.
+              Creating the analysis stores the source file and durable job record. CSV and XLSX jobs can then be processed manually; this is not secure PHI intake and does not create a client report, email, GHL update, PDF, report delivery, or payment action.
             </p>
           </div>
 
@@ -890,7 +890,7 @@ export default function DocumentAnalysisPage() {
         <section className="rounded-2xl border border-[#A380F6]/25 bg-[#A380F6]/10 p-5">
           <p className="text-sm font-black text-[#0A1547]">Read-only analysis access</p>
           <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
-            You can view analysis data available to your role, but intake, processing, cancel, and promotion actions require analysis write permission.
+            You can view analysis data available to your role. Intake, processing, cancel, and promotion actions are hidden or disabled unless your role includes analysis write permission.
           </p>
         </section>
       )}
@@ -1273,7 +1273,7 @@ function PromotionSection({
         <div>
           <p className="text-sm font-black text-[#0A1547]">Client records promotion</p>
           <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/68">
-            Promotion makes this admin job visible to Client Submissions and PDF Generator.
+            Promotion makes this admin job visible to Clients and PDF Reports.
           </p>
           <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
             No email, GHL update, PDF, or report delivery is triggered.

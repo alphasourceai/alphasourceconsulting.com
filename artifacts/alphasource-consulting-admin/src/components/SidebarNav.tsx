@@ -3,12 +3,12 @@ import { useAuth } from "@/auth/AuthProvider";
 import type { AdminPermissions } from "@/lib/types";
 
 const navItems = [
-  { href: "/clients", label: "Client Submissions", canShow: (permissions: AdminPermissions) => permissions.canReadClients },
+  { href: "/clients", label: "Clients", canShow: (permissions: AdminPermissions) => permissions.canReadClients },
   { href: "/analysis", label: "Document Analysis", canShow: (permissions: AdminPermissions) => permissions.canReadAnalysis || permissions.canWriteAnalysis },
   { href: "/secure-uploads", label: "Secure Uploads", canShow: (permissions: AdminPermissions) => permissions.canReadSecureUploads },
-  { href: "/pdf-generator", label: "PDF Generator", canShow: (permissions: AdminPermissions) => permissions.canReadPdf },
+  { href: "/pdf-generator", label: "PDF Reports", canShow: (permissions: AdminPermissions) => permissions.canReadPdf },
   { href: "/billing", label: "Billing", canShow: (permissions: AdminPermissions) => permissions.canReadBilling },
-  { href: "/admin-management", label: "Admin Management", canShow: (permissions: AdminPermissions) => permissions.canReadAdminManagement },
+  { href: "/admin-management", label: "Admin Access", canShow: (permissions: AdminPermissions) => permissions.canReadAdminManagement },
 ];
 
 export default function SidebarNav() {

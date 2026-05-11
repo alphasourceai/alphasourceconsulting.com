@@ -162,13 +162,13 @@ export default function BillingPage() {
       <section className="admin-card p-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div>
-            <h2 className="text-xl font-black text-[#0A1547]">Billing Overview</h2>
+            <h2 className="text-xl font-black text-[#0A1547]">Billing</h2>
             <p className="mt-1 max-w-2xl text-sm font-medium leading-6 text-[#0A1547]/60">
-              Read-only visibility into local checkout session, payment status, and manual override records.
+              Manage checkout sessions, payment visibility, and manual billing override records.
             </p>
             {!canWriteBilling && (
               <p className="mt-2 text-sm font-bold text-[#0A1547]/58">
-                Checkout creation and billing override actions require billing write permission.
+                Checkout creation and billing override actions are hidden or disabled unless your role includes billing write permission.
               </p>
             )}
           </div>

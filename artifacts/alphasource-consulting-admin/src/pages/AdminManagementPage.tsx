@@ -307,10 +307,10 @@ export default function AdminManagementPage() {
       <section className="admin-card p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-3xl">
-            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#A380F6]">Admin Management</p>
-            <h2 className="mt-3 text-2xl font-black text-[#0A1547]">Admin access visibility</h2>
+            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#A380F6]">Admin Access</p>
+            <h2 className="mt-3 text-2xl font-black text-[#0A1547]">Dashboard access and roles</h2>
             <p className="mt-2 text-sm font-semibold leading-6 text-[#0A1547]/62">
-              Supabase Auth controls sign-in. The Admin API grants dashboard access through the admin_users access list.
+              Supabase Auth controls sign-in. The Admin API controls dashboard access, role assignment, and active or inactive admin status through the admin_users access list.
             </p>
           </div>
           <button

@@ -171,8 +171,8 @@ function ClientsRoute() {
   return (
     <ProtectedRoute
       canAccess={(permissions) => permissions.canReadClients}
-      title="Client Submissions"
-      description="Search clients and review submission, upload, and billing summary data from the Admin API."
+      title="Clients"
+      description="Review client records, submissions, uploads, and related status visibility from the Admin API."
     >
       <ClientsPage />
     </ProtectedRoute>
@@ -206,7 +206,7 @@ function AnalysisRoute() {
     <ProtectedRoute
       canAccess={(permissions) => permissions.canReadAnalysis || permissions.canWriteAnalysis}
       title="Document Analysis"
-      description="Create Financial Analyzer intake jobs and track durable file storage status."
+      description="Run admin-managed analysis for approved, sanitized, and appropriate files. Secure PHI intake stays separate."
     >
       <DocumentAnalysisPage />
     </ProtectedRoute>
@@ -218,7 +218,7 @@ function SecureUploadsRoute() {
     <ProtectedRoute
       canAccess={(permissions) => permissions.canReadSecureUploads}
       title="Secure Uploads"
-      description="Read-only inbox for completed secure upload portal files."
+      description="Review secure portal file intake for potentially sensitive or PHI-related uploads. This workflow stays separate from AI analysis."
     >
       <SecureUploadsPage />
     </ProtectedRoute>
@@ -229,8 +229,8 @@ function PdfGeneratorRoute() {
   return (
     <ProtectedRoute
       canAccess={(permissions) => permissions.canReadPdf}
-      title="PDF Generator"
-      description="Read-only preview of existing report-ready analysis uploads and PDF metadata."
+      title="PDF Reports"
+      description="Review analysis outputs and generate client-ready PDF reports from promoted records."
     >
       <PDFGeneratorPage />
     </ProtectedRoute>
@@ -242,7 +242,7 @@ function BillingRoute() {
     <ProtectedRoute
       canAccess={(permissions) => permissions.canReadBilling}
       title="Billing"
-      description="Read-only Stripe checkout session and manual override visibility from local admin records."
+      description="Manage checkout sessions, payment visibility, and manual billing overrides."
     >
       <BillingPage />
     </ProtectedRoute>
@@ -253,8 +253,8 @@ function AdminManagementRoute() {
   return (
     <ProtectedRoute
       canAccess={(permissions) => permissions.canReadAdminManagement}
-      title="Admin Management"
-      description="Read-only visibility into Supabase Auth admin access granted by the Admin API."
+      title="Admin Access"
+      description="Manage dashboard access, roles, and active or inactive admin users."
     >
       <AdminManagementPage />
     </ProtectedRoute>

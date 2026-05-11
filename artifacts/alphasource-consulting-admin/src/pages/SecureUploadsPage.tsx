@@ -184,10 +184,10 @@ export default function SecureUploadsPage() {
       <section className="admin-card p-5">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-3xl">
-            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#A380F6]">Secure Uploads Inbox</p>
-            <h2 className="mt-3 text-2xl font-black text-[#0A1547]">Review secure portal uploads</h2>
+            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#A380F6]">Secure Uploads</p>
+            <h2 className="mt-3 text-2xl font-black text-[#0A1547]">Secure file intake review</h2>
             <p className="mt-2 text-sm font-semibold leading-6 text-[#0A1547]/62">
-              Read-only view of files uploaded through the secure upload portal. This page does not create upload requests, send email, generate links, download files, or import files into analysis.
+              Review files uploaded through the secure portal, including files that may contain sensitive or PHI-related information. Files on this page are not sent to AI analysis or imported into Document Analysis.
             </p>
           </div>
           <button
@@ -258,7 +258,7 @@ export default function SecureUploadsPage() {
         <section className="rounded-2xl border border-[#A380F6]/25 bg-[#A380F6]/10 p-5">
           <p className="text-sm font-black text-[#0A1547]">Read-only secure uploads access</p>
           <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
-            You can inspect secure upload files, but sending upload request emails requires secure uploads write permission.
+            You can inspect secure upload files. Request-email actions are hidden unless your role includes secure uploads write permission.
           </p>
         </section>
       )}

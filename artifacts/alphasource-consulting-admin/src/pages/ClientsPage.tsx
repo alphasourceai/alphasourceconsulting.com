@@ -119,9 +119,9 @@ export default function ClientsPage() {
       <section className="admin-card p-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h2 className="text-xl font-black text-[#0A1547]">Client Submissions</h2>
+            <h2 className="text-xl font-black text-[#0A1547]">Clients</h2>
             <p className="mt-1 text-sm font-medium text-[#0A1547]/58">
-              Read-only view from the Admin API. Billing counts are shown only when your role includes billing access.
+              Review client records, submissions, uploads, and status visibility. Billing counts are shown only when your role includes billing access.
             </p>
           </div>
           <label className="w-full md:w-80">
