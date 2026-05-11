@@ -36,6 +36,17 @@ export type AdminUsersResponse = {
   items: AdminAccessUser[];
 };
 
+export type CreateAdminUserAccessRequest = {
+  userId: string;
+  email: string;
+  role: "admin" | "super_admin";
+};
+
+export type CreateAdminUserAccessResponse = {
+  ok: true;
+  adminUser: AdminAccessUser;
+};
+
 export type BillingSummary = {
   checkoutSessionCount: number;
   paidCheckoutSessionCount: number;

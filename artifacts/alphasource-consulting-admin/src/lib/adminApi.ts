@@ -9,6 +9,8 @@ import type {
   BillingOverviewResponse,
   BillingOverviewStatus,
   ClientBillingDetailResponse,
+  CreateAdminUserAccessRequest,
+  CreateAdminUserAccessResponse,
   CreateCheckoutSessionRequest,
   CreateCheckoutSessionResponse,
   CreateSecureUploadRequestRequest,
@@ -115,6 +117,19 @@ export function getAdminMe(token: string, signal?: AbortSignal): Promise<AdminMe
 
 export function getAdminUsers(token: string, signal?: AbortSignal): Promise<AdminUsersResponse> {
   return adminRequest<AdminUsersResponse>("/api/admin/admin-users", { token, signal });
+}
+
+export function createAdminUserAccess(
+  token: string,
+  payload: CreateAdminUserAccessRequest,
+  signal?: AbortSignal,
+): Promise<CreateAdminUserAccessResponse> {
+  return adminRequest<CreateAdminUserAccessResponse>("/api/admin/admin-users", {
+    token,
+    signal,
+    method: "POST",
+    body: payload,
+  });
 }
 
 export function getAdminClients(

@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { useAuth } from "@/auth/AuthProvider";
-import { AdminApiError, getAdminMe, getAdminUsers } from "@/lib/adminApi";
-import type { AdminAccess, AdminAccessUser } from "@/lib/types";
+import { AdminApiError, createAdminUserAccess, getAdminMe, getAdminUsers } from "@/lib/adminApi";
+import type { AdminAccess, AdminAccessUser, CreateAdminUserAccessRequest } from "@/lib/types";
 
 function formatNullable(value: string | number | null | undefined): string {
   if (value === null || value === undefined || value === "") {
@@ -43,6 +43,12 @@ export default function AdminManagementPage() {
   const [canManageAdminAccess, setCanManageAdminAccess] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [newAdminUserId, setNewAdminUserId] = useState("");
+  const [newAdminEmail, setNewAdminEmail] = useState("");
+  const [newAdminRole, setNewAdminRole] = useState<CreateAdminUserAccessRequest["role"]>("admin");
+  const [savingAdminAccess, setSavingAdminAccess] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [saveSuccess, setSaveSuccess] = useState("");
 
   const loadAdminAccess = useCallback(async (signal?: AbortSignal) => {
     if (!token) {
@@ -92,6 +98,49 @@ export default function AdminManagementPage() {
       controller.abort();
     };
   }, [loadAdminAccess]);
+
+  const handleAddAdminAccess = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const userId = newAdminUserId.trim();
+    const email = newAdminEmail.trim();
+
+    setSaveError("");
+    setSaveSuccess("");
+
+    if (!userId || !email) {
+      setSaveError("Supabase Auth user ID and email are required.");
+      return;
+    }
+
+    if (!token || savingAdminAccess) {
+      return;
+    }
+
+    setSavingAdminAccess(true);
+
+    try {
+      const response = await createAdminUserAccess(token, {
+        userId,
+        email,
+        role: newAdminRole,
+      });
+      const addedEmail = response.adminUser.email || email;
+      setNewAdminUserId("");
+      setNewAdminEmail("");
+      setNewAdminRole("admin");
+      await loadAdminAccess();
+      setSaveSuccess(`Admin access added for ${addedEmail}.`);
+    } catch (saveFailure) {
+      if (saveFailure instanceof AdminApiError) {
+        setSaveError(saveFailure.message);
+      } else {
+        setSaveError("Admin access could not be added.");
+      }
+    } finally {
+      setSavingAdminAccess(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -143,9 +192,79 @@ export default function AdminManagementPage() {
         <section className={`rounded-2xl border p-5 ${canManageAdminAccess ? "border-[#02D99D]/25 bg-[#02D99D]/10" : "border-[#A380F6]/25 bg-[#A380F6]/10"}`}>
           <p className="text-sm font-extrabold text-[#0A1547]">
             {canManageAdminAccess
-              ? "Admin access management is enabled for this account. Write controls are still intentionally disabled until the next rollout step."
+              ? "Admin access management is enabled for this account. Add dashboard access only for existing Supabase Auth users."
               : "You can view admin access, but this account cannot manage admin access."}
           </p>
+        </section>
+      )}
+
+      {!loading && !error && canManageAdminAccess && (
+        <section className="admin-card p-5">
+          <div className="max-w-3xl">
+            <h3 className="text-lg font-black text-[#0A1547]">Add admin access</h3>
+            <p className="mt-2 text-sm font-semibold leading-6 text-[#0A1547]/62">
+              Create or invite the person in Supabase Auth first, then paste their Supabase Auth user ID here.
+            </p>
+          </div>
+
+          <form onSubmit={handleAddAdminAccess} className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_180px_auto] lg:items-end">
+            <label className="block">
+              <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/45">
+                Supabase Auth user ID
+              </span>
+              <input
+                type="text"
+                value={newAdminUserId}
+                onChange={(event) => setNewAdminUserId(event.target.value)}
+                placeholder="00000000-0000-0000-0000-000000000000"
+                className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/12 bg-white px-4 py-3 text-sm font-bold text-[#0A1547] outline-none"
+              />
+            </label>
+            <label className="block">
+              <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/45">
+                Email
+              </span>
+              <input
+                type="email"
+                value={newAdminEmail}
+                onChange={(event) => setNewAdminEmail(event.target.value)}
+                placeholder="person@example.com"
+                className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/12 bg-white px-4 py-3 text-sm font-bold text-[#0A1547] outline-none"
+              />
+            </label>
+            <label className="block">
+              <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/45">
+                Role
+              </span>
+              <select
+                value={newAdminRole}
+                onChange={(event) => setNewAdminRole(event.target.value as CreateAdminUserAccessRequest["role"])}
+                className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/12 bg-white px-4 py-3 text-sm font-bold text-[#0A1547] outline-none"
+              >
+                <option value="admin">admin</option>
+                <option value="super_admin">super_admin</option>
+              </select>
+            </label>
+            <button
+              type="submit"
+              disabled={savingAdminAccess}
+              className="admin-focus rounded-xl bg-[#0A1547] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#1A2460] disabled:cursor-not-allowed disabled:opacity-55"
+            >
+              {savingAdminAccess ? "Adding..." : "Add access"}
+            </button>
+          </form>
+
+          {saveSuccess && (
+            <div className="mt-4 rounded-2xl border border-[#02D99D]/25 bg-[#02D99D]/10 p-4 text-sm font-bold text-[#0A1547]">
+              {saveSuccess}
+            </div>
+          )}
+
+          {saveError && (
+            <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
+              {saveError}
+            </div>
+          )}
         </section>
       )}
 
