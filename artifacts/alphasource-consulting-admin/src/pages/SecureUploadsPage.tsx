@@ -11,6 +11,12 @@ type SecureUploadFilters = {
 };
 
 const DEFAULT_LIMIT = 50;
+const DEFAULT_FILTERS: SecureUploadFilters = {
+  completedOnly: true,
+  email: "",
+  startDate: "",
+  endDate: "",
+};
 
 function formatNullable(value: string | number | null | undefined): string {
   if (value === null || value === undefined || value === "") {
@@ -66,12 +72,7 @@ function responseFallback(): SecureUploadFilesResponse {
 export default function SecureUploadsPage() {
   const { session } = useAuth();
   const token = session?.access_token || "";
-  const [filters, setFilters] = useState<SecureUploadFilters>({
-    completedOnly: true,
-    email: "",
-    startDate: "",
-    endDate: "",
-  });
+  const [filters, setFilters] = useState<SecureUploadFilters>(DEFAULT_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<SecureUploadFilters>(filters);
   const [offset, setOffset] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -125,9 +126,18 @@ export default function SecureUploadsPage() {
     };
   }, [loadFiles, refreshKey]);
 
-  const handleRefresh = () => {
+  const applyFilters = (nextFilters = filters) => {
     setOffset(0);
-    setAppliedFilters({ ...filters });
+    setAppliedFilters({ ...nextFilters });
+    setRefreshKey((current) => current + 1);
+  };
+
+  const clearFilters = () => {
+    setFilters(DEFAULT_FILTERS);
+    applyFilters(DEFAULT_FILTERS);
+  };
+
+  const handleRefresh = () => {
     setRefreshKey((current) => current + 1);
   };
 
@@ -151,13 +161,16 @@ export default function SecureUploadsPage() {
             disabled={loading}
             className="admin-focus rounded-xl bg-[#0A1547] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#1A2460] disabled:cursor-not-allowed disabled:opacity-55"
           >
-            {loading ? "Refreshing..." : "Refresh"}
+            {loading ? "Refreshing..." : "Refresh results"}
           </button>
         </div>
       </section>
 
       <section className="admin-card p-5">
-        <div className="grid gap-4 lg:grid-cols-[180px_1fr_180px_180px] lg:items-end">
+        <p className="mb-4 text-sm font-bold text-[#0A1547]/58">
+          Change filters, then click Apply filters.
+        </p>
+        <div className="grid gap-4 lg:grid-cols-[180px_1fr_180px_180px_auto_auto] lg:items-end">
           <label className="flex items-center gap-3 rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3">
             <input
               type="checkbox"
@@ -174,6 +187,12 @@ export default function SecureUploadsPage() {
               type="search"
               value={filters.email}
               onChange={(event) => setFilters((current) => ({ ...current, email: event.target.value }))}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  applyFilters();
+                }
+              }}
               placeholder="name@example.com"
               className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-bold text-[#0A1547] placeholder:text-[#0A1547]/35"
             />
@@ -198,6 +217,24 @@ export default function SecureUploadsPage() {
               className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-bold text-[#0A1547]"
             />
           </label>
+
+          <button
+            type="button"
+            onClick={() => applyFilters()}
+            disabled={loading}
+            className="admin-focus rounded-xl bg-[#0A1547] px-4 py-3 text-sm font-extrabold text-white transition hover:bg-[#1A2460] disabled:cursor-not-allowed disabled:opacity-55"
+          >
+            Apply filters
+          </button>
+
+          <button
+            type="button"
+            onClick={clearFilters}
+            disabled={loading}
+            className="admin-focus rounded-xl border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/60 disabled:cursor-not-allowed disabled:opacity-55"
+          >
+            Clear filters
+          </button>
         </div>
       </section>
 
