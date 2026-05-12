@@ -391,6 +391,9 @@ export default function SecureUploadsPage() {
 
       {!loading && !error && response.items.length > 0 && (
         <section className="grid gap-4">
+          <p className="rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-medium leading-6 text-[#0A1547]/62">
+            Secure upload files are stored in a private Google Cloud Storage bucket. Public object URLs are intentionally blocked; the Google Cloud link requires appropriate internal access.
+          </p>
           {response.items.map((file) => (
             <SecureUploadCard key={file.id} file={file} />
           ))}
@@ -455,7 +458,7 @@ function SecureUploadCard({ file }: { file: SecureUploadFile }) {
               rel="noreferrer"
               className="admin-focus rounded-xl bg-[#02ABE0] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#0096C9]"
             >
-              Open in Console
+              Open in Google Cloud
             </a>
           )}
         </div>
