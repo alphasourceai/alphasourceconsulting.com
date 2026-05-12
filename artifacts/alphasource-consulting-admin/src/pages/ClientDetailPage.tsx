@@ -300,13 +300,22 @@ function CreateCheckoutLinkCard({
   const [createdSession, setCreatedSession] = useState<CreateCheckoutSessionResponse | null>(null);
   const [error, setError] = useState("");
   const [copyStatus, setCopyStatus] = useState("");
+  const selectableUploadIds = useMemo(() => {
+    return new Set(uploads.filter((upload) => !upload.paid).map((upload) => upload.id));
+  }, [uploads]);
+  const selectedSelectableUploadIds = useMemo(() => {
+    return selectedUploadIds.filter((uploadId) => selectableUploadIds.has(uploadId));
+  }, [selectableUploadIds, selectedUploadIds]);
 
   useEffect(() => {
-    const availableUploadIds = new Set(uploads.map((upload) => upload.id));
-    setSelectedUploadIds((current) => current.filter((uploadId) => availableUploadIds.has(uploadId)));
-  }, [uploads]);
+    setSelectedUploadIds((current) => current.filter((uploadId) => selectableUploadIds.has(uploadId)));
+  }, [selectableUploadIds]);
 
   const toggleUpload = (uploadId: string) => {
+    if (!selectableUploadIds.has(uploadId)) {
+      return;
+    }
+
     setSelectedUploadIds((current) => (
       current.includes(uploadId)
         ? current.filter((selectedUploadId) => selectedUploadId !== uploadId)
@@ -342,7 +351,7 @@ function CreateCheckoutLinkCard({
         description: trimmedDescription,
         amount: cents,
         currency: "usd",
-        ...(selectedUploadIds.length > 0 ? { uploadIds: selectedUploadIds } : {}),
+        ...(selectedSelectableUploadIds.length > 0 ? { uploadIds: selectedSelectableUploadIds } : {}),
         successUrl: `${window.location.origin}/payment-success`,
         cancelUrl: `${window.location.origin}/payment-cancel`,
       });
@@ -441,9 +450,12 @@ function CreateCheckoutLinkCard({
               <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/58">
                 Select one or more uploads to associate with this checkout session.
               </p>
+              <p className="mt-1 text-xs font-medium leading-5 text-[#0A1547]/48">
+                Paid uploads cannot be selected again.
+              </p>
             </div>
             <span className="rounded-full border border-[#0A1547]/10 bg-white px-3 py-1 text-xs font-bold text-[#0A1547]/60">
-              {selectedUploadIds.length} selected
+              {selectedSelectableUploadIds.length} selected
             </span>
           </div>
 
@@ -451,7 +463,7 @@ function CreateCheckoutLinkCard({
             {uploads.length > 0 ? uploads.map((upload) => (
               <UploadSelectRow
                 key={upload.id}
-                checked={selectedUploadIds.includes(upload.id)}
+                checked={selectedSelectableUploadIds.includes(upload.id)}
                 disabled={creating}
                 onToggle={() => toggleUpload(upload.id)}
                 upload={upload}
@@ -527,19 +539,25 @@ function UploadSelectRow({
   onToggle: () => void;
   upload: BillingUploadSummary;
 }) {
+  const paid = Boolean(upload.paid);
+
   return (
     <label
       className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2 transition ${
         checked ? "border-[#A380F6]/45 bg-white shadow-sm" : "border-[#0A1547]/10 bg-white/70 hover:border-[#A380F6]/35"
-      } ${disabled ? "cursor-not-allowed opacity-60" : ""}`}
+      } ${disabled || paid ? "cursor-not-allowed opacity-70" : ""}`}
     >
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={onToggle}
-        disabled={disabled}
-        className="admin-focus h-4 w-4 shrink-0 rounded border-[#0A1547]/20 text-[#A380F6]"
-      />
+      {paid ? (
+        <span className="h-4 w-4 shrink-0 rounded border border-[#02D99D]/35 bg-[#02D99D]/15" aria-hidden="true" />
+      ) : (
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={onToggle}
+          disabled={disabled}
+          className="admin-focus h-4 w-4 shrink-0 rounded border-[#0A1547]/20 text-[#A380F6]"
+        />
+      )}
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-bold text-[#0A1547]">
           {formatNullable(upload.fileName)}
@@ -547,9 +565,12 @@ function UploadSelectRow({
         <span className="mt-1 block truncate text-xs font-medium text-[#0A1547]/58">
           {formatNullable(upload.toolName)} / {formatDate(upload.uploadTime)}
         </span>
+        {paid && (
+          <span className="mt-1 block text-xs font-medium text-[#0A1547]/45">Already paid</span>
+        )}
       </span>
-      <span className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-bold ${statusTone(upload.paid ? "paid" : "unpaid")}`}>
-        {upload.paid ? "Paid" : "Not paid"}
+      <span className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-bold ${statusTone(paid ? "paid" : "unpaid")}`}>
+        {paid ? "Paid" : "Not paid"}
       </span>
     </label>
   );
