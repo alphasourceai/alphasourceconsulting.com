@@ -8,6 +8,7 @@ import BillingPage from "@/pages/BillingPage";
 import ClientDetailPage from "@/pages/ClientDetailPage";
 import ClientsPage from "@/pages/ClientsPage";
 import DocumentAnalysisPage from "@/pages/DocumentAnalysisPage";
+import HelpFaqPage from "@/pages/HelpFaqPage";
 import LoginPage from "@/pages/LoginPage";
 import PDFGeneratorPage from "@/pages/PDFGeneratorPage";
 import SecureUploadsPage from "@/pages/SecureUploadsPage";
@@ -101,7 +102,7 @@ function firstAccessiblePath(permissions: AdminPermissions): string {
   if (permissions.canReadAdminManagement) {
     return "/admin-management";
   }
-  return "";
+  return "/help";
 }
 
 function ProtectedRoute({
@@ -261,6 +262,18 @@ function AdminManagementRoute() {
   );
 }
 
+function HelpRoute() {
+  return (
+    <ProtectedRoute
+      canAccess={() => true}
+      title="Help & FAQ"
+      description="Understand dashboard workflows, role requirements, file handling boundaries, and common troubleshooting steps."
+    >
+      <HelpFaqPage />
+    </ProtectedRoute>
+  );
+}
+
 function AppRoutes() {
   return (
     <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
@@ -275,6 +288,7 @@ function AppRoutes() {
         <Route path="/pdf-generator" component={PdfGeneratorRoute} />
         <Route path="/billing" component={BillingRoute} />
         <Route path="/admin-management" component={AdminManagementRoute} />
+        <Route path="/help" component={HelpRoute} />
         <Route component={RootRoute} />
       </Switch>
     </WouterRouter>
