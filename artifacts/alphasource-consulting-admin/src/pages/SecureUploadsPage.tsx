@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/auth/AuthProvider";
-import { AdminApiError, createSecureUploadRequest, getSecureUploadFiles } from "@/lib/adminApi";
+import { AdminApiError, createSecureUploadDownloadUrl, createSecureUploadRequest, getSecureUploadFiles } from "@/lib/adminApi";
 import type {
   SecureUploadFile,
   SecureUploadFilesQuery,
@@ -113,6 +113,8 @@ export default function SecureUploadsPage() {
   const [requestSending, setRequestSending] = useState(false);
   const [requestError, setRequestError] = useState("");
   const [requestSuccess, setRequestSuccess] = useState<SecureUploadRequestMetadata | null>(null);
+  const [downloadingFileId, setDownloadingFileId] = useState<string | null>(null);
+  const [downloadErrors, setDownloadErrors] = useState<Record<string, string>>({});
 
   const query = useMemo<SecureUploadFilesQuery>(() => ({
     completedOnly: appliedFilters.completedOnly,
@@ -197,6 +199,31 @@ export default function SecureUploadsPage() {
       }
     } finally {
       setRequestSending(false);
+    }
+  };
+
+  const handleDownloadFile = async (file: SecureUploadFile) => {
+    if (!token || downloadingFileId || !file.completedAt) {
+      return;
+    }
+
+    setDownloadingFileId(file.id);
+    setDownloadErrors((current) => {
+      const next = { ...current };
+      delete next[file.id];
+      return next;
+    });
+
+    try {
+      const result = await createSecureUploadDownloadUrl(token, file.id);
+      window.location.assign(result.downloadUrl);
+    } catch (downloadError) {
+      const message = downloadError instanceof AdminApiError
+        ? downloadError.message
+        : "Secure upload download link could not be created.";
+      setDownloadErrors((current) => ({ ...current, [file.id]: message }));
+    } finally {
+      setDownloadingFileId((current) => (current === file.id ? null : current));
     }
   };
 
@@ -392,10 +419,17 @@ export default function SecureUploadsPage() {
       {!loading && !error && response.items.length > 0 && (
         <section className="grid gap-4">
           <p className="rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-medium leading-6 text-[#0A1547]/62">
-            Secure upload files are stored in a private Google Cloud Storage bucket. Public object URLs are intentionally blocked; the Google Cloud link requires appropriate internal access.
+            Secure upload files are stored in a private Google Cloud Storage bucket. Public object URLs are intentionally blocked; use Download file for a short-lived admin download link or Open in Google Cloud for internal object details.
           </p>
           {response.items.map((file) => (
-            <SecureUploadCard key={file.id} file={file} />
+            <SecureUploadCard
+              key={file.id}
+              file={file}
+              downloadDisabled={Boolean(downloadingFileId) && downloadingFileId !== file.id}
+              downloadError={downloadErrors[file.id]}
+              downloading={downloadingFileId === file.id}
+              onDownload={handleDownloadFile}
+            />
           ))}
         </section>
       )}
@@ -429,8 +463,21 @@ export default function SecureUploadsPage() {
   );
 }
 
-function SecureUploadCard({ file }: { file: SecureUploadFile }) {
+function SecureUploadCard({
+  downloadDisabled,
+  downloadError,
+  downloading,
+  file,
+  onDownload,
+}: {
+  downloadDisabled: boolean;
+  downloadError?: string;
+  downloading: boolean;
+  file: SecureUploadFile;
+  onDownload: (file: SecureUploadFile) => void;
+}) {
   const status = statusLabel(file);
+  const isCompleted = status === "Completed";
 
   return (
     <article className="admin-card p-4">
@@ -451,6 +498,16 @@ function SecureUploadCard({ file }: { file: SecureUploadFile }) {
           <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${status === "Completed" ? "border-[#02D99D]/30 bg-[#02D99D]/12 text-[#0A1547]" : "border-amber-200 bg-amber-50 text-amber-700"}`}>
             {status}
           </span>
+          {isCompleted && (
+            <button
+              type="button"
+              onClick={() => onDownload(file)}
+              disabled={downloading || downloadDisabled}
+              className="admin-focus rounded-xl bg-[#0A1547] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#1A2460] disabled:cursor-not-allowed disabled:opacity-55"
+            >
+              {downloading ? "Preparing..." : "Download file"}
+            </button>
+          )}
           {file.consoleUrl && (
             <a
               href={file.consoleUrl}
@@ -460,6 +517,11 @@ function SecureUploadCard({ file }: { file: SecureUploadFile }) {
             >
               Open in Google Cloud
             </a>
+          )}
+          {downloadError && (
+            <p className="basis-full text-xs font-bold text-red-700">
+              {downloadError}
+            </p>
           )}
         </div>
       </div>

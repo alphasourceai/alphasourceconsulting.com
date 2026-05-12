@@ -20,6 +20,7 @@ import type {
   PdfGeneratorClientResponse,
   PdfGeneratorOptionsResponse,
   SafeApiError,
+  SecureUploadDownloadUrlResponse,
   SecureUploadFilesQuery,
   SecureUploadFilesResponse,
   UpdateAdminUserAccessRequest,
@@ -383,6 +384,21 @@ export function getSecureUploadFiles(
     token,
     signal,
   });
+}
+
+export function createSecureUploadDownloadUrl(
+  token: string,
+  fileId: string,
+  signal?: AbortSignal,
+): Promise<SecureUploadDownloadUrlResponse> {
+  return adminRequest<SecureUploadDownloadUrlResponse>(
+    `/api/admin/secure-uploads/files/${encodeURIComponent(fileId)}/download-url`,
+    {
+      token,
+      signal,
+      method: "POST",
+    },
+  );
 }
 
 export function createSecureUploadRequest(

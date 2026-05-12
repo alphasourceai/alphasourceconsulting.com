@@ -345,6 +345,15 @@ export type SecureUploadFilesResponse = {
   hasMore: boolean;
 };
 
+export type SecureUploadDownloadUrlResponse = {
+  ok: true;
+  downloadUrl: string;
+  expiresInSeconds: number;
+  expiresAt: string | null;
+  fileName: string;
+  contentType: string;
+};
+
 export type CreateSecureUploadRequestRequest = {
   clientEmail: string;
 };
