@@ -59,9 +59,9 @@ const manualProcessingStatuses = new Set(["queued", "processing"]);
 const terminalJobStatuses = new Set(["completed", "error", "canceled", "cancelled"]);
 const allowedFinancialExtensions = [".csv", ".xlsx", ".pdf"];
 const processableFinancialExtensions = new Set([".csv", ".xlsx"]);
-const allowedArExtensions = [".csv", ".xlsx"];
+const allowedArExtensions = [".csv", ".xlsx", ".pdf"];
 const processableArExtensions = new Set(allowedArExtensions);
-const allowedClaimsExtensions = [".csv", ".xlsx"];
+const allowedClaimsExtensions = [".csv", ".xlsx", ".pdf"];
 const processableClaimsExtensions = new Set(allowedClaimsExtensions);
 const financialAnalyzerToolName = "Financial Analyzer";
 const arAnalyzerToolName = "AR Analyzer";
@@ -410,7 +410,7 @@ export default function DocumentAnalysisPage() {
         return "AR Analyzer source file is required.";
       }
       if (!allowedArExtensions.includes(fileExtension(arFile.name))) {
-        return "AR file must be a .csv or .xlsx file.";
+        return "AR file must be a .csv, .xlsx, or text-based .pdf file.";
       }
     }
     if (analysisKind === "claims") {
@@ -418,7 +418,7 @@ export default function DocumentAnalysisPage() {
         return "Claims Analyzer source file is required.";
       }
       if (!allowedClaimsExtensions.includes(fileExtension(claimsFile.name))) {
-        return "Claims file must be a .csv or .xlsx file.";
+        return "Claims file must be a .csv, .xlsx, or text-based .pdf file.";
       }
     }
 
@@ -831,14 +831,14 @@ export default function DocumentAnalysisPage() {
             {analysisKind === "ar" && (
               <AnalyzerToolCard
                 active
-                description="Accepts .csv and .xlsx AR files. Processing can be run manually after intake."
+                description="Accepts .csv, .xlsx, and text-based .pdf AR files. PDFs must have selectable text."
                 title="AR Analyzer"
               >
                 <label className="block">
                   <span className="text-sm font-extrabold text-[#0A1547]">AR source file</span>
                   <input
                     type="file"
-                    accept=".csv,.xlsx"
+                    accept=".csv,.xlsx,.pdf"
                     onChange={(event) => setArFile(event.target.files?.[0] ?? null)}
                     className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547] file:mr-4 file:rounded-lg file:border-0 file:bg-[#0A1547] file:px-4 file:py-2 file:text-sm file:font-extrabold file:text-white"
                     disabled={submitting}
@@ -855,14 +855,14 @@ export default function DocumentAnalysisPage() {
             {analysisKind === "claims" && (
               <AnalyzerToolCard
                 active
-                description="Accepts .csv and .xlsx Claims files. CSV and XLSX processing are available now. PDF processing will be added later."
+                description="Accepts .csv, .xlsx, and text-based .pdf Claims files. PDFs must have selectable text."
                 title="Insurance Claim Analyzer"
               >
                 <label className="block">
                   <span className="text-sm font-extrabold text-[#0A1547]">Claims source file</span>
                   <input
                     type="file"
-                    accept=".csv,.xlsx"
+                    accept=".csv,.xlsx,.pdf"
                     onChange={(event) => setClaimsFile(event.target.files?.[0] ?? null)}
                     className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547] file:mr-4 file:rounded-lg file:border-0 file:bg-[#0A1547] file:px-4 file:py-2 file:text-sm file:font-extrabold file:text-white"
                     disabled={submitting}
@@ -880,7 +880,10 @@ export default function DocumentAnalysisPage() {
           <div className="mt-5 rounded-2xl border border-[#A380F6]/20 bg-[#A380F6]/10 p-4">
             <p className="text-sm font-black text-[#0A1547]">Intake and processing are separate steps.</p>
             <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
-              Creating the analysis stores the source file and durable job record. CSV and XLSX jobs can then be processed manually; this is not secure PHI intake and does not create a client report, email, GHL update, PDF, report delivery, or payment action.
+              Creating the analysis stores the source file and durable job record. CSV, XLSX, and supported text-based PDF jobs can then be processed manually; this is not secure PHI intake and does not create a client report, email, GHL update, PDF, report delivery, or payment action.
+            </p>
+            <p className="mt-2 text-sm font-semibold leading-6 text-[#0A1547]/62">
+              AR and Claims PDFs must be text-based with selectable text. Scanned or image-only PDFs are not supported yet because OCR is not enabled. Secure Uploads remains separate for potentially sensitive or PHI-related files.
             </p>
           </div>
 
@@ -1126,9 +1129,9 @@ function JobStatusCard({
   );
   const showLinkedRecords = Boolean(promotionMetadata || hasAnyLinkedClientRecord);
   const showPdfProcessingNote = Boolean(
-    (analysisKind === "financial" && analysisFile && fileExtension === ".pdf")
-    || analysisKind === "claims",
+    analysisKind === "financial" && analysisFile && fileExtension === ".pdf",
   );
+  const supportsTextPdfProcessing = analysisKind === "ar" || analysisKind === "claims";
   const processing = analysisKind === "ar"
     ? processingAr
     : analysisKind === "claims"
@@ -1196,7 +1199,7 @@ function JobStatusCard({
               {analysisKind ? analysisProcessingTitles[analysisKind] : "Analysis processing"}
             </p>
             <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
-              CSV and XLSX processing are manual in this phase. Processed output remains internal admin job output, not a final client report.
+              {supportsTextPdfProcessing ? "CSV, XLSX, and text-based PDF processing are manual in this phase." : "CSV and XLSX processing are manual in this phase."} Processed output remains internal admin job output, not a final client report.
             </p>
           </div>
           {analysisKind && canProcess && (
