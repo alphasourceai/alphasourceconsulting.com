@@ -686,7 +686,7 @@ export default function AnalyzerPage() {
 
           <div className="mt-6 text-right">
             <a
-              href="https://dental-analysis-tools.onrender.com/uploads?page=admin"
+              href="https://alphasource-consulting-admin.onrender.com"
               target="_blank"
               rel="noreferrer"
               className="text-xs font-semibold text-[#0A1547]/30 hover:text-[#0A1547]/50 transition-colors"
