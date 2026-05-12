@@ -295,11 +295,24 @@ function CreateCheckoutLinkCard({
   const [description, setDescription] = useState("");
   const [amountDollars, setAmountDollars] = useState("");
   const [purpose, setPurpose] = useState("report");
-  const [uploadId, setUploadId] = useState("");
+  const [selectedUploadIds, setSelectedUploadIds] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
   const [createdSession, setCreatedSession] = useState<CreateCheckoutSessionResponse | null>(null);
   const [error, setError] = useState("");
   const [copyStatus, setCopyStatus] = useState("");
+
+  useEffect(() => {
+    const availableUploadIds = new Set(uploads.map((upload) => upload.id));
+    setSelectedUploadIds((current) => current.filter((uploadId) => availableUploadIds.has(uploadId)));
+  }, [uploads]);
+
+  const toggleUpload = (uploadId: string) => {
+    setSelectedUploadIds((current) => (
+      current.includes(uploadId)
+        ? current.filter((selectedUploadId) => selectedUploadId !== uploadId)
+        : [...current, uploadId]
+    ));
+  };
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -329,7 +342,7 @@ function CreateCheckoutLinkCard({
         description: trimmedDescription,
         amount: cents,
         currency: "usd",
-        ...(uploadId ? { uploadId } : {}),
+        ...(selectedUploadIds.length > 0 ? { uploadIds: selectedUploadIds } : {}),
         successUrl: `${window.location.origin}/payment-success`,
         cancelUrl: `${window.location.origin}/payment-cancel`,
       });
@@ -374,67 +387,82 @@ function CreateCheckoutLinkCard({
         </span>
       </div>
 
-      <form onSubmit={handleSubmit} className="mt-5 grid gap-4 lg:grid-cols-[1.25fr_0.5fr_0.55fr_0.9fr_auto] lg:items-end">
-        <label className="block">
-          <span className="text-sm font-extrabold text-[#0A1547]">Description</span>
-          <input
-            type="text"
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-            placeholder="Full Financial Report"
-            className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547]"
-            disabled={creating}
-          />
-        </label>
+      <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+        <div className="grid gap-4 lg:grid-cols-[1.25fr_0.5fr_0.55fr_auto] lg:items-end">
+          <label className="block">
+            <span className="text-sm font-extrabold text-[#0A1547]">Description</span>
+            <input
+              type="text"
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              placeholder="Full Financial Report"
+              className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547]"
+              disabled={creating}
+            />
+          </label>
 
-        <label className="block">
-          <span className="text-sm font-extrabold text-[#0A1547]">Amount</span>
-          <input
-            type="text"
-            inputMode="decimal"
-            value={amountDollars}
-            onChange={(event) => setAmountDollars(event.target.value)}
-            placeholder="500.00"
-            className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547]"
-            disabled={creating}
-          />
-        </label>
+          <label className="block">
+            <span className="text-sm font-extrabold text-[#0A1547]">Amount</span>
+            <input
+              type="text"
+              inputMode="decimal"
+              value={amountDollars}
+              onChange={(event) => setAmountDollars(event.target.value)}
+              placeholder="500.00"
+              className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547]"
+              disabled={creating}
+            />
+          </label>
 
-        <label className="block">
-          <span className="text-sm font-extrabold text-[#0A1547]">Purpose</span>
-          <input
-            type="text"
-            value={purpose}
-            onChange={(event) => setPurpose(event.target.value)}
-            className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547]"
-            disabled={creating}
-          />
-        </label>
+          <label className="block">
+            <span className="text-sm font-extrabold text-[#0A1547]">Purpose</span>
+            <input
+              type="text"
+              value={purpose}
+              onChange={(event) => setPurpose(event.target.value)}
+              className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547]"
+              disabled={creating}
+            />
+          </label>
 
-        <label className="block">
-          <span className="text-sm font-extrabold text-[#0A1547]">Related upload</span>
-          <select
-            value={uploadId}
-            onChange={(event) => setUploadId(event.target.value)}
-            className="admin-focus mt-2 h-[46px] w-full appearance-none rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold leading-tight text-[#0A1547]"
-            disabled={creating || uploads.length === 0}
+          <button
+            type="submit"
+            disabled={creating}
+            className="admin-focus rounded-xl bg-[#A380F6] px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-[#A380F6]/20 transition hover:bg-[#906cf2] disabled:opacity-60"
           >
-            <option value="">No upload selected</option>
-            {uploads.map((upload) => (
-              <option key={upload.id} value={upload.id}>
-                {upload.fileName || upload.toolName || upload.id}
-              </option>
-            ))}
-          </select>
-        </label>
+            {creating ? "Creating..." : "Create link"}
+          </button>
+        </div>
 
-        <button
-          type="submit"
-          disabled={creating}
-          className="admin-focus rounded-xl bg-[#A380F6] px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-[#A380F6]/20 transition hover:bg-[#906cf2] disabled:opacity-60"
-        >
-          {creating ? "Creating..." : "Create link"}
-        </button>
+        <div className="rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-extrabold text-[#0A1547]">Related uploads</p>
+              <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/58">
+                Select one or more uploads to associate with this checkout session.
+              </p>
+            </div>
+            <span className="rounded-full border border-[#0A1547]/10 bg-white px-3 py-1 text-xs font-bold text-[#0A1547]/60">
+              {selectedUploadIds.length} selected
+            </span>
+          </div>
+
+          <div className="mt-3 grid gap-2">
+            {uploads.length > 0 ? uploads.map((upload) => (
+              <UploadSelectRow
+                key={upload.id}
+                checked={selectedUploadIds.includes(upload.id)}
+                disabled={creating}
+                onToggle={() => toggleUpload(upload.id)}
+                upload={upload}
+              />
+            )) : (
+              <p className="rounded-xl border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-medium text-[#0A1547]/56">
+                No uploads found.
+              </p>
+            )}
+          </div>
+        </div>
       </form>
 
       {error && (
@@ -485,6 +513,45 @@ function CreateCheckoutLinkCard({
         </div>
       )}
     </section>
+  );
+}
+
+function UploadSelectRow({
+  checked,
+  disabled,
+  onToggle,
+  upload,
+}: {
+  checked: boolean;
+  disabled: boolean;
+  onToggle: () => void;
+  upload: BillingUploadSummary;
+}) {
+  return (
+    <label
+      className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2 transition ${
+        checked ? "border-[#A380F6]/45 bg-white shadow-sm" : "border-[#0A1547]/10 bg-white/70 hover:border-[#A380F6]/35"
+      } ${disabled ? "cursor-not-allowed opacity-60" : ""}`}
+    >
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={onToggle}
+        disabled={disabled}
+        className="admin-focus h-4 w-4 shrink-0 rounded border-[#0A1547]/20 text-[#A380F6]"
+      />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-bold text-[#0A1547]">
+          {formatNullable(upload.fileName)}
+        </span>
+        <span className="mt-1 block truncate text-xs font-medium text-[#0A1547]/58">
+          {formatNullable(upload.toolName)} / {formatDate(upload.uploadTime)}
+        </span>
+      </span>
+      <span className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-bold ${statusTone(upload.paid ? "paid" : "unpaid")}`}>
+        {upload.paid ? "Paid" : "Not paid"}
+      </span>
+    </label>
   );
 }
 
@@ -630,6 +697,9 @@ function CheckoutSessionCard({ session, upload }: { session: CheckoutSessionSumm
   const checkoutUrl = session.checkoutUrl?.trim() || "";
   const paymentStatus = session.paymentStatus?.toLowerCase() || "";
   const canUseCheckoutLink = checkoutUrl !== "" && paymentStatus !== "paid";
+  const relatedUploads = session.relatedUploads?.length > 0 ? session.relatedUploads : upload ? [upload] : [];
+  const hasLegacyUploadOnly = relatedUploads.length === 0 && Boolean(session.uploadId);
+  const technicalUploadIds = session.uploadIds?.length ? session.uploadIds.join(", ") : session.uploadId;
 
   const handleCopy = async () => {
     if (!checkoutUrl) {
@@ -662,8 +732,31 @@ function CheckoutSessionCard({ session, upload }: { session: CheckoutSessionSumm
         <Detail label="Status" value={session.status} />
         <Detail label="Payment" value={session.paymentStatus} />
         <Detail label="Created" value={formatDate(session.createdAt)} />
-        <Detail label="Related upload" value={upload ? upload.fileName || upload.toolName || "Linked upload" : session.uploadId ? "Linked upload" : "—"} />
       </dl>
+
+      {relatedUploads.length > 0 && (
+        <div className="mt-4 rounded-2xl border border-[#0A1547]/10 bg-white p-4">
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#0A1547]/42">Related uploads</p>
+          <div className="mt-3 grid gap-2">
+            {relatedUploads.map((relatedUpload) => (
+              <div key={relatedUpload.id} className="min-w-0 rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-3 py-2">
+                <p className="truncate text-sm font-bold text-[#0A1547]">
+                  {formatNullable(relatedUpload.fileName)}
+                </p>
+                <p className="mt-1 truncate text-xs font-medium text-[#0A1547]/58">
+                  {formatNullable(relatedUpload.toolName)}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {hasLegacyUploadOnly && (
+        <p className="mt-4 rounded-xl border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-medium text-[#0A1547]/55">
+          Related upload linked to this session.
+        </p>
+      )}
 
       {canUseCheckoutLink && (
         <div className="mt-4 rounded-2xl border border-[#02ABE0]/20 bg-white p-4">
@@ -714,7 +807,7 @@ function CheckoutSessionCard({ session, upload }: { session: CheckoutSessionSumm
         <dl className="mt-3 grid gap-3 text-sm md:grid-cols-2">
           <Detail label="Stripe session ID" value={session.stripeCheckoutSessionId} />
           <Detail label="Local session ID" value={session.id} />
-          <Detail label="Upload ID" value={session.uploadId} />
+          <Detail label="Upload IDs" value={technicalUploadIds} />
           <Detail label="Submission ID" value={session.clientSubmissionId} />
           <Detail label="Mode" value={session.mode} />
           <Detail label="Live mode" value={session.livemode} />

@@ -382,6 +382,8 @@ export type CheckoutSessionSummary = {
   checkoutUrl: string | null;
   livemode: boolean | null;
   uploadId: string | null;
+  uploadIds: string[];
+  relatedUploads: BillingUploadSummary[];
   clientSubmissionId: string | null;
   createdAt: string | null;
   updatedAt: string | null;
@@ -438,6 +440,7 @@ export type CreateCheckoutSessionRequest = {
   amount: number;
   currency: "usd";
   uploadId?: string;
+  uploadIds?: string[];
   successUrl: string;
   cancelUrl: string;
 };
@@ -448,6 +451,10 @@ export type CreateCheckoutSessionResponse = {
   url: string;
   status: string | null;
   paymentStatus: string | null;
+  uploadId?: string | null;
+  uploadIds?: string[];
+  relatedUploads?: BillingUploadSummary[];
+  clientSubmissionId?: string | null;
 };
 
 export type SafeApiError = {
