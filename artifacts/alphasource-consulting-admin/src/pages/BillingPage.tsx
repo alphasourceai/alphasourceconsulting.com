@@ -58,8 +58,11 @@ function formatMountainDate(value: string | null): string {
   }
 
   return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
     timeZone: "America/Denver",
     timeZoneName: "short",
   }).format(date);
