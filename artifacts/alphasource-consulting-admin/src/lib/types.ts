@@ -2,6 +2,7 @@ export type AdminRole = "super_admin" | "admin" | "analyst" | "billing_admin" | 
 
 export type AdminPermissions = {
   canReadClients: boolean;
+  canWriteClients: boolean;
   canReadBilling: boolean;
   canWriteBilling: boolean;
   canReadAnalysis: boolean;
@@ -115,6 +116,32 @@ export type AdminClientsResponse = {
   offset: number;
   count: number;
   hasMore: boolean;
+};
+
+export type CreateAdminClientRequest = {
+  email: string;
+  firstName: string;
+  lastName: string;
+  officeName: string;
+  orgType: string;
+  phone?: string;
+};
+
+export type CreatedAdminClient = {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  officeName: string | null;
+  orgType: string | null;
+  phone: string | null;
+  submissionCount: number;
+  uploadCount: number;
+};
+
+export type CreateAdminClientResponse = {
+  ok: true;
+  client: CreatedAdminClient;
 };
 
 export type AdminClientOption = {

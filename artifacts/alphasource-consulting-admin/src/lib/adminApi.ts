@@ -9,6 +9,8 @@ import type {
   BillingOverviewResponse,
   BillingOverviewStatus,
   ClientBillingDetailResponse,
+  CreateAdminClientRequest,
+  CreateAdminClientResponse,
   CreateAdminUserAccessRequest,
   CreateAdminUserAccessResponse,
   CreateCheckoutSessionRequest,
@@ -166,6 +168,19 @@ export function getAdminClients(
   return adminRequest<AdminClientsResponse>(`/api/admin/clients?${params.toString()}`, {
     token,
     signal,
+  });
+}
+
+export function createAdminClient(
+  token: string,
+  payload: CreateAdminClientRequest,
+  signal?: AbortSignal,
+): Promise<CreateAdminClientResponse> {
+  return adminRequest<CreateAdminClientResponse>("/api/admin/clients", {
+    token,
+    signal,
+    method: "POST",
+    body: payload,
   });
 }
 

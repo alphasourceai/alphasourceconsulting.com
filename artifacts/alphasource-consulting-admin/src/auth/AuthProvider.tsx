@@ -34,6 +34,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 const defaultAdminPermissions: AdminPermissions = {
   canReadClients: false,
+  canWriteClients: false,
   canReadBilling: false,
   canWriteBilling: false,
   canReadAnalysis: false,
