@@ -918,9 +918,9 @@ function PlaceholderList({ label, values }: { label: string; values: unknown[] |
 
 function Detail({ label, value }: { label: string; value: string | number | boolean | null | undefined }) {
   return (
-    <div>
+    <div className="min-w-0 max-w-full">
       <dt className="text-xs font-bold uppercase tracking-[0.12em] text-[#0A1547]/42">{label}</dt>
-      <dd className="mt-1 break-words font-semibold text-[#0A1547]">{formatNullable(value)}</dd>
+      <dd className="mt-1 max-w-full break-all font-semibold text-[#0A1547]">{formatNullable(value)}</dd>
     </div>
   );
 }
