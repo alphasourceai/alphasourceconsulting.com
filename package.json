@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
+    "preinstall": "rm -f package-lock.json yarn.lock",
     "build": "pnpm run typecheck && pnpm --filter @workspace/alphasource-consulting run build",
     "typecheck": "pnpm --filter @workspace/alphasource-consulting run typecheck",
     "dev:admin": "pnpm --filter @workspace/alphasource-consulting-admin run dev",
