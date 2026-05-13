@@ -949,18 +949,20 @@ function UploadCard({
 
   return (
     <article className="rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
         <div className="min-w-0">
-          <p className="text-sm font-black text-[#0A1547]">{formatNullable(upload.fileName)}</p>
-          <p className="mt-1 text-sm font-medium text-[#0A1547]/58">{formatNullable(upload.toolName)}</p>
+          <p className="line-clamp-2 break-words text-[13px] font-black leading-5 text-[#0A1547]">
+            {formatNullable(upload.fileName)}
+          </p>
+          <p className="mt-1 truncate text-sm font-medium text-[#0A1547]/58">{formatNullable(upload.toolName)}</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-start justify-end gap-2">
           {voided && (
-            <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${statusTone("voided")}`}>
+            <span className={`shrink-0 rounded-full border px-3 py-1 text-xs font-extrabold ${statusTone("voided")}`}>
               Voided
             </span>
           )}
-          <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${statusTone(paid ? "paid" : "unpaid")}`}>
+          <span className={`shrink-0 rounded-full border px-3 py-1 text-xs font-extrabold ${statusTone(paid ? "paid" : "unpaid")}`}>
             {paid ? "Paid" : "Not paid"}
           </span>
           {canVoid && (
