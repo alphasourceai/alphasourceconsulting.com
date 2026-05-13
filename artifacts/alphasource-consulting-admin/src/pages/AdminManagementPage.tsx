@@ -409,7 +409,7 @@ export default function AdminManagementPage() {
               <select
                 value={newAdminRole}
                 onChange={(event) => setNewAdminRole(event.target.value as CreateAdminUserAccessRequest["role"])}
-                className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/12 bg-white px-4 py-3 text-sm font-medium text-[#0A1547] outline-none"
+                className="admin-focus mt-2 h-[46px] w-full rounded-xl border border-[#0A1547]/12 bg-white px-4 py-3 text-sm font-medium text-[#0A1547] outline-none"
               >
                 {adminRoleOptions.map((role) => (
                   <option key={role} value={role}>{roleLabel(role)}</option>
@@ -530,7 +530,11 @@ export default function AdminManagementPage() {
                             adminUser.displayName || "-"
                           )}
                         </BodyCell>
-                        <BodyCell>{adminUser.email || "Email not stored yet"}</BodyCell>
+                        <BodyCell>
+                          <span className="block text-[13px] leading-5">
+                            {adminUser.email || "Email not stored yet"}
+                          </span>
+                        </BodyCell>
                         <BodyCell>
                           {canManageAdminAccess ? (
                             <select
