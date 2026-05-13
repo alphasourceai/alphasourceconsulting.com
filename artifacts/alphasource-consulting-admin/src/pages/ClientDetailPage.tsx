@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link } from "wouter";
 import { useAuth } from "@/auth/AuthProvider";
-import { AdminApiError, createCheckoutSession, getClientBillingDetail } from "@/lib/adminApi";
+import { AdminApiError, createCheckoutSession, getClientBillingDetail, voidAdminUpload } from "@/lib/adminApi";
 import type {
   BillingOverrideSummary,
   BillingUploadSummary,
+  BillingUploadStatus,
   CheckoutSessionSummary,
   ClientBillingDetailResponse,
   CreateCheckoutSessionResponse,
@@ -13,6 +14,12 @@ import type {
 type ClientDetailPageProps = {
   email: string;
 };
+
+const UPLOAD_STATUS_FILTERS: Array<{ label: string; value: BillingUploadStatus }> = [
+  { label: "Active", value: "active" },
+  { label: "Voided", value: "voided" },
+  { label: "All", value: "all" },
+];
 
 function formatNullable(value: string | number | boolean | null | undefined): string {
   if (value === null || value === undefined || value === "") {
@@ -70,6 +77,10 @@ function statusTone(status: string | null): string {
     return "border-[#02ABE0]/25 bg-[#02ABE0]/10 text-[#0A1547]";
   }
 
+  if (normalized === "voided") {
+    return "border-[#A380F6]/30 bg-[#A380F6]/12 text-[#0A1547]";
+  }
+
   return "border-[#0A1547]/10 bg-white text-[#0A1547]/70";
 }
 
@@ -104,10 +115,14 @@ export default function ClientDetailPage({ email }: ClientDetailPageProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [uploadsExpanded, setUploadsExpanded] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<BillingUploadStatus>("active");
+  const [voidTarget, setVoidTarget] = useState<BillingUploadSummary | null>(null);
+  const [uploadActionMessage, setUploadActionMessage] = useState("");
 
   const token = session?.access_token || "";
   const validEmail = email.trim();
   const canWriteBilling = permissions.canWriteBilling;
+  const canWriteUploads = permissions.canWriteUploads;
 
   const loadDetail = useCallback(async (
     signal?: AbortSignal,
@@ -123,7 +138,7 @@ export default function ClientDetailPage({ email }: ClientDetailPageProps) {
     setError("");
 
     try {
-      const response = await getClientBillingDetail(token, validEmail, signal);
+      const response = await getClientBillingDetail(token, validEmail, signal, { uploadStatus });
       setDetail(response);
     } catch (detailError) {
       if (detailError instanceof DOMException && detailError.name === "AbortError") {
@@ -140,7 +155,7 @@ export default function ClientDetailPage({ email }: ClientDetailPageProps) {
         setLoading(false);
       }
     }
-  }, [token, validEmail]);
+  }, [token, uploadStatus, validEmail]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -153,12 +168,15 @@ export default function ClientDetailPage({ email }: ClientDetailPageProps) {
 
   useEffect(() => {
     setUploadsExpanded(false);
-  }, [validEmail]);
+  }, [uploadStatus, validEmail]);
 
   const summary = detail?.summary;
   const sortedUploads = useMemo(() => {
     return [...(detail?.uploads ?? [])].sort((left, right) => uploadTimeValue(right) - uploadTimeValue(left));
   }, [detail?.uploads]);
+  const activeUploads = useMemo(() => {
+    return sortedUploads.filter((upload) => !upload.voided);
+  }, [sortedUploads]);
   const visibleUploads = uploadsExpanded ? sortedUploads : sortedUploads.slice(0, 4);
   const empty = useMemo(() => {
     return (
@@ -170,6 +188,24 @@ export default function ClientDetailPage({ email }: ClientDetailPageProps) {
       detail.billingOverrides.length === 0
     );
   }, [detail, error, loading]);
+
+  const handleUploadStatusChange = (nextStatus: BillingUploadStatus) => {
+    setUploadActionMessage("");
+    setUploadsExpanded(false);
+    setUploadStatus(nextStatus);
+  };
+
+  const handleUploadVoided = async () => {
+    setVoidTarget(null);
+    setUploadActionMessage("Upload voided. It is hidden from active workflows and remains available in the Voided or All upload filters.");
+
+    if (uploadStatus === "voided") {
+      await loadDetail(undefined, { showLoading: false });
+      return;
+    }
+
+    setUploadStatus("voided");
+  };
 
   if (!validEmail) {
     return (
@@ -231,7 +267,7 @@ export default function ClientDetailPage({ email }: ClientDetailPageProps) {
               clientEmail={detail.clientEmail}
               onCreated={() => loadDetail(undefined, { showLoading: false })}
               token={token}
-              uploads={sortedUploads}
+              uploads={activeUploads}
             />
           ) : (
             <section className="rounded-2xl border border-[#A380F6]/25 bg-[#A380F6]/10 p-5">
@@ -256,8 +292,13 @@ export default function ClientDetailPage({ email }: ClientDetailPageProps) {
             </Panel>
 
             <UploadsPanel
+              canWriteUploads={canWriteUploads}
               expanded={uploadsExpanded}
+              message={uploadActionMessage}
+              onRequestVoid={setVoidTarget}
+              onStatusChange={handleUploadStatusChange}
               onToggle={() => setUploadsExpanded((current) => !current)}
+              status={uploadStatus}
               totalCount={sortedUploads.length}
               uploads={visibleUploads}
             />
@@ -275,6 +316,15 @@ export default function ClientDetailPage({ email }: ClientDetailPageProps) {
               <PlaceholderList label="Subscriptions" values={detail.subscriptions} />
             </Panel>
           </section>
+
+          {voidTarget && (
+            <VoidUploadModal
+              onClose={() => setVoidTarget(null)}
+              onVoided={handleUploadVoided}
+              token={token}
+              upload={voidTarget}
+            />
+          )}
         </>
       )}
     </div>
@@ -301,7 +351,7 @@ function CreateCheckoutLinkCard({
   const [error, setError] = useState("");
   const [copyStatus, setCopyStatus] = useState("");
   const selectableUploadIds = useMemo(() => {
-    return new Set(uploads.filter((upload) => !upload.paid).map((upload) => upload.id));
+    return new Set(uploads.filter((upload) => !upload.paid && !upload.voided).map((upload) => upload.id));
   }, [uploads]);
   const selectedSelectableUploadIds = useMemo(() => {
     return selectedUploadIds.filter((uploadId) => selectableUploadIds.has(uploadId));
@@ -451,7 +501,7 @@ function CreateCheckoutLinkCard({
                 Select one or more uploads to associate with this checkout session.
               </p>
               <p className="mt-1 text-xs font-medium leading-5 text-[#0A1547]/48">
-                Paid uploads cannot be selected again.
+                Paid or voided uploads cannot be selected.
               </p>
             </div>
             <span className="rounded-full border border-[#0A1547]/10 bg-white px-3 py-1 text-xs font-bold text-[#0A1547]/60">
@@ -540,15 +590,16 @@ function UploadSelectRow({
   upload: BillingUploadSummary;
 }) {
   const paid = Boolean(upload.paid);
+  const voided = Boolean(upload.voided);
 
   return (
     <label
       className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2 transition ${
         checked ? "border-[#A380F6]/45 bg-white shadow-sm" : "border-[#0A1547]/10 bg-white/70 hover:border-[#A380F6]/35"
-      } ${disabled || paid ? "cursor-not-allowed opacity-70" : ""}`}
+      } ${disabled || paid || voided ? "cursor-not-allowed opacity-70" : ""}`}
     >
-      {paid ? (
-        <span className="h-4 w-4 shrink-0 rounded border border-[#02D99D]/35 bg-[#02D99D]/15" aria-hidden="true" />
+      {paid || voided ? (
+        <span className="h-4 w-4 shrink-0 rounded border border-[#0A1547]/15 bg-[#0A1547]/5" aria-hidden="true" />
       ) : (
         <input
           type="checkbox"
@@ -568,9 +619,12 @@ function UploadSelectRow({
         {paid && (
           <span className="mt-1 block text-xs font-medium text-[#0A1547]/45">Already paid</span>
         )}
+        {voided && (
+          <span className="mt-1 block text-xs font-medium text-[#0A1547]/45">Voided uploads cannot be selected</span>
+        )}
       </span>
-      <span className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-bold ${statusTone(paid ? "paid" : "unpaid")}`}>
-        {paid ? "Paid" : "Not paid"}
+      <span className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-bold ${statusTone(voided ? "voided" : paid ? "paid" : "unpaid")}`}>
+        {voided ? "Voided" : paid ? "Paid" : "Not paid"}
       </span>
     </label>
   );
@@ -588,33 +642,74 @@ function BackLink() {
 }
 
 function UploadsPanel({
+  canWriteUploads,
   expanded,
+  message,
+  onRequestVoid,
+  onStatusChange,
   onToggle,
+  status,
   totalCount,
   uploads,
 }: {
+  canWriteUploads: boolean;
   expanded: boolean;
+  message: string;
+  onRequestVoid: (upload: BillingUploadSummary) => void;
+  onStatusChange: (status: BillingUploadStatus) => void;
   onToggle: () => void;
+  status: BillingUploadStatus;
   totalCount: number;
   uploads: BillingUploadSummary[];
 }) {
   return (
     <section className="admin-card p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="text-lg font-black text-[#0A1547]">Uploads</h3>
-        {totalCount > 4 && (
-          <button
-            type="button"
-            onClick={onToggle}
-            className="admin-focus rounded-xl border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/50"
-          >
-            {expanded ? "Show fewer uploads" : `Show all uploads (${totalCount})`}
-          </button>
-        )}
+        <div>
+          <h3 className="text-lg font-black text-[#0A1547]">Uploads</h3>
+          <p className="mt-1 text-sm font-medium text-[#0A1547]/58">
+            Active uploads are used for normal checkout and report workflows.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {UPLOAD_STATUS_FILTERS.map((filter) => (
+            <button
+              key={filter.value}
+              type="button"
+              onClick={() => onStatusChange(filter.value)}
+              className={`admin-focus rounded-xl border px-3 py-2 text-xs font-extrabold transition ${
+                status === filter.value
+                  ? "border-[#A380F6] bg-[#A380F6] text-white"
+                  : "border-[#0A1547]/10 bg-white text-[#0A1547]/65 hover:border-[#A380F6]/50"
+              }`}
+            >
+              {filter.label}
+            </button>
+          ))}
+          {totalCount > 4 && (
+            <button
+              type="button"
+              onClick={onToggle}
+              className="admin-focus rounded-xl border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/50"
+            >
+              {expanded ? "Show fewer" : `Show all (${totalCount})`}
+            </button>
+          )}
+        </div>
       </div>
+      {message && (
+        <p className="mt-4 rounded-xl border border-[#02D99D]/25 bg-[#02D99D]/10 px-4 py-3 text-sm font-semibold text-[#0A1547]">
+          {message}
+        </p>
+      )}
       <div className="mt-4 grid gap-3">
         {uploads.length > 0 ? uploads.map((upload) => (
-          <UploadCard key={upload.id} upload={upload} />
+          <UploadCard
+            key={upload.id}
+            canWriteUploads={canWriteUploads}
+            onVoid={() => onRequestVoid(upload)}
+            upload={upload}
+          />
         )) : (
           <p className="rounded-2xl bg-[#F8F9FD] p-4 text-sm font-medium text-[#0A1547]/56">
             No uploads found.
@@ -839,18 +934,57 @@ function CheckoutSessionCard({ session, upload }: { session: CheckoutSessionSumm
   );
 }
 
-function UploadCard({ upload }: { upload: BillingUploadSummary }) {
+function UploadCard({
+  canWriteUploads,
+  onVoid,
+  upload,
+}: {
+  canWriteUploads: boolean;
+  onVoid: () => void;
+  upload: BillingUploadSummary;
+}) {
+  const paid = Boolean(upload.paid);
+  const voided = Boolean(upload.voided);
+  const canVoid = canWriteUploads && !paid && !voided;
+
   return (
     <article className="rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <p className="text-sm font-black text-[#0A1547]">{formatNullable(upload.fileName)}</p>
           <p className="mt-1 text-sm font-medium text-[#0A1547]/58">{formatNullable(upload.toolName)}</p>
         </div>
-        <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${statusTone(upload.paid ? "paid" : "unpaid")}`}>
-          {upload.paid ? "Paid" : "Not paid"}
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          {voided && (
+            <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${statusTone("voided")}`}>
+              Voided
+            </span>
+          )}
+          <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${statusTone(paid ? "paid" : "unpaid")}`}>
+            {paid ? "Paid" : "Not paid"}
+          </span>
+          {canVoid && (
+            <button
+              type="button"
+              onClick={onVoid}
+              className="admin-focus rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-extrabold text-red-700 transition hover:bg-red-50"
+            >
+              Void upload
+            </button>
+          )}
+        </div>
       </div>
+      {voided && (
+        <div className="mt-3 rounded-xl border border-[#A380F6]/20 bg-white px-4 py-3 text-sm text-[#0A1547]/68">
+          <p className="font-semibold text-[#0A1547]">Voided {formatDate(upload.voidedAt ?? null)}</p>
+          {upload.voidReason && (
+            <p className="mt-1 font-medium leading-6">Reason: {upload.voidReason}</p>
+          )}
+          {upload.voidedByAdminEmail && (
+            <p className="mt-1 text-xs font-medium text-[#0A1547]/50">By {upload.voidedByAdminEmail}</p>
+          )}
+        </div>
+      )}
       <dl className="mt-4 grid gap-3 text-sm md:grid-cols-2">
         <Detail label="Tool" value={upload.toolName} />
         <Detail label="Upload time" value={formatDate(upload.uploadTime)} />
@@ -865,6 +999,143 @@ function UploadCard({ upload }: { upload: BillingUploadSummary }) {
       </details>
     </article>
   );
+}
+
+function VoidUploadModal({
+  onClose,
+  onVoided,
+  token,
+  upload,
+}: {
+  onClose: () => void;
+  onVoided: () => Promise<void>;
+  token: string;
+  upload: BillingUploadSummary;
+}) {
+  const [reason, setReason] = useState("");
+  const [voiding, setVoiding] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const trimmedReason = reason.trim();
+    setError("");
+
+    if (!trimmedReason) {
+      setError("Enter a reason for voiding this upload.");
+      return;
+    }
+
+    setVoiding(true);
+    try {
+      await voidAdminUpload(token, upload.id, { reason: trimmedReason });
+      await onVoided();
+    } catch (voidError) {
+      setError(voidUploadErrorMessage(voidError));
+      setVoiding(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0A1547]/45 p-4">
+      <div
+        aria-labelledby="void-upload-title"
+        aria-modal="true"
+        role="dialog"
+        className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white shadow-2xl"
+      >
+        <div className="flex items-start justify-between gap-4 border-b border-[#0A1547]/10 px-5 py-4">
+          <div className="min-w-0">
+            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#A380F6]">Uploads</p>
+            <h3 id="void-upload-title" className="mt-1 text-lg font-black text-[#0A1547]">Void upload</h3>
+            <p className="mt-1 max-w-xl text-sm font-medium leading-6 text-[#0A1547]/62">
+              Voiding hides this upload from normal active workflows. It does not delete the row or storage object.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={voiding}
+            className="admin-focus rounded-xl border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/60 disabled:cursor-not-allowed disabled:opacity-55"
+          >
+            Close
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-5">
+          <div className="rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+            <p className="truncate text-sm font-bold text-[#0A1547]">{formatNullable(upload.fileName)}</p>
+            <p className="mt-1 text-sm font-medium text-[#0A1547]/58">{formatNullable(upload.toolName)}</p>
+            <p className="mt-1 text-xs font-medium text-[#0A1547]/48">
+              Uploaded {formatDate(upload.uploadTime)}
+            </p>
+          </div>
+
+          <label className="mt-4 block">
+            <span className="text-sm font-semibold text-[#0A1547]">
+              Reason <span className="text-red-600">*</span>
+            </span>
+            <textarea
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+              disabled={voiding}
+              rows={4}
+              maxLength={500}
+              placeholder="Duplicate upload, wrong file, or client requested removal from normal views."
+              className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-medium leading-6 text-[#0A1547]"
+            />
+            <span className="mt-1 block text-xs font-medium text-[#0A1547]/45">
+              Required for audit context. Paid uploads cannot be voided.
+            </span>
+          </label>
+
+          {error && (
+            <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+              {error}
+            </p>
+          )}
+
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={voiding}
+              className="admin-focus rounded-xl border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/60 disabled:cursor-not-allowed disabled:opacity-55"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={voiding || reason.trim().length === 0}
+              className="admin-focus rounded-xl bg-red-600 px-4 py-2 text-sm font-extrabold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-55"
+            >
+              {voiding ? "Voiding..." : "Void upload"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function voidUploadErrorMessage(error: unknown): string {
+  if (error instanceof AdminApiError) {
+    if (error.code === "paid_upload_cannot_be_voided") {
+      return "Paid uploads cannot be voided.";
+    }
+
+    if (error.code === "paid_checkout_upload_cannot_be_voided") {
+      return "Uploads linked to paid or completed checkout sessions cannot be voided.";
+    }
+
+    if (error.code === "voided_upload_cannot_be_used") {
+      return "This upload has already been voided and cannot be used in active workflows.";
+    }
+
+    return error.message;
+  }
+
+  return "Upload could not be voided.";
 }
 
 function OverrideCard({ override }: { override: BillingOverrideSummary }) {

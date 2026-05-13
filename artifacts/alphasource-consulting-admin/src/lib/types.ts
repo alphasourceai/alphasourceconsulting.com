@@ -3,6 +3,7 @@ export type AdminRole = "super_admin" | "admin" | "analyst" | "billing_admin" | 
 export type AdminPermissions = {
   canReadClients: boolean;
   canWriteClients: boolean;
+  canWriteUploads: boolean;
   canReadBilling: boolean;
   canWriteBilling: boolean;
   canReadAnalysis: boolean;
@@ -87,6 +88,7 @@ export type BillingSummary = {
 };
 
 export type BillingOverviewStatus = "open" | "paid" | "all";
+export type BillingUploadStatus = "active" | "voided" | "all";
 
 export type BillingOverviewSummary = {
   checkoutSessionCount: number;
@@ -441,6 +443,10 @@ export type BillingUploadSummary = {
   toolName: string | null;
   paid: boolean | null;
   uploadTime: string | null;
+  voided?: boolean | null;
+  voidedAt?: string | null;
+  voidReason?: string | null;
+  voidedByAdminEmail?: string | null;
 };
 
 export type BillingOverrideSummary = {
@@ -501,6 +507,15 @@ export type CreateCheckoutSessionResponse = {
   uploadIds?: string[];
   relatedUploads?: BillingUploadSummary[];
   clientSubmissionId?: string | null;
+};
+
+export type VoidAdminUploadRequest = {
+  reason: string;
+};
+
+export type VoidAdminUploadResponse = {
+  ok: true;
+  upload: BillingUploadSummary;
 };
 
 export type SafeApiError = {

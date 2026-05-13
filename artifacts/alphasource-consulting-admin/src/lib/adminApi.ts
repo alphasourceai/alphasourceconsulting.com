@@ -9,6 +9,7 @@ import type {
   AdminUsersResponse,
   BillingOverviewResponse,
   BillingOverviewStatus,
+  BillingUploadStatus,
   ClientBillingDetailResponse,
   CreateAdminClientRequest,
   CreateAdminClientResponse,
@@ -28,6 +29,8 @@ import type {
   SecureUploadFilesResponse,
   UpdateAdminUserAccessRequest,
   UpdateAdminUserAccessResponse,
+  VoidAdminUploadRequest,
+  VoidAdminUploadResponse,
 } from "@/lib/types";
 
 type RequestOptions = {
@@ -53,6 +56,10 @@ type BillingOverviewQuery = {
   search?: string;
   limit?: number;
   offset?: number;
+};
+
+type ClientBillingDetailQuery = {
+  uploadStatus?: BillingUploadStatus;
 };
 
 export class AdminApiError extends Error {
@@ -440,13 +447,29 @@ export function getClientBillingDetail(
   token: string,
   email: string,
   signal?: AbortSignal,
+  query: ClientBillingDetailQuery = {},
 ): Promise<ClientBillingDetailResponse> {
   const params = new URLSearchParams();
   params.set("email", email);
+  params.set("uploadStatus", query.uploadStatus ?? "active");
 
   return adminRequest<ClientBillingDetailResponse>(`/api/admin/billing/client?${params.toString()}`, {
     token,
     signal,
+  });
+}
+
+export function voidAdminUpload(
+  token: string,
+  uploadId: string,
+  payload: VoidAdminUploadRequest,
+  signal?: AbortSignal,
+): Promise<VoidAdminUploadResponse> {
+  return adminRequest<VoidAdminUploadResponse>(`/api/admin/uploads/${encodeURIComponent(uploadId)}/void`, {
+    token,
+    signal,
+    method: "POST",
+    body: payload,
   });
 }
 
