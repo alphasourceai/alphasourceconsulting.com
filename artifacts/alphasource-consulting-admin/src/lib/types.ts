@@ -83,17 +83,19 @@ export type BillingSummary = {
   checkoutSessionCount: number;
   paidCheckoutSessionCount: number;
   openCheckoutSessionCount: number;
+  expiredCheckoutSessionCount: number;
   manualOverrideCount: number;
   latestPaymentStatus: string | null;
 };
 
-export type BillingOverviewStatus = "open" | "paid" | "all";
+export type BillingOverviewStatus = "open" | "paid" | "expired" | "all";
 export type BillingUploadStatus = "active" | "voided" | "all";
 
 export type BillingOverviewSummary = {
   checkoutSessionCount: number;
   paidCheckoutSessionCount: number;
   openCheckoutSessionCount: number;
+  expiredCheckoutSessionCount: number;
   manualOverrideCount: number;
   needsReviewEventCount: number;
 };
@@ -428,6 +430,8 @@ export type CheckoutSessionSummary = {
   amountTotal: number | null;
   currency: string | null;
   checkoutUrl: string | null;
+  expiresAt: string | null;
+  expiredAt: string | null;
   livemode: boolean | null;
   uploadId: string | null;
   uploadIds: string[];
@@ -503,10 +507,17 @@ export type CreateCheckoutSessionResponse = {
   url: string;
   status: string | null;
   paymentStatus: string | null;
+  expiresAt?: string | null;
+  expiredAt?: string | null;
   uploadId?: string | null;
   uploadIds?: string[];
   relatedUploads?: BillingUploadSummary[];
   clientSubmissionId?: string | null;
+};
+
+export type ExpireCheckoutSessionResponse = {
+  ok: true;
+  checkoutSession: CheckoutSessionSummary;
 };
 
 export type VoidAdminUploadRequest = {

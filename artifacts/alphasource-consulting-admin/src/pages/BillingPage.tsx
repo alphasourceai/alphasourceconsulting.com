@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "wouter";
 import { useAuth } from "@/auth/AuthProvider";
-import { AdminApiError, getBillingOverview } from "@/lib/adminApi";
+import { AdminApiError, expireCheckoutSession, getBillingOverview } from "@/lib/adminApi";
 import type {
   BillingOverviewResponse,
   BillingOverviewStatus,
@@ -9,12 +9,13 @@ import type {
   CheckoutSessionSummary,
 } from "@/lib/types";
 
-type BillingRecordFilter = "all" | "paid" | "open" | "overrides";
+type BillingRecordFilter = "all" | "paid" | "open" | "expired" | "overrides";
 
 const billingRecordFilters: Array<{ accent: string; label: string; value: BillingRecordFilter }> = [
   { label: "Total Sessions", value: "all", accent: "#A380F6" },
   { label: "Paid", value: "paid", accent: "#02D99D" },
   { label: "Open", value: "open", accent: "#02ABE0" },
+  { label: "Expired", value: "expired", accent: "#A380F6" },
   { label: "Overrides", value: "overrides", accent: "#1A2460" },
 ];
 
@@ -46,6 +47,24 @@ function formatDate(value: string | null): string {
   }).format(date);
 }
 
+function formatMountainDate(value: string | null): string {
+  if (!value) {
+    return "—";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "America/Denver",
+    timeZoneName: "short",
+  }).format(date);
+}
+
 function formatCurrency(amount: number | null, currency: string | null): string {
   if (amount === null || amount === undefined) {
     return "—";
@@ -74,6 +93,10 @@ function statusTone(status: string | null): string {
     return "border-[#02ABE0]/25 bg-[#02ABE0]/10 text-[#0A1547]";
   }
 
+  if (normalized === "expired") {
+    return "border-[#A380F6]/30 bg-[#A380F6]/12 text-[#0A1547]";
+  }
+
   if (normalized === "needs_review" || normalized === "failed") {
     return "border-red-200 bg-red-50 text-red-700";
   }
@@ -86,7 +109,7 @@ function clientHref(email: string | null): string {
 }
 
 function statusForFilter(filter: BillingRecordFilter): BillingOverviewStatus {
-  if (filter === "paid" || filter === "open") {
+  if (filter === "paid" || filter === "open" || filter === "expired") {
     return filter;
   }
 
@@ -99,10 +122,13 @@ function isPaidSession(session: CheckoutSessionSummary): boolean {
   return status === "paid" || status === "complete" || status === "completed" || paymentStatus === "paid";
 }
 
-function isOpenSession(session: CheckoutSessionSummary): boolean {
+function isExpiredSession(session: CheckoutSessionSummary): boolean {
   const status = session.status?.toLowerCase();
-  const paymentStatus = session.paymentStatus?.toLowerCase();
-  return status === "open" || paymentStatus === "open" || paymentStatus === "unpaid";
+  return status === "expired" || Boolean(session.expiredAt);
+}
+
+function isOpenSession(session: CheckoutSessionSummary): boolean {
+  return !isPaidSession(session) && !isExpiredSession(session);
 }
 
 export default function BillingPage() {
@@ -112,6 +138,7 @@ export default function BillingPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [actionMessage, setActionMessage] = useState("");
 
   const token = session?.access_token || "";
   const canWriteBilling = permissions.canWriteBilling;
@@ -173,6 +200,10 @@ export default function BillingPage() {
       return sessions.filter(isOpenSession);
     }
 
+    if (recordFilter === "expired") {
+      return sessions.filter(isExpiredSession);
+    }
+
     if (recordFilter === "overrides") {
       return [];
     }
@@ -190,9 +221,14 @@ export default function BillingPage() {
     visibleOverrides.length === 0
   ), [error, loading, overview, visibleCheckoutSessions.length, visibleOverrides.length]);
 
+  const handleSessionExpired = async () => {
+    setActionMessage("Checkout link expired.");
+    await loadOverview();
+  };
+
   return (
     <div className="space-y-6">
-      <section className="grid gap-4 md:grid-cols-4">
+      <section className="grid gap-4 md:grid-cols-5">
         {billingRecordFilters.map((filter) => (
           <MetricCard
             key={filter.value}
@@ -204,11 +240,18 @@ export default function BillingPage() {
               filter.value === "all" ? summary?.checkoutSessionCount ?? 0 :
                 filter.value === "paid" ? summary?.paidCheckoutSessionCount ?? 0 :
                   filter.value === "open" ? summary?.openCheckoutSessionCount ?? 0 :
+                    filter.value === "expired" ? summary?.expiredCheckoutSessionCount ?? 0 :
                     summary?.manualOverrideCount ?? 0
             }
           />
         ))}
       </section>
+
+      {actionMessage && (
+        <p className="rounded-2xl border border-[#02D99D]/25 bg-[#02D99D]/10 px-5 py-4 text-sm font-semibold text-[#0A1547]">
+          {actionMessage}
+        </p>
+      )}
 
       <section className="admin-card p-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -273,7 +316,13 @@ export default function BillingPage() {
               emptyText="No checkout sessions found."
             >
               {visibleCheckoutSessions.map((checkoutSession) => (
-                <CheckoutSessionCard key={checkoutSession.id} session={checkoutSession} />
+                <CheckoutSessionCard
+                  key={checkoutSession.id}
+                  canWriteBilling={canWriteBilling}
+                  onExpired={handleSessionExpired}
+                  session={checkoutSession}
+                  token={token}
+                />
               ))}
             </Panel>
           )}
@@ -362,11 +411,25 @@ function Panel({
   );
 }
 
-function CheckoutSessionCard({ session }: { session: CheckoutSessionSummary }) {
+function CheckoutSessionCard({
+  canWriteBilling,
+  onExpired,
+  session,
+  token,
+}: {
+  canWriteBilling: boolean;
+  onExpired: () => Promise<void>;
+  session: CheckoutSessionSummary;
+  token: string;
+}) {
   const [copyStatus, setCopyStatus] = useState("");
+  const [expiring, setExpiring] = useState(false);
+  const [expireError, setExpireError] = useState("");
   const checkoutUrl = session.checkoutUrl?.trim() || "";
-  const paymentStatus = session.paymentStatus?.toLowerCase() || "";
-  const canUseCheckoutLink = checkoutUrl !== "" && paymentStatus !== "paid";
+  const paid = isPaidSession(session);
+  const expired = isExpiredSession(session);
+  const canUseCheckoutLink = checkoutUrl !== "" && !paid && !expired;
+  const canExpire = canWriteBilling && isOpenSession(session);
   const clientEmail = session.clientEmail || "";
 
   const handleCopy = async () => {
@@ -379,6 +442,27 @@ function CheckoutSessionCard({ session }: { session: CheckoutSessionSummary }) {
       setCopyStatus("Copied");
     } catch {
       setCopyStatus("Copy failed");
+    }
+  };
+
+  const handleExpire = async () => {
+    if (!window.confirm("Expire this checkout link? The client will no longer be able to use it.")) {
+      return;
+    }
+
+    setExpiring(true);
+    setExpireError("");
+    try {
+      await expireCheckoutSession(token, session.id);
+      await onExpired();
+    } catch (expireSessionError) {
+      if (expireSessionError instanceof AdminApiError) {
+        setExpireError(expireSessionError.message);
+      } else {
+        setExpireError("Checkout link could not be expired.");
+      }
+    } finally {
+      setExpiring(false);
     }
   };
 
@@ -400,10 +484,13 @@ function CheckoutSessionCard({ session }: { session: CheckoutSessionSummary }) {
           <p className="mt-1 text-xs font-medium text-[#0A1547]/52">
             {formatDate(session.createdAt)} / {formatCurrency(session.amountTotal, session.currency)}
           </p>
+          <p className="mt-1 text-xs font-medium text-[#0A1547]/52">
+            {expired ? `Expired ${formatMountainDate(session.expiredAt)}` : `Expires ${formatMountainDate(session.expiresAt)}`}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${statusTone(session.status)}`}>
-            {formatNullable(session.status)}
+          <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${statusTone(expired ? "expired" : session.status)}`}>
+            {expired ? "Expired" : formatNullable(session.status)}
           </span>
           <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${statusTone(session.paymentStatus)}`}>
             {formatNullable(session.paymentStatus)}
@@ -434,14 +521,52 @@ function CheckoutSessionCard({ session }: { session: CheckoutSessionSummary }) {
               {copyStatus && (
                 <span className="text-sm font-medium text-[#0A1547]/58">{copyStatus}</span>
               )}
+              {canExpire && (
+                <button
+                  type="button"
+                  onClick={() => void handleExpire()}
+                  disabled={expiring}
+                  className="admin-focus rounded-xl border border-[#A380F6]/35 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/70 disabled:cursor-not-allowed disabled:opacity-55"
+                >
+                  {expiring ? "Expiring..." : "Expire link"}
+                </button>
+              )}
             </div>
           </div>
         </div>
       )}
 
-      {!checkoutUrl && paymentStatus !== "paid" && (
+      {!checkoutUrl && !paid && !expired && (
         <p className="mt-4 rounded-xl border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-medium text-[#0A1547]/50">
           Checkout link unavailable for older session.
+        </p>
+      )}
+
+      {canExpire && !canUseCheckoutLink && (
+        <div className="mt-4 rounded-2xl border border-[#A380F6]/20 bg-white p-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <p className="text-sm font-medium text-[#0A1547]/62">This open checkout session can be expired manually.</p>
+            <button
+              type="button"
+              onClick={() => void handleExpire()}
+              disabled={expiring}
+              className="admin-focus rounded-xl border border-[#A380F6]/35 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/70 disabled:cursor-not-allowed disabled:opacity-55"
+            >
+              {expiring ? "Expiring..." : "Expire link"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {expired && (
+        <p className="mt-4 rounded-xl border border-[#A380F6]/20 bg-white px-4 py-3 text-sm font-medium text-[#0A1547]/62">
+          This checkout link expired {formatMountainDate(session.expiredAt)} and is no longer payable.
+        </p>
+      )}
+
+      {expireError && (
+        <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+          {expireError}
         </p>
       )}
 
@@ -455,6 +580,8 @@ function CheckoutSessionCard({ session }: { session: CheckoutSessionSummary }) {
           <Detail label="Upload ID" value={session.uploadId} />
           <Detail label="Submission ID" value={session.clientSubmissionId} />
           <Detail label="Checkout URL" value={checkoutUrl || null} />
+          <Detail label="Expires" value={formatMountainDate(session.expiresAt)} />
+          <Detail label="Expired" value={formatMountainDate(session.expiredAt)} />
           <Detail label="Updated" value={formatDate(session.updatedAt)} />
         </dl>
       </details>

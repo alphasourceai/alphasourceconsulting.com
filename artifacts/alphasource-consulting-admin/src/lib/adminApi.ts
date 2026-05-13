@@ -19,6 +19,7 @@ import type {
   CreateCheckoutSessionResponse,
   CreateSecureUploadRequestRequest,
   CreateSecureUploadRequestResponse,
+  ExpireCheckoutSessionResponse,
   GeneratePdfReportRequest,
   GeneratePdfReportResponse,
   PdfGeneratorClientResponse,
@@ -484,6 +485,21 @@ export function createCheckoutSession(
     method: "POST",
     body: payload,
   });
+}
+
+export function expireCheckoutSession(
+  token: string,
+  sessionId: string,
+  signal?: AbortSignal,
+): Promise<ExpireCheckoutSessionResponse> {
+  return adminRequest<ExpireCheckoutSessionResponse>(
+    `/api/admin/billing/checkout-sessions/${encodeURIComponent(sessionId)}/expire`,
+    {
+      token,
+      signal,
+      method: "POST",
+    },
+  );
 }
 
 export function getBillingOverview(
