@@ -20,6 +20,8 @@ import type {
   AdminAnalysisData,
   AdminAnalysisIssue,
   AdminAnalysisJob,
+  AdminAnalysisJobFile,
+  AdminAnalysisProcessRequest,
   AdminAnalysisProviderStatus,
   AdminAnalysisTrend,
   AdminClientOption,
@@ -32,6 +34,13 @@ type PromotionMetadata = {
   submissionId?: string | null;
   uploadId?: string | null;
   promoted?: boolean;
+};
+
+type PhiAcknowledgmentState = {
+  kind: AnalysisKind;
+  confirmed: boolean;
+  initials: string;
+  error: string;
 };
 
 type ClientFormState = {
@@ -84,6 +93,7 @@ const analysisProcessingTitles: Record<AnalysisKind, string> = {
   ar: "AR analysis processing",
   claims: "Claims analysis processing",
 };
+const phiAcknowledgmentVersion = "admin_document_analysis_phi_ack_v1";
 
 function formatNullable(value: string | number | null | undefined): string {
   if (value === null || value === undefined || value === "") {
@@ -286,6 +296,7 @@ export default function DocumentAnalysisPage() {
   const [promotingAr, setPromotingAr] = useState(false);
   const [promotingClaims, setPromotingClaims] = useState(false);
   const [promotionMetadata, setPromotionMetadata] = useState<PromotionMetadata | null>(null);
+  const [phiAcknowledgment, setPhiAcknowledgment] = useState<PhiAcknowledgmentState | null>(null);
 
   const updateClientField = (field: keyof ClientFormState, value: string) => {
     setClientForm((current) => ({ ...current, [field]: value }));
@@ -526,69 +537,105 @@ export default function DocumentAnalysisPage() {
     }
   };
 
-  const handleProcessFinancial = async () => {
-    if (!job || !token || !canWriteAnalysis) {
-      return;
-    }
-
-    setProcessingFinancial(true);
-    setJobError("");
-
-    try {
-      const response = await processFinancialAnalysisJob(token, job.id);
-      setJob(response.job);
-    } catch (processError) {
-      if (processError instanceof AdminApiError) {
-        setJobError(processError.message);
-      } else {
-        setJobError("Financial analysis could not be processed.");
-      }
-    } finally {
-      setProcessingFinancial(false);
+  const setProcessingForKind = (kind: AnalysisKind, value: boolean) => {
+    if (kind === "financial") {
+      setProcessingFinancial(value);
+    } else if (kind === "ar") {
+      setProcessingAr(value);
+    } else {
+      setProcessingClaims(value);
     }
   };
 
-  const handleProcessAr = async () => {
-    if (!job || !token || !canWriteAnalysis) {
-      return;
+  const isProcessingKind = (kind: AnalysisKind | null): boolean => {
+    if (kind === "financial") {
+      return processingFinancial;
     }
-
-    setProcessingAr(true);
-    setJobError("");
-
-    try {
-      const response = await processArAnalysisJob(token, job.id);
-      setJob(response.job);
-    } catch (processError) {
-      if (processError instanceof AdminApiError) {
-        setJobError(processError.message);
-      } else {
-        setJobError("AR analysis could not be processed.");
-      }
-    } finally {
-      setProcessingAr(false);
+    if (kind === "ar") {
+      return processingAr;
     }
+    if (kind === "claims") {
+      return processingClaims;
+    }
+    return false;
   };
 
-  const handleProcessClaims = async () => {
+  const handleOpenPhiAcknowledgment = (kind: AnalysisKind) => {
     if (!job || !token || !canWriteAnalysis) {
       return;
     }
 
-    setProcessingClaims(true);
     setJobError("");
+    setPhiAcknowledgment({
+      kind,
+      confirmed: false,
+      initials: "",
+      error: "",
+    });
+  };
+
+  const handleClosePhiAcknowledgment = () => {
+    if (isProcessingKind(phiAcknowledgment?.kind ?? null)) {
+      return;
+    }
+    setPhiAcknowledgment(null);
+  };
+
+  const handlePhiAcknowledgmentChange = (updates: Partial<PhiAcknowledgmentState>) => {
+    setPhiAcknowledgment((current) => (current ? { ...current, ...updates, error: "" } : current));
+  };
+
+  const handleConfirmPhiAcknowledgment = async () => {
+    if (!job || !token || !canWriteAnalysis || !phiAcknowledgment) {
+      return;
+    }
+
+    const initials = phiAcknowledgment.initials.trim();
+    if (!phiAcknowledgment.confirmed) {
+      setPhiAcknowledgment((current) => (
+        current ? { ...current, error: "Confirm the file is approved for AI-assisted analysis before processing." } : current
+      ));
+      return;
+    }
+    if (!initials) {
+      setPhiAcknowledgment((current) => (
+        current ? { ...current, error: "Initials are required before processing." } : current
+      ));
+      return;
+    }
+
+    const payload: AdminAnalysisProcessRequest = {
+      phiAcknowledgment: {
+        confirmedNoPhi: true,
+        initials,
+        acknowledgmentVersion: phiAcknowledgmentVersion,
+      },
+    };
+    const kind = phiAcknowledgment.kind;
+    setProcessingForKind(kind, true);
+    setJobError("");
+    setPhiAcknowledgment((current) => (current ? { ...current, initials, error: "" } : current));
 
     try {
-      const response = await processClaimsAnalysisJob(token, job.id);
+      const response = kind === "financial"
+        ? await processFinancialAnalysisJob(token, job.id, payload)
+        : kind === "ar"
+          ? await processArAnalysisJob(token, job.id, payload)
+          : await processClaimsAnalysisJob(token, job.id, payload);
       setJob(response.job);
+      setPhiAcknowledgment(null);
     } catch (processError) {
-      if (processError instanceof AdminApiError) {
-        setJobError(processError.message);
-      } else {
-        setJobError("Claims analysis could not be processed.");
-      }
+      const message = processError instanceof AdminApiError
+        ? processError.message
+        : kind === "financial"
+          ? "Financial analysis could not be processed."
+          : kind === "ar"
+            ? "AR analysis could not be processed."
+            : "Claims analysis could not be processed.";
+      setJobError(message);
+      setPhiAcknowledgment((current) => (current ? { ...current, error: message } : current));
     } finally {
-      setProcessingClaims(false);
+      setProcessingForKind(kind, false);
     }
   };
 
@@ -675,6 +722,9 @@ export default function DocumentAnalysisPage() {
       setPromotingClaims(false);
     }
   };
+
+  const phiAcknowledgmentFile = job && phiAcknowledgment ? getJobAnalysisFile(job) : null;
+  const phiAcknowledgmentLoading = isProcessingKind(phiAcknowledgment?.kind ?? null);
 
   return (
     <div className="space-y-6">
@@ -914,9 +964,9 @@ export default function DocumentAnalysisPage() {
           job={job}
           jobError={jobError}
           onCancel={() => void handleCancel()}
-          onProcessAr={() => void handleProcessAr()}
-          onProcessClaims={() => void handleProcessClaims()}
-          onProcessFinancial={() => void handleProcessFinancial()}
+          onProcessAr={() => handleOpenPhiAcknowledgment("ar")}
+          onProcessClaims={() => handleOpenPhiAcknowledgment("claims")}
+          onProcessFinancial={() => handleOpenPhiAcknowledgment("financial")}
           onPromoteAr={() => void handlePromoteAr()}
           onPromoteClaims={() => void handlePromoteClaims()}
           onPromoteFinancial={() => void handlePromoteFinancial()}
@@ -929,12 +979,145 @@ export default function DocumentAnalysisPage() {
           promotionMetadata={promotionMetadata}
         />
       )}
+      {job && phiAcknowledgment && (
+        <PhiAcknowledgmentModal
+          confirmed={phiAcknowledgment.confirmed}
+          error={phiAcknowledgment.error}
+          file={phiAcknowledgmentFile}
+          initials={phiAcknowledgment.initials}
+          kind={phiAcknowledgment.kind}
+          loading={phiAcknowledgmentLoading}
+          onChange={handlePhiAcknowledgmentChange}
+          onClose={handleClosePhiAcknowledgment}
+          onConfirm={() => void handleConfirmPhiAcknowledgment()}
+        />
+      )}
     </div>
   );
 }
 
 const inputClassName = "admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547] placeholder:text-[#0A1547]/38";
 const selectClassName = "admin-focus mt-2 h-[46px] w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold leading-tight text-[#0A1547]";
+
+function PhiAcknowledgmentModal({
+  confirmed,
+  error,
+  file,
+  initials,
+  kind,
+  loading,
+  onChange,
+  onClose,
+  onConfirm,
+}: {
+  confirmed: boolean;
+  error: string;
+  file: AdminAnalysisJobFile | null;
+  initials: string;
+  kind: AnalysisKind;
+  loading: boolean;
+  onChange: (updates: Partial<PhiAcknowledgmentState>) => void;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  const canConfirm = confirmed && initials.trim().length > 0 && !loading;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0A1547]/45 p-4">
+      <form
+        aria-labelledby="phi-acknowledgment-title"
+        aria-modal="true"
+        role="dialog"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onConfirm();
+        }}
+        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl"
+      >
+        <div className="flex items-start justify-between gap-4 border-b border-[#0A1547]/10 px-5 py-4">
+          <div className="min-w-0">
+            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#A380F6]">
+              {analysisProcessingTitles[kind]}
+            </p>
+            <h3 id="phi-acknowledgment-title" className="mt-1 text-lg font-black text-[#0A1547]">
+              PHI/HIPAA acknowledgment
+            </h3>
+            <p className="mt-1 max-w-xl text-sm font-medium leading-6 text-[#0A1547]/62">
+              Before processing, confirm this file has been reviewed and is approved/sanitized for AI-assisted analysis, does not contain unsanitized PHI, and is appropriate to process through Document Analysis.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="admin-focus rounded-xl border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/60 disabled:cursor-not-allowed disabled:opacity-55"
+          >
+            Back
+          </button>
+        </div>
+
+        <div className="grid gap-5 p-5">
+          <div className="rounded-2xl border border-[#02ABE0]/20 bg-[#02ABE0]/[0.08] p-4">
+            <dl className="grid gap-3 text-sm md:grid-cols-2">
+              <Detail label="Analysis type" value={analysisProcessingTitles[kind]} />
+              <Detail label="File" value={file?.originalFilename || null} />
+            </dl>
+          </div>
+
+          <label className="flex gap-3 rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+            <input
+              type="checkbox"
+              checked={confirmed}
+              onChange={(event) => onChange({ confirmed: event.target.checked })}
+              className="admin-focus mt-1 h-4 w-4 rounded border-[#0A1547]/20 text-[#A380F6]"
+              disabled={loading}
+            />
+            <span className="text-sm font-medium leading-6 text-[#0A1547]/75">
+              I confirm this file contains no unsanitized PHI and is approved for AI-assisted analysis.
+            </span>
+          </label>
+
+          <label className="block">
+            <span className="text-sm font-semibold text-[#0A1547]">Initials</span>
+            <input
+              type="text"
+              value={initials}
+              onChange={(event) => onChange({ initials: event.target.value })}
+              maxLength={12}
+              placeholder="JG"
+              className={inputClassName}
+              disabled={loading}
+            />
+          </label>
+
+          <p className="rounded-xl border border-[#A380F6]/20 bg-[#A380F6]/10 px-4 py-3 text-sm font-medium leading-6 text-[#0A1547]/68">
+            Secure Uploads remains separate for potentially sensitive files. Do not process unsanitized secure-upload files through Document Analysis.
+          </p>
+
+          {error && <ErrorMessage message={error} />}
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="admin-focus rounded-xl border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/60 disabled:cursor-not-allowed disabled:opacity-55"
+            >
+              Back
+            </button>
+            <button
+              type="submit"
+              disabled={!canConfirm}
+              className="admin-focus rounded-xl bg-[#0A1547] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#1A2460] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loading ? "Running analysis..." : analysisRunLabels[kind]}
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  );
+}
 
 function ClientFields({
   form,

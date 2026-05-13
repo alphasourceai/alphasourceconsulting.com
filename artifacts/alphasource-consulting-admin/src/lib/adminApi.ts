@@ -2,6 +2,7 @@ import { getAdminApiBaseUrl } from "@/lib/env";
 import type {
   AdminAnalysisJobResponse,
   AdminAnalysisJobPromotionResponse,
+  AdminAnalysisProcessRequest,
   AdminClientOptionsResponse,
   AdminClientsResponse,
   AdminMeResponse,
@@ -268,36 +269,42 @@ export function cancelAnalysisJob(
 export function processFinancialAnalysisJob(
   token: string,
   jobId: string,
+  payload?: AdminAnalysisProcessRequest,
   signal?: AbortSignal,
 ): Promise<AdminAnalysisJobResponse> {
   return adminRequest<AdminAnalysisJobResponse>(`/api/admin/analysis-jobs/${encodeURIComponent(jobId)}/process-financial`, {
     token,
     signal,
     method: "POST",
+    body: payload,
   });
 }
 
 export function processArAnalysisJob(
   token: string,
   jobId: string,
+  payload?: AdminAnalysisProcessRequest,
   signal?: AbortSignal,
 ): Promise<AdminAnalysisJobResponse> {
   return adminRequest<AdminAnalysisJobResponse>(`/api/admin/analysis-jobs/${encodeURIComponent(jobId)}/process-ar`, {
     token,
     signal,
     method: "POST",
+    body: payload,
   });
 }
 
 export function processClaimsAnalysisJob(
   token: string,
   jobId: string,
+  payload?: AdminAnalysisProcessRequest,
   signal?: AbortSignal,
 ): Promise<AdminAnalysisJobResponse> {
   return adminRequest<AdminAnalysisJobResponse>(`/api/admin/analysis-jobs/${encodeURIComponent(jobId)}/process-claims`, {
     token,
     signal,
     method: "POST",
+    body: payload,
   });
 }
 

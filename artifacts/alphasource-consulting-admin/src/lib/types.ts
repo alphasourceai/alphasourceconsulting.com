@@ -245,6 +245,16 @@ export type AdminAnalysisJobResponse = {
   job: AdminAnalysisJob;
 };
 
+export type AdminAnalysisPhiAcknowledgmentRequest = {
+  confirmedNoPhi: boolean;
+  initials: string;
+  acknowledgmentVersion: string;
+};
+
+export type AdminAnalysisProcessRequest = {
+  phiAcknowledgment: AdminAnalysisPhiAcknowledgmentRequest;
+};
+
 export type AdminAnalysisJobPromotionResponse = AdminAnalysisJobResponse & {
   submissionId?: string | null;
   uploadId?: string | null;
