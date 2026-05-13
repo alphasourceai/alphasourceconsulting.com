@@ -9,6 +9,7 @@ const navItems = [
   { href: "/pdf-generator", label: "PDF Reports", canShow: (permissions: AdminPermissions) => permissions.canReadPdf },
   { href: "/billing", label: "Billing", canShow: (permissions: AdminPermissions) => permissions.canReadBilling },
   { href: "/admin-management", label: "Admin Access", canShow: (permissions: AdminPermissions) => permissions.canReadAdminManagement },
+  { href: "/audit", label: "Audit Trail", canShow: (permissions: AdminPermissions) => permissions.canReadAudit },
   { href: "/help", label: "Help & FAQ", canShow: () => true },
 ];
 

@@ -14,6 +14,7 @@ export type AdminPermissions = {
   canWriteSecureUploads: boolean;
   canReadAdminManagement: boolean;
   canManageAdminAccess: boolean;
+  canReadAudit: boolean;
 };
 
 export type AdminUser = {
@@ -77,6 +78,45 @@ export type UpdateAdminUserAccessRequest = {
 export type UpdateAdminUserAccessResponse = {
   ok: true;
   adminUser: AdminAccessUser;
+};
+
+export type AuditEvent = {
+  id: string;
+  occurredAt: string | null;
+  occurredAtMst: string | null;
+  source: string | null;
+  eventType: string | null;
+  actorAdminUserId: string | null;
+  actorAdminEmail: string | null;
+  actorDisplayName: string | null;
+  actorRole: string | null;
+  clientEmail: string | null;
+  targetType: string | null;
+  targetId: string | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  deviceSummary: string | null;
+  location: string | null;
+  metadata: Record<string, unknown>;
+  createdAt: string | null;
+};
+
+export type AuditEventsQuery = {
+  startDate?: string;
+  endDate?: string;
+  eventType?: string;
+  clientEmail?: string;
+  actorEmail?: string;
+  targetType?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export type AuditEventsResponse = {
+  ok: true;
+  items: AuditEvent[];
+  count: number;
+  hasMore: boolean;
 };
 
 export type BillingSummary = {

@@ -7,6 +7,8 @@ import type {
   AdminClientsResponse,
   AdminMeResponse,
   AdminUsersResponse,
+  AuditEventsQuery,
+  AuditEventsResponse,
   BillingOverviewResponse,
   BillingOverviewStatus,
   BillingUploadStatus,
@@ -62,6 +64,35 @@ type BillingOverviewQuery = {
 type ClientBillingDetailQuery = {
   uploadStatus?: BillingUploadStatus;
 };
+
+function auditEventsParams(query: AuditEventsQuery = {}): URLSearchParams {
+  const params = new URLSearchParams();
+
+  if (query.limit !== undefined) {
+    params.set("limit", String(query.limit));
+  }
+  if (query.offset !== undefined) {
+    params.set("offset", String(query.offset));
+  }
+
+  const filters: Array<[keyof AuditEventsQuery, string]> = [
+    ["startDate", "startDate"],
+    ["endDate", "endDate"],
+    ["eventType", "eventType"],
+    ["clientEmail", "clientEmail"],
+    ["actorEmail", "actorEmail"],
+    ["targetType", "targetType"],
+  ];
+
+  filters.forEach(([key, paramName]) => {
+    const value = query[key];
+    if (typeof value === "string" && value.trim()) {
+      params.set(paramName, value.trim());
+    }
+  });
+
+  return params;
+}
 
 export class AdminApiError extends Error {
   readonly status: number;
@@ -158,6 +189,41 @@ export function updateAdminUserAccess(
     method: "PATCH",
     body: payload,
   });
+}
+
+export function getAuditEvents(
+  token: string,
+  query: AuditEventsQuery = {},
+  signal?: AbortSignal,
+): Promise<AuditEventsResponse> {
+  const params = auditEventsParams(query);
+  return adminRequest<AuditEventsResponse>(`/api/admin/audit-events?${params.toString()}`, {
+    token,
+    signal,
+  });
+}
+
+export async function exportAuditEventsCsv(
+  token: string,
+  query: AuditEventsQuery = {},
+  signal?: AbortSignal,
+): Promise<Blob> {
+  const params = auditEventsParams(query);
+  const response = await fetch(`${getAdminApiBaseUrl()}/api/admin/audit-events/export.csv?${params.toString()}`, {
+    method: "GET",
+    headers: {
+      Accept: "text/csv",
+      Authorization: `Bearer ${token}`,
+    },
+    signal,
+  });
+
+  if (!response.ok) {
+    const error = readErrorMessage(await readJson(response));
+    throw new AdminApiError(error.message, response.status, error.code);
+  }
+
+  return response.blob();
 }
 
 export function getAdminClients(

@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from "@/auth/AuthProvider";
 import AdminLayout from "@/components/AdminLayout";
 import AcceptInvitePage from "@/pages/AcceptInvitePage";
 import AdminManagementPage from "@/pages/AdminManagementPage";
+import AuditTrailPage from "@/pages/AuditTrailPage";
 import BillingPage from "@/pages/BillingPage";
 import ClientDetailPage from "@/pages/ClientDetailPage";
 import ClientsPage from "@/pages/ClientsPage";
@@ -101,6 +102,9 @@ function firstAccessiblePath(permissions: AdminPermissions): string {
   }
   if (permissions.canReadAdminManagement) {
     return "/admin-management";
+  }
+  if (permissions.canReadAudit) {
+    return "/audit";
   }
   return "/help";
 }
@@ -262,6 +266,18 @@ function AdminManagementRoute() {
   );
 }
 
+function AuditTrailRoute() {
+  return (
+    <ProtectedRoute
+      canAccess={(permissions) => permissions.canReadAudit}
+      title="Audit Trail"
+      description="Review Super Admin-only audit events captured from enabled admin and platform workflows."
+    >
+      <AuditTrailPage />
+    </ProtectedRoute>
+  );
+}
+
 function HelpRoute() {
   return (
     <ProtectedRoute
@@ -288,6 +304,7 @@ function AppRoutes() {
         <Route path="/pdf-generator" component={PdfGeneratorRoute} />
         <Route path="/billing" component={BillingRoute} />
         <Route path="/admin-management" component={AdminManagementRoute} />
+        <Route path="/audit" component={AuditTrailRoute} />
         <Route path="/help" component={HelpRoute} />
         <Route component={RootRoute} />
       </Switch>

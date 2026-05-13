@@ -46,6 +46,7 @@ const defaultAdminPermissions: AdminPermissions = {
   canWriteSecureUploads: false,
   canReadAdminManagement: false,
   canManageAdminAccess: false,
+  canReadAudit: false,
 };
 
 function normalizeAdminPermissions(response: AdminMeResponse): AdminPermissions {
