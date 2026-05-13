@@ -23,6 +23,7 @@ const emptyNewClientForm: NewClientForm = {
 };
 
 const inputClassName = "admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-medium text-[#0A1547] placeholder:text-[#0A1547]/38";
+const selectClassName = "admin-focus mt-2 h-[46px] w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-medium leading-tight text-[#0A1547]";
 
 function formatNullable(value: string | number | null | undefined): string {
   if (value === null || value === undefined || value === "") {
@@ -180,6 +181,26 @@ export default function ClientsPage() {
 
   return (
     <div className="space-y-6">
+      {canWriteClients && (
+        <section className="admin-card p-5">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-xl font-black text-[#0A1547]">Add a client</h2>
+              <p className="mt-1 max-w-2xl text-sm font-medium leading-6 text-[#0A1547]/62">
+                Create a client record before uploads or submissions exist. Once added, the client can receive Secure Upload requests from the Secure Uploads page. This does not send an email or create an upload.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={openAddClient}
+              className="admin-focus rounded-xl bg-[#A380F6] px-4 py-3 text-sm font-extrabold text-white transition hover:bg-[#906cf2]"
+            >
+              Add New Client
+            </button>
+          </div>
+        </section>
+      )}
+
       <section className="admin-card p-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
@@ -188,27 +209,16 @@ export default function ClientsPage() {
               Review client records, submissions, uploads, and status visibility. Detailed billing records are shown only when your role includes billing access.
             </p>
           </div>
-          <div className="flex w-full flex-col gap-3 sm:flex-row md:w-auto md:items-center">
-            {canWriteClients && (
-              <button
-                type="button"
-                onClick={openAddClient}
-                className="admin-focus rounded-xl bg-[#0A1547] px-4 py-3 text-sm font-extrabold text-white transition hover:bg-[#1A2460]"
-              >
-                Add New Client
-              </button>
-            )}
-            <label className="w-full md:w-80">
-              <span className="sr-only">Search clients</span>
-              <input
-                type="search"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search email, name, office, phone"
-                className="admin-focus w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547] placeholder:text-[#0A1547]/38"
-              />
-            </label>
-          </div>
+          <label className="w-full md:w-80">
+            <span className="sr-only">Search clients</span>
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search email, name, office, phone"
+              className="admin-focus w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547] placeholder:text-[#0A1547]/38"
+            />
+          </label>
         </div>
       </section>
 
@@ -344,7 +354,21 @@ function AddNewClientModal({
             <TextField label="Last name" value={form.lastName} onChange={(value) => onChange("lastName", value)} required />
             <TextField label="Email" type="email" value={form.email} onChange={(value) => onChange("email", value)} required />
             <TextField label="Office / Group name" value={form.officeName} onChange={(value) => onChange("officeName", value)} required />
-            <TextField label="Organization type" value={form.orgType} onChange={(value) => onChange("orgType", value)} required />
+            <label className="block">
+              <span className="text-sm font-semibold text-[#0A1547]">
+                Organization type <span className="text-red-600">*</span>
+              </span>
+              <select
+                value={form.orgType}
+                onChange={(event) => onChange("orgType", event.target.value)}
+                className={selectClassName}
+                required
+              >
+                <option value="">Select type</option>
+                <option value="Group">Group</option>
+                <option value="Location">Location</option>
+              </select>
+            </label>
             <TextField label="Phone" value={form.phone} onChange={(value) => onChange("phone", value)} />
           </div>
 
@@ -366,7 +390,7 @@ function AddNewClientModal({
             <button
               type="submit"
               disabled={loading}
-              className="admin-focus rounded-xl bg-[#0A1547] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#1A2460] disabled:cursor-not-allowed disabled:opacity-55"
+              className="admin-focus rounded-xl bg-[#A380F6] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#906cf2] disabled:cursor-not-allowed disabled:opacity-55"
             >
               {loading ? "Creating..." : "Create Client"}
             </button>
