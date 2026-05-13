@@ -31,6 +31,9 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+const INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000;
+const INACTIVITY_ACTIVITY_WRITE_THROTTLE_MS = 30 * 1000;
+const LAST_ACTIVITY_STORAGE_KEY = "alphasource-consulting-admin:last-activity-ms";
 
 const defaultAdminPermissions: AdminPermissions = {
   canReadClients: false,
@@ -72,6 +75,44 @@ function safeAuthMessage(error: unknown): string {
   }
 
   return "We could not validate your admin access. Please try again.";
+}
+
+function readLastActivityMs(): number | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const rawValue = window.localStorage.getItem(LAST_ACTIVITY_STORAGE_KEY);
+    const parsedValue = rawValue ? Number.parseInt(rawValue, 10) : Number.NaN;
+    return Number.isFinite(parsedValue) && parsedValue > 0 ? parsedValue : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeLastActivityMs(value = Date.now()) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(LAST_ACTIVITY_STORAGE_KEY, String(value));
+  } catch {
+    // Ignore storage failures; the in-memory timer still protects the active tab.
+  }
+}
+
+function clearLastActivityMs() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.removeItem(LAST_ACTIVITY_STORAGE_KEY);
+  } catch {
+    // Ignore storage cleanup failures.
+  }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -169,6 +210,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw signInError;
       }
 
+      writeLastActivityMs();
       await validateSession(data.session);
     } catch {
       setAdminUser(null);
@@ -189,8 +231,109 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setPermissions(defaultAdminPermissions);
       setError("");
       setStatus("unauthenticated");
+      clearLastActivityMs();
     }
   }, []);
+
+  useEffect(() => {
+    if (status !== "authenticated") {
+      return undefined;
+    }
+
+    let timeoutId: number | null = null;
+    let signingOut = false;
+    let lastActivityWriteMs = 0;
+
+    const logoutForInactivity = () => {
+      if (signingOut) {
+        return;
+      }
+      signingOut = true;
+      void signOut();
+    };
+
+    const clearTimer = () => {
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+    };
+
+    const scheduleCheck = () => {
+      clearTimer();
+      const lastActivityMs = readLastActivityMs() ?? Date.now();
+      const elapsedMs = Date.now() - lastActivityMs;
+      const remainingMs = Math.max(0, INACTIVITY_TIMEOUT_MS - elapsedMs);
+
+      timeoutId = window.setTimeout(() => {
+        const latestActivityMs = readLastActivityMs() ?? lastActivityMs;
+        if (Date.now() - latestActivityMs >= INACTIVITY_TIMEOUT_MS) {
+          logoutForInactivity();
+          return;
+        }
+        scheduleCheck();
+      }, remainingMs);
+    };
+
+    const recordActivity = () => {
+      const now = Date.now();
+      if (now - lastActivityWriteMs < INACTIVITY_ACTIVITY_WRITE_THROTTLE_MS) {
+        return;
+      }
+      lastActivityWriteMs = now;
+      writeLastActivityMs(now);
+      scheduleCheck();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== "visible") {
+        return;
+      }
+
+      const lastActivityMs = readLastActivityMs();
+      if (lastActivityMs && Date.now() - lastActivityMs >= INACTIVITY_TIMEOUT_MS) {
+        logoutForInactivity();
+        return;
+      }
+
+      recordActivity();
+    };
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === LAST_ACTIVITY_STORAGE_KEY) {
+        scheduleCheck();
+      }
+    };
+
+    const existingActivityMs = readLastActivityMs();
+    if (existingActivityMs && Date.now() - existingActivityMs >= INACTIVITY_TIMEOUT_MS) {
+      logoutForInactivity();
+      return () => {
+        clearTimer();
+      };
+    }
+
+    if (!existingActivityMs) {
+      writeLastActivityMs();
+    }
+
+    const activityEvents: Array<keyof WindowEventMap> = ["mousemove", "mousedown", "keydown", "scroll", "touchstart"];
+    activityEvents.forEach((eventName) => {
+      window.addEventListener(eventName, recordActivity, { passive: true });
+    });
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("storage", handleStorage);
+    scheduleCheck();
+
+    return () => {
+      clearTimer();
+      activityEvents.forEach((eventName) => {
+        window.removeEventListener(eventName, recordActivity);
+      });
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, [signOut, status]);
 
   const refreshAdmin = useCallback(async () => {
     await validateSession(session);

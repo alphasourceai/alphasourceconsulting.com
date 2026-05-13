@@ -5,19 +5,21 @@ import type { AuditEvent, AuditEventsQuery, AuditEventsResponse } from "@/lib/ty
 
 const PAGE_LIMIT = 50;
 
-const eventTypeOptions = [
-  "admin_access.created",
-  "admin_access.updated",
-  "analysis.phi_acknowledged",
-  "checkout_session.created",
-  "checkout_session.expired",
-  "client.created",
-  "pdf_report.generated",
-  "secure_upload.download_url_created",
-  "secure_upload.file_completed",
-  "secure_upload.request_sent",
-  "upload.voided",
-];
+const auditEventLabels: Record<string, string> = {
+  "admin_access.created": "Admin Access Created",
+  "admin_access.updated": "Admin Access Updated",
+  "analysis.phi_acknowledged": "PHI Acknowledgment",
+  "checkout_session.created": "Checkout Session Created",
+  "checkout_session.expired": "Checkout Session Expired",
+  "client.created": "Client Created",
+  "pdf_report.generated": "PDF Report Generated",
+  "secure_upload.download_url_created": "Secure Upload Download Created",
+  "secure_upload.file_completed": "Secure Upload File Completed",
+  "secure_upload.request_sent": "Secure Upload Request Sent",
+  "upload.voided": "Upload Voided",
+};
+
+const eventTypeOptions = Object.keys(auditEventLabels);
 
 type AuditFilters = {
   startDate: string;
@@ -60,6 +62,9 @@ function cleanQuery(filters: AuditFilters, offset: number): AuditEventsQuery {
 function eventLabel(eventType: string | null): string {
   if (!eventType) {
     return "-";
+  }
+  if (auditEventLabels[eventType]) {
+    return auditEventLabels[eventType];
   }
   return eventType
     .split(".")
@@ -243,6 +248,9 @@ export default function AuditTrailPage() {
             <p className="mt-2 max-w-3xl text-sm font-medium leading-6 text-[#0A1547]/65">
               Review key admin and platform events captured going forward from enabled workflows. Timestamps display in Mountain Time, and sensitive values such as tokens, signed URLs, object paths, and filenames are sanitized by the Admin API.
             </p>
+            <p className="mt-2 max-w-3xl text-xs font-medium leading-5 text-[#0A1547]/52">
+              Location enrichment is not enabled; IP address and device data are captured.
+            </p>
           </div>
           <button
             type="button"
@@ -290,7 +298,7 @@ export default function AuditTrailPage() {
               >
                 <option value="">All events</option>
                 {eventTypeOptions.map((eventType) => (
-                  <option key={eventType} value={eventType}>{eventType}</option>
+                  <option key={eventType} value={eventType}>{eventLabel(eventType)}</option>
                 ))}
               </select>
             </label>
@@ -364,22 +372,21 @@ export default function AuditTrailPage() {
                 <th className="px-5 py-4">User</th>
                 <th className="px-5 py-4">Client</th>
                 <th className="px-5 py-4">Target</th>
-                <th className="px-5 py-4">IP</th>
+                <th className="w-52 px-5 py-4">IP</th>
                 <th className="px-5 py-4">Device</th>
-                <th className="px-5 py-4">Location</th>
                 <th className="px-5 py-4">Metadata</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#0A1547]/8">
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="px-5 py-10 text-center text-sm font-semibold text-[#0A1547]/58">
+                  <td colSpan={8} className="px-5 py-10 text-center text-sm font-semibold text-[#0A1547]/58">
                     Loading audit events...
                   </td>
                 </tr>
               ) : response.items.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-5 py-10 text-center text-sm font-semibold text-[#0A1547]/58">
+                  <td colSpan={8} className="px-5 py-10 text-center text-sm font-semibold text-[#0A1547]/58">
                     No audit events match the selected filters.
                   </td>
                 </tr>
@@ -391,7 +398,7 @@ export default function AuditTrailPage() {
                       <p className="mt-1 text-xs font-medium text-[#0A1547]/45">Mountain Time</p>
                     </td>
                     <td className="w-56 px-5 py-4">
-                      <p className="text-sm font-semibold capitalize text-[#0A1547]">{eventLabel(event.eventType)}</p>
+                      <p className="text-sm font-semibold text-[#0A1547]">{eventLabel(event.eventType)}</p>
                       <p className="mt-1 text-xs font-medium capitalize text-[#0A1547]/48">{sourceLabel(event.source)}</p>
                     </td>
                     <td className="w-60 px-5 py-4">
@@ -403,14 +410,11 @@ export default function AuditTrailPage() {
                     <td className="w-56 px-5 py-4">
                       <TargetCell event={event} />
                     </td>
-                    <td className="w-40 px-5 py-4">
-                      <p className="break-all text-sm font-medium text-[#0A1547]/72">{displayValue(event.ipAddress)}</p>
+                    <td className="w-52 px-5 py-4">
+                      <p className="whitespace-nowrap font-mono text-xs font-medium text-[#0A1547]/72">{displayValue(event.ipAddress)}</p>
                     </td>
                     <td className="w-48 px-5 py-4">
                       <p className="text-sm font-medium text-[#0A1547]/72">{displayValue(event.deviceSummary)}</p>
-                    </td>
-                    <td className="w-36 px-5 py-4">
-                      <p className="text-sm font-medium text-[#0A1547]/72">{displayValue(event.location)}</p>
                     </td>
                     <td className="w-72 px-5 py-4">
                       <MetadataDetails event={event} />
