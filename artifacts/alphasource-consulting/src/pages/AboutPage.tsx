@@ -11,15 +11,21 @@ const team = [
   },
   {
     name: "Brent Ford",
-    role: "Co-Founder & COO",
+    role: "Co-Founder & CRO",
     photo: "headshot-brent.jpg",
-    bio: "Brent has spent his career optimizing dental operations from the inside — as a practice administrator, consultant, and regional director. His hands-on experience informs every system and process we build.",
+    bio: "Brent brings deep experience in digital marketing, growth strategy, and new-patient acquisition for dental and aesthetic practices. He helps practices attract the right patients, improve conversion, and use modern tools and AI-enabled systems to support sustainable growth.",
   },
   {
     name: "Destinee Konecny",
-    role: "Director of Client Success",
+    role: "Consultant",
     photo: "headshot-destinee.jpg",
     bio: "Destinee leads client relationships and ensures every practice we work with achieves measurable results. Her background in dental team training and patient experience design shapes our people-first approach.",
+  },
+  {
+    name: "Ashley Stephens",
+    role: "Consultant",
+    photo: "headshot-ashley.jpg",
+    bio: "Ashley brings hands-on dental operations and patient experience expertise, with a background in office management, scheduling, treatment planning, team support, and workflow coordination. She helps practices operate efficiently while creating strong client and patient experiences.",
   },
 ];
 
@@ -55,14 +61,14 @@ export default function AboutPage() {
             <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#A380F6] mb-3">The People</span>
             <h2 className="text-4xl font-black text-[#0A1547]">Leadership Team</h2>
           </div>
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-4">
             {team.map((member) => (
               <div key={member.name} className="group bg-white rounded-3xl overflow-hidden border border-gray-100 hover:shadow-xl transition-all duration-300">
                 <div className="relative overflow-hidden h-72">
                   <img
                     src={`${import.meta.env.BASE_URL}${member.photo}`}
                     alt={member.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${member.name === "Ashley Stephens" ? "object-[center_18%]" : ""}`}
                   />
                 </div>
                 <div className="p-7">

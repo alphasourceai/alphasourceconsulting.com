@@ -18,7 +18,7 @@ export default function Footer() {
             </p>
             <div className="flex gap-3 mt-6">
               <a
-                href="https://linkedin.com"
+                href="https://www.linkedin.com/company/alphasource-consulting"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center hover:bg-[#A380F6]/30 transition-colors"
@@ -53,8 +53,8 @@ export default function Footer() {
             <h4 className="text-sm font-bold text-white mb-4 uppercase tracking-wider">Get in Touch</h4>
             <ul className="space-y-3">
               <li>
-                <a href="mailto:info@alphasourceconsulting.com" className="text-sm text-white/60 hover:text-[#A380F6] transition-colors">
-                  info@alphasourceconsulting.com
+                <a href="mailto:hello@alphasourceconsulting.com" className="text-sm text-white/60 hover:text-[#A380F6] transition-colors">
+                  hello@alphasourceconsulting.com
                 </a>
               </li>
               <li>

@@ -116,6 +116,7 @@ export default function HomePage() {
                   <img src={`${import.meta.env.BASE_URL}headshot-jason.jpg`} className="w-8 h-8 rounded-full border-2 border-white/20 object-cover" alt="Jason" />
                   <img src={`${import.meta.env.BASE_URL}headshot-brent.jpg`} className="w-8 h-8 rounded-full border-2 border-white/20 object-cover" alt="Brent" />
                   <img src={`${import.meta.env.BASE_URL}headshot-destinee.jpg`} className="w-8 h-8 rounded-full border-2 border-white/20 object-cover" alt="Destinee" />
+                  <img src={`${import.meta.env.BASE_URL}headshot-ashley.jpg`} className="w-8 h-8 rounded-full border-2 border-white/20 object-cover object-[center_18%]" alt="Ashley" />
                 </div>
                 <p className="text-xs text-white/60">Trusted by dental practices nationwide</p>
               </div>
@@ -195,6 +196,9 @@ export default function HomePage() {
                     <div className="text-xs text-white/60 leading-tight">Years Dental Industry Experience</div>
                   </div>
                 </div>
+              </div>
+              <div className="hidden lg:flex flex-col gap-4 mt-8">
+                <img src={`${import.meta.env.BASE_URL}headshot-ashley.jpg`} alt="Ashley Stephens" className="w-40 h-48 object-cover object-[center_18%] rounded-3xl shadow-lg" />
               </div>
             </div>
           </div>
