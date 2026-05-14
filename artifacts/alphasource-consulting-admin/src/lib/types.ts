@@ -504,9 +504,22 @@ export type BillingOverrideSummary = {
   createdAt: string | null;
 };
 
+export type ClientProfileSummary = {
+  name: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  email: string | null;
+  officeName: string | null;
+  orgType: string | null;
+  phone: string | null;
+  latestGhlCid: string | null;
+};
+
 export type ClientBillingDetailResponse = {
   ok: true;
   clientEmail: string;
+  latestGhlCid: string | null;
+  clientProfile: ClientProfileSummary;
   customer: StripeCustomerSummary | null;
   summary: BillingSummary;
   checkoutSessions: CheckoutSessionSummary[];

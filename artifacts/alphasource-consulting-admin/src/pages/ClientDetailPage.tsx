@@ -3,7 +3,6 @@ import { Link } from "wouter";
 import { useAuth } from "@/auth/AuthProvider";
 import { AdminApiError, createCheckoutSession, expireCheckoutSession, getClientBillingDetail, voidAdminUpload } from "@/lib/adminApi";
 import type {
-  BillingOverrideSummary,
   BillingUploadSummary,
   BillingUploadStatus,
   CheckoutSessionSummary,
@@ -301,13 +300,15 @@ export default function ClientDetailPage({ email }: ClientDetailPageProps) {
         <div className="admin-card p-8 text-center">
           <h3 className="text-lg font-black text-[#0A1547]">No billing detail yet</h3>
           <p className="mt-2 text-sm font-medium text-[#0A1547]/60">
-            This client does not have local checkout sessions, uploads, or manual billing overrides.
+            This client does not have local checkout sessions or uploads yet.
           </p>
         </div>
       )}
 
       {detail && !loading && !error && (
         <>
+          <ClientInformationPanel detail={detail} />
+
           {canWriteBilling ? (
             <CreateCheckoutLinkCard
               clientEmail={detail.clientEmail}
@@ -359,19 +360,6 @@ export default function ClientDetailPage({ email }: ClientDetailPageProps) {
             />
           </section>
 
-          <section className="grid gap-6 lg:grid-cols-2">
-            <Panel title="Billing Overrides" emptyText="No manual overrides recorded.">
-              {detail.billingOverrides.map((override) => (
-                <OverrideCard key={override.id} override={override} />
-              ))}
-            </Panel>
-
-            <Panel title="Invoices and Subscriptions" emptyText="No invoice or subscription records returned.">
-              <PlaceholderList label="Invoices" values={detail.invoices} />
-              <PlaceholderList label="Subscriptions" values={detail.subscriptions} />
-            </Panel>
-          </section>
-
           {voidTarget && (
             <VoidUploadModal
               onClose={() => setVoidTarget(null)}
@@ -382,6 +370,84 @@ export default function ClientDetailPage({ email }: ClientDetailPageProps) {
           )}
         </>
       )}
+    </div>
+  );
+}
+
+function ClientInformationPanel({ detail }: { detail: ClientBillingDetailResponse }) {
+  const [copyStatus, setCopyStatus] = useState("");
+  const profile = detail.clientProfile;
+  const latestGhlCid = profile.latestGhlCid?.trim() || detail.latestGhlCid?.trim() || "";
+
+  const handleCopyGhlCid = async () => {
+    if (!latestGhlCid) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(latestGhlCid);
+      setCopyStatus("Copied");
+    } catch {
+      setCopyStatus("Copy failed");
+    }
+  };
+
+  return (
+    <section className="admin-card p-5">
+      <div>
+        <h3 className="text-lg font-black text-[#0A1547]">Client information</h3>
+        <p className="mt-1 text-sm font-medium text-[#0A1547]/60">
+          Client profile details used across uploads, secure requests, billing, and reporting.
+        </p>
+      </div>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <ClientInfoFact label="Name" value={profile.name} />
+        <ClientInfoFact label="Email" value={profile.email || detail.clientEmail} />
+        <ClientInfoFact label="Office / Group" value={profile.officeName} />
+        <ClientInfoFact label="Type" value={profile.orgType} />
+        <ClientInfoFact label="Phone" value={profile.phone} />
+        <ClientInfoFact
+          action={latestGhlCid ? (
+            <button
+              type="button"
+              onClick={() => void handleCopyGhlCid()}
+              className="admin-focus rounded-lg border border-[#A380F6]/30 bg-white px-2.5 py-1 text-xs font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/70"
+            >
+              Copy
+            </button>
+          ) : null}
+          helper={copyStatus}
+          label="GHL CID"
+          value={latestGhlCid || null}
+        />
+      </div>
+    </section>
+  );
+}
+
+function ClientInfoFact({
+  action,
+  helper,
+  label,
+  value,
+}: {
+  action?: React.ReactNode;
+  helper?: string;
+  label: string;
+  value: string | number | boolean | null | undefined;
+}) {
+  return (
+    <div className="min-w-0 rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#0A1547]/45">{label}</p>
+          <p className="mt-2 break-words text-sm font-semibold text-[#0A1547]">{formatNullable(value)}</p>
+          {helper && (
+            <p className="mt-1 text-xs font-medium text-[#0A1547]/50">{helper}</p>
+          )}
+        </div>
+        {action && <div className="shrink-0">{action}</div>}
+      </div>
     </div>
   );
 }
@@ -1280,55 +1346,6 @@ function voidUploadErrorMessage(error: unknown): string {
   }
 
   return "Upload could not be voided.";
-}
-
-function OverrideCard({ override }: { override: BillingOverrideSummary }) {
-  return (
-    <article className="rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm font-black text-[#0A1547]">{formatNullable(override.targetType)}</p>
-        <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${statusTone(override.overridePaid ? "paid" : "unpaid")}`}>
-          {override.overridePaid ? "Override paid" : "Override unpaid"}
-        </span>
-      </div>
-      <p className="mt-3 text-sm font-semibold leading-6 text-[#0A1547]/68">
-        {formatNullable(override.reason)}
-      </p>
-      <dl className="mt-4 grid gap-3 text-sm md:grid-cols-2">
-        <Detail label="Target" value={override.targetType} />
-        <Detail label="Created" value={formatDate(override.createdAt)} />
-      </dl>
-      <details className="mt-4 rounded-xl border border-[#0A1547]/10 bg-white px-4 py-3">
-        <summary className="cursor-pointer text-xs font-bold uppercase tracking-[0.14em] text-[#0A1547]/50">
-          Technical details
-        </summary>
-        <dl className="mt-3 grid gap-3 text-sm md:grid-cols-2">
-          <Detail label="Target ID" value={override.targetId} />
-          <Detail label="Admin user" value={override.adminUserId} />
-        </dl>
-      </details>
-    </article>
-  );
-}
-
-function PlaceholderList({ label, values }: { label: string; values: unknown[] | undefined }) {
-  const count = values?.length ?? 0;
-
-  return (
-    <div className="rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
-      <div className="flex items-center justify-between gap-4">
-        <p className="text-sm font-black text-[#0A1547]">{label}</p>
-        <span className="rounded-full border border-[#0A1547]/10 bg-white px-3 py-1 text-xs font-extrabold text-[#0A1547]/65">
-          {count}
-        </span>
-      </div>
-      {count === 0 && (
-        <p className="mt-2 text-sm font-medium text-[#0A1547]/58">
-          No {label.toLowerCase()} returned by the Admin API.
-        </p>
-      )}
-    </div>
-  );
 }
 
 function Detail({ label, value }: { label: string; value: string | number | boolean | null | undefined }) {
