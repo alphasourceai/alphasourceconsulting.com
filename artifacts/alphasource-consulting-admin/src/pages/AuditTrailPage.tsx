@@ -246,7 +246,7 @@ export default function AuditTrailPage() {
           <div>
             <h2 className="text-2xl font-black text-[#0A1547]">Audit Trail</h2>
             <p className="mt-2 max-w-3xl text-sm font-medium leading-6 text-[#0A1547]/65">
-              Review key admin and platform events captured going forward from enabled workflows. Timestamps display in Mountain Time, and sensitive values such as tokens, signed URLs, object paths, and filenames are sanitized by the Admin API.
+              Review key admin and platform events captured going forward from enabled workflows. Timestamps display in Mountain Time, and sensitive values such as tokens, signed URLs, object paths, and filenames are removed before display and export.
             </p>
             <p className="mt-2 max-w-3xl text-xs font-medium leading-5 text-[#0A1547]/52">
               Location enrichment is not enabled; IP address and device data are captured.

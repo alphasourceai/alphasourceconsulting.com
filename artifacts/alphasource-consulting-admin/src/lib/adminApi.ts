@@ -118,7 +118,7 @@ function readErrorMessage(payload: unknown): { code: string; message: string } {
   const safePayload = payload as SafeApiError | null;
   return {
     code: safePayload?.error?.code || "request_failed",
-    message: safePayload?.error?.message || "The admin API request failed.",
+    message: safePayload?.error?.message || "The dashboard request failed.",
   };
 }
 

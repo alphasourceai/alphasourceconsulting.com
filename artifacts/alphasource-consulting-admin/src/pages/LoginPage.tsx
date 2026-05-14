@@ -46,10 +46,10 @@ export default function LoginPage() {
               Admin Dashboard
             </p>
             <h1 className="mt-4 text-4xl font-black leading-tight">
-              Operations, billing, and analysis workflows.
+              Operations, billing, and analysis management.
             </h1>
             <p className="mt-5 max-w-md text-base leading-7 text-white/72">
-              This React dashboard is being built in parallel with the existing Streamlit admin fallback.
+              Sign in to manage clients, secure uploads, document analysis, reports, billing, and dashboard access.
             </p>
           </div>
         </div>
@@ -57,7 +57,7 @@ export default function LoginPage() {
         <div className="p-8 md:p-10">
           <h2 className="text-3xl font-black text-[#0A1547]">Sign in</h2>
           <p className="mt-2 text-sm font-medium text-[#0A1547]/60">
-            Use your Supabase admin account. Server-side role validation is required after sign in.
+            Use your AlphaSource admin account to access the dashboard.
           </p>
 
           {lockedOut ? (

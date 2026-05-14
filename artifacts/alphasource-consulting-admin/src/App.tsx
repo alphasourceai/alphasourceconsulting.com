@@ -32,7 +32,7 @@ function LoadingScreen() {
         <div className="mx-auto h-3 w-24 rounded-full bg-[#A380F6]" />
         <h1 className="mt-5 text-xl font-black">Checking admin access</h1>
         <p className="mt-2 text-sm font-medium text-[#0A1547]/60">
-          Validating your Supabase session with the Admin API.
+          Confirming your dashboard access.
         </p>
       </div>
     </div>
@@ -68,7 +68,7 @@ function AccessRestrictedPanel() {
       <p className="text-sm font-extrabold uppercase tracking-[0.2em] text-[#A380F6]">Access restricted</p>
       <h2 className="mt-3 text-2xl font-black text-[#0A1547]">This module is not available to your role</h2>
       <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-[#0A1547]/62">
-        The Admin API is the source of truth for permissions. Contact a super admin if your dashboard access needs to change.
+        Dashboard permissions are managed by role. Contact a Super Admin if your access needs to change.
       </p>
     </div>
   );
@@ -177,7 +177,7 @@ function ClientsRoute() {
     <ProtectedRoute
       canAccess={(permissions) => permissions.canReadClients}
       title="Clients"
-      description="Review client records, submissions, uploads, and related status visibility from the Admin API."
+      description="Review client records, submissions, uploads, and related status visibility."
     >
       <ClientsPage />
     </ProtectedRoute>
@@ -199,7 +199,7 @@ function ClientDetailRoute({ params }: RouteComponentProps<{ email: string }>) {
     <ProtectedRoute
       canAccess={(permissions) => permissions.canReadBilling}
       title="Client Detail"
-      description="Review billing, checkout, upload, and manual override records for one client."
+      description="Review client profile, billing, checkout, and upload records for one client."
     >
       <ClientDetailPage email={email} />
     </ProtectedRoute>
@@ -235,7 +235,7 @@ function PdfGeneratorRoute() {
     <ProtectedRoute
       canAccess={(permissions) => permissions.canReadPdf}
       title="PDF Reports"
-      description="Review analysis outputs and generate client-ready PDF reports from promoted records."
+      description="Review published analysis outputs and generate client-ready PDF reports."
     >
       <PDFGeneratorPage />
     </ProtectedRoute>
@@ -247,7 +247,7 @@ function BillingRoute() {
     <ProtectedRoute
       canAccess={(permissions) => permissions.canReadBilling}
       title="Billing"
-      description="Manage checkout sessions, payment visibility, and manual billing overrides."
+      description="Manage checkout sessions, payment visibility, and billing review."
     >
       <BillingPage />
     </ProtectedRoute>

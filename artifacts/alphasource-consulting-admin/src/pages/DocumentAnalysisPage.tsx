@@ -660,7 +660,7 @@ export default function DocumentAnalysisPage() {
       if (promoteError instanceof AdminApiError) {
         setJobError(promoteError.message);
       } else {
-        setJobError("Financial analysis could not be promoted to client records.");
+        setJobError("Financial analysis could not be published to client records.");
       }
     } finally {
       setPromotingFinancial(false);
@@ -688,7 +688,7 @@ export default function DocumentAnalysisPage() {
       if (promoteError instanceof AdminApiError) {
         setJobError(promoteError.message);
       } else {
-        setJobError("AR analysis could not be promoted to client records.");
+        setJobError("AR analysis could not be published to client records.");
       }
     } finally {
       setPromotingAr(false);
@@ -716,7 +716,7 @@ export default function DocumentAnalysisPage() {
       if (promoteError instanceof AdminApiError) {
         setJobError(promoteError.message);
       } else {
-        setJobError("Claims analysis could not be promoted to client records.");
+        setJobError("Claims analysis could not be published to client records.");
       }
     } finally {
       setPromotingClaims(false);
@@ -732,7 +732,7 @@ export default function DocumentAnalysisPage() {
         items={[
           {
             title: "Purpose",
-            lines: ["Admin-run AI analysis for Financial, AR, and Claims files."],
+            lines: ["Analyze approved Financial, AR, and Claims files for internal review."],
           },
           {
             title: "Boundary",
@@ -744,9 +744,9 @@ export default function DocumentAnalysisPage() {
           {
             title: "Actions",
             lines: [
-              "Create intake jobs.",
-              "Run processing manually.",
-              "Promote completed analysis into client-visible records when ready.",
+              "Create analysis records.",
+              "Run admin-reviewed processing.",
+              "Publish completed analysis to client records when ready.",
             ],
           },
         ]}
@@ -831,8 +831,8 @@ export default function DocumentAnalysisPage() {
           <section className="admin-card p-5">
             <StepHeader
               eyebrow="Step 2"
-              title="Choose analysis and upload source file"
-              description="Upload only approved, sanitized, and analysis-appropriate files. Processing stays manual after the durable job record is created."
+              title="Choose analysis and upload file"
+              description="Upload only approved, sanitized, and analysis-appropriate files. Processing starts only after the analysis record is created."
             />
 
           <div className="mt-5 grid gap-4">
@@ -857,7 +857,7 @@ export default function DocumentAnalysisPage() {
             {analysisKind === "financial" && (
               <AnalyzerToolCard
                 active
-                description="Accepts .csv, .xlsx, and .pdf financial files. CSV and XLSX processing can be run manually after intake."
+                description="Accepts .csv, .xlsx, and .pdf financial files. CSV and XLSX processing can be run manually; Financial PDF processing remains limited in this phase."
                 title="Financial Analyzer"
               >
                 <label className="block">
@@ -930,7 +930,7 @@ export default function DocumentAnalysisPage() {
           <div className="mt-5 rounded-2xl border border-[#A380F6]/20 bg-[#A380F6]/10 p-4">
             <p className="text-sm font-black text-[#0A1547]">Intake and processing are separate steps.</p>
             <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
-              Creating the analysis stores the source file and durable job record. CSV, XLSX, and supported text-based PDF jobs can then be processed manually; this is not secure PHI intake and does not create a client report, email, GHL update, PDF, report delivery, or payment action.
+              Creating the analysis stores the uploaded file and analysis record. Files with current processing support can then be processed after admin review; this is not secure PHI intake and does not create a client report, email, GHL update, PDF, report delivery, or payment action.
             </p>
             <p className="mt-2 text-sm font-semibold leading-6 text-[#0A1547]/62">
               AR and Claims PDFs must be text-based with selectable text. Scanned or image-only PDFs are not supported yet because OCR is not enabled. Secure Uploads remains separate for potentially sensitive or PHI-related files.
@@ -952,7 +952,7 @@ export default function DocumentAnalysisPage() {
         <section className="rounded-2xl border border-[#A380F6]/25 bg-[#A380F6]/10 p-5">
           <p className="text-sm font-black text-[#0A1547]">Read-only analysis access</p>
           <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
-            You can view analysis data available to your role. Intake, processing, cancel, and promotion actions are hidden or disabled unless your role includes analysis write permission.
+            You can view analysis data available to your role. Intake, processing, cancel, and publishing actions are hidden or disabled unless your role includes analysis write permission.
           </p>
         </section>
       )}
@@ -1343,7 +1343,7 @@ function JobStatusCard({
           <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#A380F6]">Step 3</p>
           <h3 className="mt-2 text-xl font-black text-[#0A1547]">Intake job status</h3>
           <p className="mt-1 text-sm font-semibold text-[#0A1547]/62">
-            This status tracks intake, manual processing, and client record links for this admin job.
+            This status tracks intake, processing, and client record links for this analysis.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -1382,7 +1382,7 @@ function JobStatusCard({
               {analysisKind ? analysisProcessingTitles[analysisKind] : "Analysis processing"}
             </p>
             <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
-              {supportsTextPdfProcessing ? "CSV, XLSX, and text-based PDF processing are manual in this phase." : "CSV and XLSX processing are manual in this phase."} Processed output remains internal admin job output, not a final client report.
+              {supportsTextPdfProcessing ? "CSV, XLSX, and text-based PDF files can be processed from this record." : "CSV and XLSX files can be processed from this record."} Processed output remains internal review material, not a final client report.
             </p>
           </div>
           {analysisKind && canProcess && (
@@ -1403,7 +1403,7 @@ function JobStatusCard({
         )}
         {!canWriteAnalysis && (
           <p className="mt-3 rounded-xl border border-[#A380F6]/20 bg-white px-4 py-3 text-sm font-bold text-[#0A1547]/68">
-            Analysis write permission is required to run, cancel, or promote jobs.
+            Analysis write permission is required to process, cancel, or publish analysis records.
           </p>
         )}
       </div>
@@ -1466,9 +1466,9 @@ function PromotionSection({
     <div className="mt-5 rounded-2xl border border-[#02D99D]/25 bg-[#02D99D]/10 p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="text-sm font-black text-[#0A1547]">Client records promotion</p>
+          <p className="text-sm font-black text-[#0A1547]">Client record publishing</p>
           <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/68">
-            Promotion makes this admin job visible to Clients and PDF Reports.
+            Publishing makes this completed analysis available in Clients and PDF Reports.
           </p>
           <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
             No email, GHL update, PDF, or report delivery is triggered.
@@ -1481,7 +1481,7 @@ function PromotionSection({
             disabled={promoting}
             className="admin-focus w-full rounded-xl bg-[#0A1547] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#1A2460] disabled:opacity-60 lg:w-auto"
           >
-            {promoting ? "Promoting..." : "Promote to Client Records"}
+            {promoting ? "Publishing..." : "Publish to Client Records"}
           </button>
         )}
       </div>
@@ -1495,7 +1495,7 @@ function PromotionSection({
                 <Detail label="Submission ID" value={submissionId} />
                 <Detail label="Upload ID" value={linkedUploadId} />
                 {showPromoted && (
-                  <Detail label="Promoted" value={metadata?.promoted ? "true" : "false"} />
+                  <Detail label="Published" value={metadata?.promoted ? "true" : "false"} />
                 )}
               </dl>
             </div>

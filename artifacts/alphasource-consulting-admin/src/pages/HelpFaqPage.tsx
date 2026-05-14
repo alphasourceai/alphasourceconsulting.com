@@ -34,12 +34,12 @@ const toneClasses: Record<HelpCategory["tone"], { badge: string; border: string 
 
 const glossaryTerms = [
   { term: "Client", definition: "A client record associated with submissions, uploads, billing, and report activity." },
-  { term: "Submission", definition: "A client intake or promoted admin analysis record." },
+  { term: "Submission", definition: "A client intake or published analysis record." },
   { term: "Upload", definition: "A file record used for analysis, reports, or billing visibility." },
   { term: "Document Analysis", definition: "Admin-run AI analysis for approved and sanitized files." },
   { term: "Secure Upload", definition: "Secure intake for potentially sensitive files, separate from AI analysis." },
-  { term: "Promoted Analysis", definition: "Completed admin analysis made visible to Clients and PDF Reports." },
-  { term: "PDF Report", definition: "A generated client-ready report from selected promoted analysis content." },
+  { term: "Published Analysis", definition: "Completed analysis made visible to Clients and PDF Reports." },
+  { term: "PDF Report", definition: "A generated client-ready report from selected published analysis content." },
   { term: "Checkout Session", definition: "A Stripe checkout link used for payment collection." },
   { term: "Paid Upload", definition: "An upload marked paid through completed checkout association or existing billing status." },
   { term: "Admin Access", definition: "Dashboard user access, role assignment, and active or inactive status." },
@@ -87,7 +87,7 @@ const helpCategories: HelpCategory[] = [
             <ol>
               <li>Review the client or submission record.</li>
               <li>Use Document Analysis only for approved, sanitized, analysis-appropriate files.</li>
-              <li>Promote completed analysis when it should become visible to Clients and PDF Reports.</li>
+              <li>Publish completed analysis when it should become visible to Clients and PDF Reports.</li>
               <li>Build and review a PDF Report draft before generating a client-ready PDF.</li>
               <li>Create checkout links from Billing or Client Detail when payment is needed.</li>
               <li>Use Secure Uploads for sensitive intake and review only, not for AI analysis.</li>
@@ -119,11 +119,11 @@ const helpCategories: HelpCategory[] = [
       },
       {
         title: "Why a page or button may be hidden",
-        summary: "The Admin API is the source of truth.",
+        summary: "Dashboard access is role-based.",
         content: (
           <TextBlock>
             <p>
-              Some pages and action buttons are hidden or disabled based on role. Frontend visibility is only a convenience layer; backend permissions are the source of truth. If something is unavailable, the signed-in user likely lacks the required role permission.
+              Some pages and action buttons are hidden or disabled based on role. Permission checks are enforced before actions are allowed. If something is unavailable, the signed-in user likely lacks the required role permission.
             </p>
           </TextBlock>
         ),
@@ -141,7 +141,7 @@ const helpCategories: HelpCategory[] = [
         content: (
           <TextBlock>
             <p>
-              Use Search Clients to find clients by email, name, office, or other supported fields. Search results reflect the records returned by the Admin API for your role.
+              Use Search Clients to find clients by email, name, office, or other supported fields. Search results reflect the records available to your role.
             </p>
           </TextBlock>
         ),
@@ -163,7 +163,7 @@ const helpCategories: HelpCategory[] = [
         content: (
           <TextBlock>
             <ul>
-              <li><strong>Submissions</strong> identify client intake or promoted admin analysis records.</li>
+              <li><strong>Submissions</strong> identify client intake or published analysis records.</li>
               <li><strong>Uploads</strong> identify analyzed files and their paid or unpaid status.</li>
               <li><strong>Related checkout sessions</strong> show payment links connected to the client or selected uploads.</li>
             </ul>
@@ -218,9 +218,9 @@ const helpCategories: HelpCategory[] = [
             <ol>
               <li>Choose an existing client or enter new client information.</li>
               <li>Select Financial, AR, or Claims analysis.</li>
-              <li>Upload the supported source file.</li>
+              <li>Upload the supported file.</li>
               <li>Create the intake job.</li>
-              <li>Run processing manually when the job is eligible.</li>
+              <li>Run admin-reviewed processing when the job is eligible.</li>
             </ol>
             <p>
               Provider output becomes internal admin output first. It is not automatically sent to the client.
@@ -229,12 +229,12 @@ const helpCategories: HelpCategory[] = [
         ),
       },
       {
-        title: "Promotion",
-        summary: "Promotion makes completed analysis available elsewhere in admin.",
+        title: "Publishing",
+        summary: "Publishing makes completed analysis available elsewhere in the dashboard.",
         content: (
           <TextBlock>
             <p>
-              Promotion makes completed analysis visible in Clients and PDF Reports. Promotion does not send email, update GHL, trigger payment actions, generate PDFs, or deliver reports.
+              Publishing makes completed analysis visible in Clients and PDF Reports. Publishing does not send email, update GHL, trigger payment actions, generate PDFs, or deliver reports.
             </p>
           </TextBlock>
         ),
@@ -308,16 +308,16 @@ const helpCategories: HelpCategory[] = [
   },
   {
     title: "PDF Reports",
-    description: "Draft and generate client-ready PDFs from promoted analysis.",
+    description: "Draft and generate client-ready PDFs from published analysis.",
     tone: "teal",
     topics: [
       {
         title: "What PDF Reports is for",
-        summary: "Review promoted analysis and generate client-ready PDFs.",
+        summary: "Review published analysis and generate client-ready PDFs.",
         content: (
           <TextBlock>
             <p>
-              PDF Reports lets authorized users review promoted analysis outputs and generate client-ready PDF reports. It uses existing promoted upload data.
+              PDF Reports lets authorized users review published analysis outputs and generate client-ready PDF reports. It uses existing published analysis data.
             </p>
           </TextBlock>
         ),
@@ -424,7 +424,7 @@ const helpCategories: HelpCategory[] = [
         content: (
           <TextBlock>
             <p>
-              Super Admins can add admin access by name, email, and role. If the user does not already have Supabase Auth, an invite email is sent.
+              Super Admins can add admin access by name, email, and role. If the user needs a sign-in account, an invite email is sent.
             </p>
           </TextBlock>
         ),
@@ -591,7 +591,7 @@ export default function HelpFaqPage() {
         <div className="grid gap-3 bg-[#F8F9FD] p-4 md:grid-cols-3 md:p-5">
           <BoundaryCard title="Keep PHI Out Of AI Analysis" body="Document Analysis should only use approved, sanitized, analysis-appropriate files." />
           <BoundaryCard title="Secure Uploads Stay Separate" body="Secure Uploads is for potentially sensitive intake and review, not AI analysis." />
-          <BoundaryCard title="Manual Steps Matter" body="Processing, promotion, PDF generation, billing, and delivery are separate workflow steps." />
+          <BoundaryCard title="Separate Steps Matter" body="Processing, publishing, PDF generation, billing, and delivery are separate workflow steps." />
         </div>
       </section>
 

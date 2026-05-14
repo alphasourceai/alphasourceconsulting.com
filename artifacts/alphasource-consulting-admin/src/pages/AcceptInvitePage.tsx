@@ -114,7 +114,7 @@ export default function AcceptInvitePage() {
         </p>
         <h1 className="mt-3 text-3xl font-black text-[#0A1547]">Set your admin password</h1>
         <p className="mt-3 text-sm font-semibold leading-6 text-[#0A1547]/62">
-          Use the invite link from your email, then create a password for your Supabase admin account.
+          Use the invite link from your email, then create a password for your dashboard account.
         </p>
 
         {checkingSession && (

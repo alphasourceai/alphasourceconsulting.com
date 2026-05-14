@@ -341,7 +341,7 @@ export default function PDFGeneratorPage() {
             <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#A380F6]">Client selection</p>
             <h3 className="mt-2 text-lg font-black text-[#0A1547]">Search eligible clients</h3>
             <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/60">
-              Choose a client with promoted analysis uploads to edit draft report content.
+              Choose a client with published analysis uploads to edit draft report content.
             </p>
           </div>
 
@@ -377,7 +377,7 @@ export default function PDFGeneratorPage() {
       {!loadingOptions && !optionsError && options.length === 0 && (
         <EmptyState
           title="No eligible uploads found"
-          description="Promoted analysis uploads with parsed analysis data will appear here."
+          description="Published analysis uploads with parsed analysis data will appear here."
         />
       )}
 

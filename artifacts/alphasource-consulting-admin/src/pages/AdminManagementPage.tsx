@@ -321,7 +321,7 @@ export default function AdminManagementPage() {
             <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#A380F6]">Admin Access</p>
             <h2 className="mt-3 text-2xl font-black text-[#0A1547]">Dashboard access and roles</h2>
             <p className="mt-2 text-sm font-medium leading-6 text-[#0A1547]/62">
-              Supabase Auth controls sign-in. The Admin API controls dashboard access, role assignment, and active or inactive admin status through the admin_users access list.
+              Roles and active status determine what each admin can access after sign-in.
             </p>
           </div>
           <button
@@ -362,7 +362,7 @@ export default function AdminManagementPage() {
         <section className={`rounded-2xl border p-5 ${canManageAdminAccess ? "border-[#02D99D]/25 bg-[#02D99D]/10" : "border-[#A380F6]/25 bg-[#A380F6]/10"}`}>
           <p className="text-sm font-medium text-[#0A1547]">
             {canManageAdminAccess
-              ? "Admin access management is enabled for this account. Add, edit, activate, and deactivate dashboard access without deleting admin rows."
+              ? "Admin access management is enabled for this account. Add, edit, activate, and deactivate dashboard users without deleting their access history."
               : "You can view admin access, but this account cannot manage admin access."}
           </p>
         </section>
@@ -373,7 +373,7 @@ export default function AdminManagementPage() {
           <div className="max-w-3xl">
             <h3 className="text-lg font-black text-[#0A1547]">Add admin access</h3>
             <p className="mt-2 text-sm font-medium leading-6 text-[#0A1547]/62">
-              Enter the admin&apos;s name, email, and role. If they do not already have a Supabase Auth account, an invite email will be sent.
+              Enter the admin&apos;s name, email, and role. If they need a sign-in account, an invite email will be sent.
             </p>
           </div>
 
