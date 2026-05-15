@@ -504,6 +504,28 @@ export type BillingOverrideSummary = {
   createdAt: string | null;
 };
 
+export type ClientRecentSubmissionUploadSummary = {
+  id: string | null;
+  fileName: string | null;
+  toolName: string | null;
+  paid: boolean | null;
+  voided: boolean | null;
+  uploadTime: string | null;
+};
+
+export type ClientRecentSubmissionSummary = {
+  id: string | null;
+  status: string | null;
+  source: string | null;
+  submittedAt: string | null;
+  completedAt: string | null;
+  canceledAt: string | null;
+  erroredAt: string | null;
+  errorMessage: string | null;
+  ghlCid: string | null;
+  upload: ClientRecentSubmissionUploadSummary | null;
+};
+
 export type ClientProfileSummary = {
   name: string | null;
   firstName: string | null;
@@ -523,6 +545,7 @@ export type ClientBillingDetailResponse = {
   customer: StripeCustomerSummary | null;
   summary: BillingSummary;
   checkoutSessions: CheckoutSessionSummary[];
+  recentSubmissions: ClientRecentSubmissionSummary[];
   uploads: BillingUploadSummary[];
   billingOverrides: BillingOverrideSummary[];
   invoices?: unknown[];

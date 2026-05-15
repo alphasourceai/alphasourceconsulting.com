@@ -108,6 +108,64 @@ function statusTone(status: string | null): string {
   return "border-[#0A1547]/10 bg-white text-[#0A1547]/70";
 }
 
+function submissionStatusLabel(status: string | null): string {
+  const normalized = status?.toLowerCase();
+
+  if (!normalized) {
+    return "Unknown";
+  }
+
+  if (normalized === "cancel_requested") {
+    return "Cancel requested";
+  }
+
+  return normalized
+    .split(/[_\s-]+/)
+    .filter(Boolean)
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(" ");
+}
+
+function submissionStatusTone(status: string | null): string {
+  const normalized = status?.toLowerCase();
+
+  if (normalized === "completed") {
+    return "border-[#02D99D]/30 bg-[#02D99D]/12 text-[#0A1547]";
+  }
+
+  if (normalized === "canceled" || normalized === "cancelled") {
+    return "border-[#A380F6]/30 bg-[#A380F6]/12 text-[#0A1547]";
+  }
+
+  if (normalized === "error" || normalized === "failed") {
+    return "border-red-200 bg-red-50 text-red-700";
+  }
+
+  if (normalized === "submitted" || normalized === "queued" || normalized === "processing" || normalized === "cancel_requested") {
+    return "border-[#02ABE0]/25 bg-[#02ABE0]/10 text-[#0A1547]";
+  }
+
+  return "border-[#0A1547]/10 bg-white text-[#0A1547]/70";
+}
+
+function submissionSourceLabel(source: string | null): string {
+  const normalized = source?.trim().toLowerCase();
+
+  if (!normalized) {
+    return "—";
+  }
+
+  if (normalized === "client" || normalized.includes("public")) {
+    return "Public analyzer";
+  }
+
+  if (normalized === "admin") {
+    return "Admin analysis";
+  }
+
+  return source || "—";
+}
+
 function isPaidSession(session: CheckoutSessionSummary): boolean {
   const status = session.status?.toLowerCase();
   const paymentStatus = session.paymentStatus?.toLowerCase();
@@ -224,6 +282,7 @@ export default function ClientDetailPage({ email }: ClientDetailPageProps) {
       !error &&
       detail !== null &&
       detail.checkoutSessions.length === 0 &&
+      (detail.recentSubmissions?.length ?? 0) === 0 &&
       detail.uploads.length === 0 &&
       detail.billingOverrides.length === 0
     );
@@ -308,6 +367,7 @@ export default function ClientDetailPage({ email }: ClientDetailPageProps) {
       {detail && !loading && !error && (
         <>
           <ClientInformationPanel detail={detail} />
+          <RecentSubmissionsPanel submissions={detail.recentSubmissions ?? []} />
 
           {canWriteBilling ? (
             <CreateCheckoutLinkCard
@@ -449,6 +509,103 @@ function ClientInfoFact({
         {action && <div className="shrink-0">{action}</div>}
       </div>
     </div>
+  );
+}
+
+function RecentSubmissionsPanel({
+  submissions,
+}: {
+  submissions: ClientBillingDetailResponse["recentSubmissions"];
+}) {
+  return (
+    <section className="admin-card p-5">
+      <div>
+        <h3 className="text-lg font-black text-[#0A1547]">Recent submissions</h3>
+        <p className="mt-1 text-sm font-medium text-[#0A1547]/60">
+          Public analyzer and admin submission attempts for this client.
+        </p>
+      </div>
+
+      <div className="mt-4 grid gap-3">
+        {submissions.length > 0 ? submissions.map((submission) => (
+          <RecentSubmissionCard key={submission.id || `${submission.submittedAt}-${submission.status}`} submission={submission} />
+        )) : (
+          <p className="rounded-2xl bg-[#F8F9FD] p-4 text-sm font-medium text-[#0A1547]/56">
+            No recent submissions found.
+          </p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function RecentSubmissionCard({
+  submission,
+}: {
+  submission: ClientBillingDetailResponse["recentSubmissions"][number];
+}) {
+  const status = submission.status?.toLowerCase() || null;
+  const eventTime = submission.canceledAt
+    ? { label: "Canceled", value: submission.canceledAt }
+    : submission.erroredAt
+      ? { label: "Errored", value: submission.erroredAt }
+      : submission.completedAt
+        ? { label: "Completed", value: submission.completedAt }
+        : null;
+  const upload = submission.upload;
+
+  return (
+    <article className="rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-sm font-black text-[#0A1547]">
+            Submitted {formatDate(submission.submittedAt)}
+          </p>
+          <p className="mt-1 text-xs font-medium text-[#0A1547]/55">
+            {submissionSourceLabel(submission.source)}
+          </p>
+        </div>
+        <span className={`w-fit shrink-0 rounded-full border px-3 py-1 text-xs font-extrabold ${submissionStatusTone(status)}`}>
+          {submissionStatusLabel(status)}
+        </span>
+      </div>
+
+      <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+        <Detail label="Submitted" value={formatDate(submission.submittedAt)} />
+        {eventTime && <Detail label={eventTime.label} value={formatDate(eventTime.value)} />}
+        <Detail label="Source" value={submissionSourceLabel(submission.source)} />
+        <Detail label="GHL CID" value={submission.ghlCid} />
+      </dl>
+
+      {submission.errorMessage && (
+        <p className="mt-3 rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-700">
+          {submission.errorMessage}
+        </p>
+      )}
+
+      {upload && (
+        <div className="mt-3 rounded-xl border border-[#0A1547]/10 bg-white px-3 py-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-bold text-[#0A1547]">{formatNullable(upload.fileName)}</p>
+              <p className="mt-1 text-xs font-medium text-[#0A1547]/58">
+                {formatNullable(upload.toolName)} · Uploaded {formatDate(upload.uploadTime)}
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-wrap gap-2">
+              {upload.voided && (
+                <span className={`rounded-full border px-2.5 py-1 text-xs font-bold ${statusTone("voided")}`}>
+                  Voided
+                </span>
+              )}
+              <span className={`rounded-full border px-2.5 py-1 text-xs font-bold ${statusTone(upload.paid ? "paid" : "unpaid")}`}>
+                {upload.paid ? "Paid" : "Not paid"}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+    </article>
   );
 }
 

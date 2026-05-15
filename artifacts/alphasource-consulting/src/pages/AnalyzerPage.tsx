@@ -56,11 +56,13 @@ export default function AnalyzerPage() {
   const [status, setStatus] = useState<JobStatus>("idle");
   const [jobId, setJobId] = useState("");
   const [error, setError] = useState("");
+  const [stopRequestMessage, setStopRequestMessage] = useState("");
   const [cid, setCid] = useState("");
   const [lockedFields, setLockedFields] = useState<LockableField[]>([]);
   const [prefillNotice, setPrefillNotice] = useState("");
   const [prefillWarning, setPrefillWarning] = useState("");
   const pollTimerRef = useRef<number | null>(null);
+  const activeJobIdRef = useRef("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -175,7 +177,9 @@ export default function AnalyzerPage() {
     setCanceling(false);
     setStatus("idle");
     setJobId("");
+    activeJobIdRef.current = "";
     setError("");
+    setStopRequestMessage("");
     setPrefillWarning("");
   };
 
@@ -239,16 +243,35 @@ export default function AnalyzerPage() {
     return payload.error?.message || payload.error_message || fallback;
   };
 
+  const handleCancelAccepted = () => {
+    stopPolling();
+    activeJobIdRef.current = "";
+    setJobId("");
+    setSubmitting(false);
+    setCanceling(false);
+    setStatus("idle");
+    clearSelectedFile();
+    setError("");
+    setStopRequestMessage("Stop request received. We'll stop before final results are saved if processing has not already finalized.");
+  };
+
   const handleCanceledJob = () => {
     stopPolling();
+    activeJobIdRef.current = "";
     setSubmitting(false);
     setCanceling(false);
     setStatus("canceled");
+    setJobId("");
     clearSelectedFile();
     setError("");
+    setStopRequestMessage("");
   };
 
   const pollJob = async (nextJobId: string, apiBaseUrl: string) => {
+    if (activeJobIdRef.current !== nextJobId) {
+      return;
+    }
+
     try {
       const response = await fetch(`${apiBaseUrl}/api/public-analyzer/submissions/${encodeURIComponent(nextJobId)}`, {
         method: "GET",
@@ -260,6 +283,10 @@ export default function AnalyzerPage() {
 
       if (!response.ok || payload.ok === false) {
         throw new Error(getSafeApiError(payload, "We could not retrieve your analyzer status."));
+      }
+
+      if (activeJobIdRef.current !== nextJobId) {
+        return;
       }
 
       if (
@@ -291,6 +318,10 @@ export default function AnalyzerPage() {
         setError(payload.error_message || "The analyzer could not complete your submission. Please try again.");
       }
     } catch (pollError) {
+      if (activeJobIdRef.current !== nextJobId) {
+        return;
+      }
+
       stopPolling();
       setStatus("error");
       setError(pollError instanceof Error ? pollError.message : "We could not retrieve your analyzer status.");
@@ -299,6 +330,7 @@ export default function AnalyzerPage() {
 
   const startPolling = (nextJobId: string, apiBaseUrl: string) => {
     stopPolling();
+    activeJobIdRef.current = nextJobId;
     pollTimerRef.current = window.setInterval(() => {
       void pollJob(nextJobId, apiBaseUrl);
     }, POLL_INTERVAL_MS);
@@ -307,7 +339,9 @@ export default function AnalyzerPage() {
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError("");
+    setStopRequestMessage("");
     stopPolling();
+    activeJobIdRef.current = "";
 
     const apiBaseUrl = getApiBaseUrl();
     if (!apiBaseUrl) {
@@ -347,6 +381,7 @@ export default function AnalyzerPage() {
     setSubmitting(true);
     setStatus("queued");
     setJobId("");
+    activeJobIdRef.current = "";
 
     try {
       const response = await fetch(`${apiBaseUrl}/api/public-analyzer/submissions`, {
@@ -368,6 +403,7 @@ export default function AnalyzerPage() {
 
       const nextStatus = responsePayload.status || "queued";
       setJobId(responsePayload.job_id);
+      activeJobIdRef.current = responsePayload.job_id;
       setStatus(nextStatus);
 
       if (nextStatus === "completed") {
@@ -392,6 +428,7 @@ export default function AnalyzerPage() {
       return;
     }
 
+    const cancelJobId = jobId;
     const confirmed = window.confirm("Stop this analysis? If cancellation is accepted before final processing, no results will be saved.");
     if (!confirmed) {
       return;
@@ -405,9 +442,10 @@ export default function AnalyzerPage() {
 
     setCanceling(true);
     setError("");
+    setStopRequestMessage("");
 
     try {
-      const response = await fetch(`${apiBaseUrl}/api/public-analyzer/submissions/${encodeURIComponent(jobId)}/cancel`, {
+      const response = await fetch(`${apiBaseUrl}/api/public-analyzer/submissions/${encodeURIComponent(cancelJobId)}/cancel`, {
         method: "POST",
         headers: {
           Accept: "application/json",
@@ -419,8 +457,15 @@ export default function AnalyzerPage() {
         const code = payload.error?.code || payload.error_code;
         if (code === "job_already_finished") {
           setError("This analysis had already finished and could not be stopped.");
-          if (jobId) {
-            void pollJob(jobId, apiBaseUrl);
+          if (activeJobIdRef.current === cancelJobId) {
+            void pollJob(cancelJobId, apiBaseUrl);
+          }
+          return;
+        }
+        if (code === "job_already_finalizing") {
+          setError("This analysis is already finalizing and may not be stopped.");
+          if (activeJobIdRef.current === cancelJobId) {
+            void pollJob(cancelJobId, apiBaseUrl);
           }
           return;
         }
@@ -433,13 +478,11 @@ export default function AnalyzerPage() {
       }
 
       if (payload.status === "cancel_requested" || payload.status === "queued" || payload.status === "processing") {
-        setStatus(payload.status);
-        startPolling(jobId, apiBaseUrl);
+        handleCancelAccepted();
         return;
       }
 
-      setStatus("cancel_requested");
-      startPolling(jobId, apiBaseUrl);
+      handleCancelAccepted();
     } catch (cancelError) {
       setError(cancelError instanceof Error ? cancelError.message : "We could not stop this analysis.");
     } finally {
@@ -477,7 +520,7 @@ export default function AnalyzerPage() {
       : status === "processing"
         ? "Processing"
         : status === "cancel_requested"
-          ? "Stopping"
+          ? "Stop request received"
           : status === "canceled"
             ? "Canceled"
             : status === "completed"
@@ -493,7 +536,7 @@ export default function AnalyzerPage() {
       : status === "error"
         ? "We could not complete this analyzer submission. Please review the message shown here or try again."
         : status === "cancel_requested"
-          ? "Stop request received. Cancellation is best-effort and may take a moment if a provider request is already running."
+          ? "Stop request received. We'll stop before final results are saved if processing has not already finalized."
         : status === "queued"
           ? "Your upload is queued. The analyzer will begin processing shortly."
           : status === "processing"
@@ -721,6 +764,12 @@ export default function AnalyzerPage() {
                   </p>
                 )}
 
+                {stopRequestMessage && (
+                  <p className="rounded-2xl border border-[#02D99D]/25 bg-[#02D99D]/10 px-4 py-3 text-sm font-semibold leading-6 text-[#0A1547]/75" role="status">
+                    {stopRequestMessage}
+                  </p>
+                )}
+
                 <button
                   type="submit"
                   disabled={isAnalyzing || isCompleted}
@@ -730,14 +779,19 @@ export default function AnalyzerPage() {
                   {submitting ? "Submitting..." : status === "queued" || status === "processing" || status === "cancel_requested" ? "Analyzing..." : "Run Analyzer"}
                 </button>
 
+                <div className="space-y-1 text-xs font-medium leading-5 text-[#0A1547]/45">
+                  <p>* Analysis may take approximately 3–5 minutes for standard files. Please keep this page open while we process your file.</p>
+                  <p>* Image-based or scanned PDFs may use OCR and can take 10–20 minutes depending on file quality and page count.</p>
+                </div>
+
                 {canCancelAnalysis && (
                   <button
                     type="button"
                     onClick={handleCancelAnalysis}
                     disabled={canceling || status === "cancel_requested"}
-                    className="w-full py-3.5 text-sm font-bold text-red-700 rounded-full border border-red-200 bg-red-50 hover:bg-red-100 transition-all active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
+                    className="w-full py-2.5 text-xs font-bold text-red-700 rounded-full border border-red-200 bg-white hover:bg-red-50 transition-all active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
                   >
-                    {canceling ? "Stopping..." : status === "cancel_requested" ? "Stopping analysis..." : "Stop Analysis"}
+                    {canceling ? "Stopping..." : status === "cancel_requested" ? "Stop request received" : "Stop Analysis"}
                   </button>
                 )}
 
@@ -751,11 +805,6 @@ export default function AnalyzerPage() {
                   </button>
                 )}
 
-                {isAnalyzing && (
-                  <p className="text-sm font-semibold text-[#0A1547]/55">
-                    Analysis may take approximately 3–5 minutes. Please keep this page open while we process your file. Stop requests are best-effort and may not interrupt work already in progress.
-                  </p>
-                )}
               </form>
 
               <div className="bg-[#0A1547] p-8 lg:p-10 text-white flex flex-col justify-between">
@@ -775,11 +824,6 @@ export default function AnalyzerPage() {
                     {statusMessage}
                   </p>
 
-                  {jobId && (
-                    <p className="mt-6 text-xs text-white/35 break-all">
-                      Job ID: {jobId}
-                    </p>
-                  )}
                 </div>
 
                 {status === "completed" && (
