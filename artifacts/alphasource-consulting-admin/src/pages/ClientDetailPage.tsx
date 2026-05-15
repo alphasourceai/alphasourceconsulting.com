@@ -517,6 +517,10 @@ function RecentSubmissionsPanel({
 }: {
   submissions: ClientBillingDetailResponse["recentSubmissions"];
 }) {
+  const [expanded, setExpanded] = useState(false);
+  const hasMore = submissions.length > 2;
+  const visibleSubmissions = expanded || !hasMore ? submissions : submissions.slice(0, 2);
+
   return (
     <section className="admin-card p-5">
       <div>
@@ -527,7 +531,7 @@ function RecentSubmissionsPanel({
       </div>
 
       <div className="mt-4 grid gap-3">
-        {submissions.length > 0 ? submissions.map((submission) => (
+        {visibleSubmissions.length > 0 ? visibleSubmissions.map((submission) => (
           <RecentSubmissionCard key={submission.id || `${submission.submittedAt}-${submission.status}`} submission={submission} />
         )) : (
           <p className="rounded-2xl bg-[#F8F9FD] p-4 text-sm font-medium text-[#0A1547]/56">
@@ -535,6 +539,23 @@ function RecentSubmissionsPanel({
           </p>
         )}
       </div>
+
+      {hasMore && (
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          {!expanded && (
+            <p className="text-xs font-medium text-[#0A1547]/50">
+              Showing the 2 most recent submissions.
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={() => setExpanded((current) => !current)}
+            className="admin-focus w-fit rounded-xl border border-[#0A1547]/10 bg-white px-4 py-2 text-xs font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/50 hover:bg-[#A380F6]/10"
+          >
+            {expanded ? "Show less" : `Show all (${submissions.length})`}
+          </button>
+        </div>
+      )}
     </section>
   );
 }
