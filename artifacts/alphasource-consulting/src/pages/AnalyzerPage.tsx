@@ -3,7 +3,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
 type OrgType = "" | "Location" | "Group";
-type JobStatus = "idle" | "queued" | "processing" | "completed" | "error";
+type JobStatus = "idle" | "queued" | "processing" | "cancel_requested" | "canceled" | "completed" | "error";
 type LockableField = "firstName" | "lastName" | "email" | "officeName" | "phone";
 
 type AnalyzerApiResponse = {
@@ -52,6 +52,7 @@ export default function AnalyzerPage() {
   const [file, setFile] = useState<File | null>(null);
   const [financialOnlyAcknowledgement, setFinancialOnlyAcknowledgement] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [canceling, setCanceling] = useState(false);
   const [status, setStatus] = useState<JobStatus>("idle");
   const [jobId, setJobId] = useState("");
   const [error, setError] = useState("");
@@ -158,19 +159,24 @@ export default function AnalyzerPage() {
     setFile(event.target.files?.[0] || null);
   };
 
+  const clearSelectedFile = () => {
+    setFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   const handleNewAnalysis = () => {
     stopPolling();
     setForm(getResetForm());
-    setFile(null);
+    clearSelectedFile();
     setFinancialOnlyAcknowledgement(false);
     setSubmitting(false);
+    setCanceling(false);
     setStatus("idle");
     setJobId("");
     setError("");
     setPrefillWarning("");
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
   };
 
   const getFileExtension = (fileName: string) => {
@@ -233,6 +239,15 @@ export default function AnalyzerPage() {
     return payload.error?.message || payload.error_message || fallback;
   };
 
+  const handleCanceledJob = () => {
+    stopPolling();
+    setSubmitting(false);
+    setCanceling(false);
+    setStatus("canceled");
+    clearSelectedFile();
+    setError("");
+  };
+
   const pollJob = async (nextJobId: string, apiBaseUrl: string) => {
     try {
       const response = await fetch(`${apiBaseUrl}/api/public-analyzer/submissions/${encodeURIComponent(nextJobId)}`, {
@@ -247,7 +262,14 @@ export default function AnalyzerPage() {
         throw new Error(getSafeApiError(payload, "We could not retrieve your analyzer status."));
       }
 
-      if (payload.status === "queued" || payload.status === "processing" || payload.status === "completed" || payload.status === "error") {
+      if (
+        payload.status === "queued" ||
+        payload.status === "processing" ||
+        payload.status === "cancel_requested" ||
+        payload.status === "canceled" ||
+        payload.status === "completed" ||
+        payload.status === "error"
+      ) {
         setStatus(payload.status);
       } else {
         throw new Error("We could not retrieve your analyzer status.");
@@ -255,11 +277,17 @@ export default function AnalyzerPage() {
 
       if (payload.status === "completed") {
         stopPolling();
+        setCanceling(false);
         setError("");
+      }
+
+      if (payload.status === "canceled") {
+        handleCanceledJob();
       }
 
       if (payload.status === "error") {
         stopPolling();
+        setCanceling(false);
         setError(payload.error_message || "The analyzer could not complete your submission. Please try again.");
       }
     } catch (pollError) {
@@ -344,7 +372,9 @@ export default function AnalyzerPage() {
 
       if (nextStatus === "completed") {
         setError("");
-      } else if (nextStatus === "queued" || nextStatus === "processing") {
+      } else if (nextStatus === "canceled") {
+        handleCanceledJob();
+      } else if (nextStatus === "queued" || nextStatus === "processing" || nextStatus === "cancel_requested") {
         startPolling(responsePayload.job_id, apiBaseUrl);
       } else {
         throw new Error("The analyzer returned an unexpected status.");
@@ -354,6 +384,66 @@ export default function AnalyzerPage() {
       setError(submitError instanceof Error ? submitError.message : "We could not submit your analyzer file.");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleCancelAnalysis = async () => {
+    if (!jobId || canceling || status === "completed" || status === "error" || status === "canceled") {
+      return;
+    }
+
+    const confirmed = window.confirm("Stop this analysis? If cancellation is accepted before final processing, no results will be saved.");
+    if (!confirmed) {
+      return;
+    }
+
+    const apiBaseUrl = getApiBaseUrl();
+    if (!apiBaseUrl) {
+      setError("The analyzer is not configured yet. Please try again later.");
+      return;
+    }
+
+    setCanceling(true);
+    setError("");
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/public-analyzer/submissions/${encodeURIComponent(jobId)}/cancel`, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+        },
+      });
+      const payload = await readApiPayload(response);
+
+      if (!response.ok || payload.ok === false) {
+        const code = payload.error?.code || payload.error_code;
+        if (code === "job_already_finished") {
+          setError("This analysis had already finished and could not be stopped.");
+          if (jobId) {
+            void pollJob(jobId, apiBaseUrl);
+          }
+          return;
+        }
+        throw new Error(getSafeApiError(payload, "We could not stop this analysis."));
+      }
+
+      if (payload.status === "canceled") {
+        handleCanceledJob();
+        return;
+      }
+
+      if (payload.status === "cancel_requested" || payload.status === "queued" || payload.status === "processing") {
+        setStatus(payload.status);
+        startPolling(jobId, apiBaseUrl);
+        return;
+      }
+
+      setStatus("cancel_requested");
+      startPolling(jobId, apiBaseUrl);
+    } catch (cancelError) {
+      setError(cancelError instanceof Error ? cancelError.message : "We could not stop this analysis.");
+    } finally {
+      setCanceling(false);
     }
   };
 
@@ -378,23 +468,32 @@ export default function AnalyzerPage() {
       trimmedContact.orgType,
   );
   const canShowFileUpload = contactFieldsValid && financialOnlyAcknowledgement;
-  const isAnalyzing = submitting || status === "queued" || status === "processing";
+  const isAnalyzing = submitting || status === "queued" || status === "processing" || status === "cancel_requested";
+  const canCancelAnalysis = Boolean(jobId) && (status === "queued" || status === "processing" || status === "cancel_requested");
   const isCompleted = status === "completed";
   const statusLabel =
     status === "queued"
       ? "Queued"
       : status === "processing"
         ? "Processing"
-        : status === "completed"
-          ? "Completed"
-          : status === "error"
-            ? "Error"
-            : "Ready";
+        : status === "cancel_requested"
+          ? "Stopping"
+          : status === "canceled"
+            ? "Canceled"
+            : status === "completed"
+              ? "Completed"
+              : status === "error"
+                ? "Error"
+                : "Ready";
   const statusMessage =
     status === "completed"
       ? "Analysis complete. The alphaSource Consulting team will review the results and follow up with next steps."
+      : status === "canceled"
+        ? "Analysis canceled. No results were saved. You can choose a new file when you are ready."
       : status === "error"
         ? "We could not complete this analyzer submission. Please review the message shown here or try again."
+        : status === "cancel_requested"
+          ? "Stop request received. Cancellation is best-effort and may take a moment if a provider request is already running."
         : status === "queued"
           ? "Your upload is queued. The analyzer will begin processing shortly."
           : status === "processing"
@@ -628,8 +727,19 @@ export default function AnalyzerPage() {
                   className="w-full py-3.5 text-sm font-bold text-white rounded-full transition-all hover:opacity-90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
                   style={{ background: "linear-gradient(135deg, #A380F6 0%, #8b63f0 100%)" }}
                 >
-                  {submitting ? "Submitting..." : status === "queued" || status === "processing" ? "Analyzing..." : "Run Analyzer"}
+                  {submitting ? "Submitting..." : status === "queued" || status === "processing" || status === "cancel_requested" ? "Analyzing..." : "Run Analyzer"}
                 </button>
+
+                {canCancelAnalysis && (
+                  <button
+                    type="button"
+                    onClick={handleCancelAnalysis}
+                    disabled={canceling || status === "cancel_requested"}
+                    className="w-full py-3.5 text-sm font-bold text-red-700 rounded-full border border-red-200 bg-red-50 hover:bg-red-100 transition-all active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {canceling ? "Stopping..." : status === "cancel_requested" ? "Stopping analysis..." : "Stop Analysis"}
+                  </button>
+                )}
 
                 {isCompleted && (
                   <button
@@ -643,7 +753,7 @@ export default function AnalyzerPage() {
 
                 {isAnalyzing && (
                   <p className="text-sm font-semibold text-[#0A1547]/55">
-                    Analysis may take approximately 3–5 minutes. Please keep this page open while we process your file.
+                    Analysis may take approximately 3–5 minutes. Please keep this page open while we process your file. Stop requests are best-effort and may not interrupt work already in progress.
                   </p>
                 )}
               </form>
@@ -677,6 +787,15 @@ export default function AnalyzerPage() {
                     <p className="text-sm font-bold text-white mb-1">Submission received</p>
                     <p className="text-sm text-white/60">
                       The analyzer has completed processing your upload.
+                    </p>
+                  </div>
+                )}
+
+                {status === "canceled" && (
+                  <div className="mt-10 rounded-2xl bg-white/10 border border-white/15 p-5">
+                    <p className="text-sm font-bold text-white mb-1">Analysis stopped</p>
+                    <p className="text-sm text-white/60">
+                      Analysis canceled. No results were saved.
                     </p>
                   </div>
                 )}
