@@ -57,7 +57,7 @@ export default function LoginPage() {
         <div className="p-8 md:p-10">
           <h2 className="text-3xl font-black text-[#0A1547]">Sign in</h2>
           <p className="mt-2 text-sm font-medium text-[#0A1547]/60">
-            Use your AlphaSource admin account to access the dashboard.
+            Use your alphaSource Admin account to access the dashboard.
           </p>
 
           {lockedOut ? (

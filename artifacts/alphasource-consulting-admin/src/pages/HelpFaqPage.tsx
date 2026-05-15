@@ -57,11 +57,11 @@ const helpCategories: HelpCategory[] = [
     topics: [
       {
         title: "What this dashboard is for",
-        summary: "Internal tools for AlphaSource Consulting operations.",
+        summary: "Internal tools for alphaSource Consulting operations.",
         content: (
           <TextBlock>
             <p>
-              This dashboard is the internal admin workspace for AlphaSource Consulting. Use it to review clients, run approved document analysis, manage secure upload intake, generate PDF reports, create checkout links, review billing visibility, and manage admin access.
+              This dashboard is the internal admin workspace for alphaSource Consulting. Use it to review clients, run approved document analysis, manage secure upload intake, generate PDF reports, create checkout links, review billing visibility, and manage admin access.
             </p>
           </TextBlock>
         ),
