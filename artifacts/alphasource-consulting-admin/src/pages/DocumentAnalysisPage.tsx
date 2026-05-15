@@ -421,7 +421,7 @@ export default function DocumentAnalysisPage() {
         return "AR Analyzer source file is required.";
       }
       if (!allowedArExtensions.includes(fileExtension(arFile.name))) {
-        return "AR file must be a .csv, .xlsx, or text-based .pdf file.";
+        return "AR file must be a .csv, .xlsx, or .pdf file.";
       }
     }
     if (analysisKind === "claims") {
@@ -429,7 +429,7 @@ export default function DocumentAnalysisPage() {
         return "Claims Analyzer source file is required.";
       }
       if (!allowedClaimsExtensions.includes(fileExtension(claimsFile.name))) {
-        return "Claims file must be a .csv, .xlsx, or text-based .pdf file.";
+        return "Claims file must be a .csv, .xlsx, or .pdf file.";
       }
     }
 
@@ -881,7 +881,7 @@ export default function DocumentAnalysisPage() {
             {analysisKind === "ar" && (
               <AnalyzerToolCard
                 active
-                description="Accepts .csv, .xlsx, and text-based .pdf AR files. PDFs must have selectable text."
+                description="Accepts .csv, .xlsx, and .pdf AR files. PDFs can include scanned files when OCR can read them."
                 title="AR Analyzer"
               >
                 <label className="block">
@@ -905,7 +905,7 @@ export default function DocumentAnalysisPage() {
             {analysisKind === "claims" && (
               <AnalyzerToolCard
                 active
-                description="Accepts .csv, .xlsx, and text-based .pdf Claims files. PDFs must have selectable text."
+                description="Accepts .csv, .xlsx, and .pdf Claims files. PDFs can include scanned files when OCR can read them."
                 title="Insurance Claim Analyzer"
               >
                 <label className="block">
@@ -933,7 +933,7 @@ export default function DocumentAnalysisPage() {
               Creating the analysis stores the uploaded file and analysis record. Files with current processing support can then be processed after admin review; this is not secure PHI intake and does not create a client report, email, GHL update, PDF, report delivery, or payment action.
             </p>
             <p className="mt-2 text-sm font-semibold leading-6 text-[#0A1547]/62">
-              AR and Claims PDFs must be text-based with selectable text. Scanned or image-only PDFs are not supported yet because OCR is not enabled. Secure Uploads remains separate for potentially sensitive or PHI-related files.
+              CSV, XLSX, and supported PDFs can be processed manually. AR and Claims scanned PDFs may work through OCR, but OCR may fail for low-quality scans, handwriting, rotated pages, or image-heavy documents. Secure Uploads remains separate for potentially sensitive or PHI-related files.
             </p>
           </div>
 
@@ -1314,7 +1314,7 @@ function JobStatusCard({
   const showPdfProcessingNote = Boolean(
     analysisKind === "financial" && analysisFile && fileExtension === ".pdf",
   );
-  const supportsTextPdfProcessing = analysisKind === "ar" || analysisKind === "claims";
+  const supportsPdfProcessing = analysisKind === "ar" || analysisKind === "claims";
   const processing = analysisKind === "ar"
     ? processingAr
     : analysisKind === "claims"
@@ -1382,7 +1382,7 @@ function JobStatusCard({
               {analysisKind ? analysisProcessingTitles[analysisKind] : "Analysis processing"}
             </p>
             <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
-              {supportsTextPdfProcessing ? "CSV, XLSX, and text-based PDF files can be processed from this record." : "CSV and XLSX files can be processed from this record."} Processed output remains internal review material, not a final client report.
+              {supportsPdfProcessing ? "CSV, XLSX, and supported PDF files can be processed from this record. Scanned AR and Claims PDFs may work through OCR when the scan quality is readable." : "CSV and XLSX files can be processed from this record."} Processed output remains internal review material, not a final client report.
             </p>
           </div>
           {analysisKind && canProcess && (
