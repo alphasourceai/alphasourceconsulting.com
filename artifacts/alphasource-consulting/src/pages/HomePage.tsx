@@ -44,8 +44,8 @@ const pillars = [
 
 const stats = [
   { value: "25+", label: "Years of Industry Experience" },
-  { value: "3", label: "DSO Leadership" },
-  { value: "30+", label: "Offices Leadership" },
+  { value: "5", label: "DSO Leadership" },
+  { value: "40+", label: "Offices Leadership" },
   { value: "AI", label: "Powered Operations Analysis" },
 ];
 
