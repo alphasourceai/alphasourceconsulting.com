@@ -43,7 +43,7 @@ const pillars = [
 ];
 
 const stats = [
-  { value: "15+", label: "Years of Industry Experience" },
+  { value: "25+", label: "Years of Industry Experience" },
   { value: "3", label: "DSO Leadership" },
   { value: "30+", label: "Offices Leadership" },
   { value: "AI", label: "Powered Operations Analysis" },
@@ -192,7 +192,7 @@ export default function HomePage() {
                 <img src={`${import.meta.env.BASE_URL}headshot-brent.jpg`} alt="Brent Ford" className="w-40 h-40 object-cover rounded-3xl shadow-lg" />
                 <div className="w-40 h-48 rounded-3xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #0A1547 0%, #1A2460 100%)" }}>
                   <div className="text-center px-4">
-                    <div className="text-3xl font-black text-white mb-1">15+</div>
+                    <div className="text-3xl font-black text-white mb-1">25+</div>
                     <div className="text-xs text-white/60 leading-tight">Years Dental Industry Experience</div>
                   </div>
                 </div>
