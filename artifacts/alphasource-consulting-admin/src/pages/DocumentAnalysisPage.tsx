@@ -25,6 +25,10 @@ import type {
   AdminAnalysisProviderStatus,
   AdminAnalysisTrend,
   AdminClientOption,
+  StructuredAnalysis,
+  StructuredEvidenceItem,
+  StructuredRankedFinding,
+  StructuredProviderStatus,
 } from "@/lib/types";
 
 type ClientMode = "existing" | "new";
@@ -142,6 +146,16 @@ function formatBytes(value: number | null): string {
 function formatProviderName(value: string): string {
   if (value.toLowerCase() === "xai") {
     return "xAI";
+  }
+
+  return value
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function formatStructuredLabel(value: string | null | undefined): string {
+  if (!value) {
+    return "—";
   }
 
   return value
@@ -1558,6 +1572,12 @@ function WorkflowInfoPanel({
 
 function ProcessedOutput({ analysisData }: { analysisData: AdminAnalysisData }) {
   const providerStatuses = analysisData.provider_statuses ? Object.entries(analysisData.provider_statuses) : [];
+  const structuredProviderStatuses = analysisData.structured_provider_statuses
+    ? Object.entries(analysisData.structured_provider_statuses)
+    : [];
+  const structuredAnalysis = hasStructuredReviewContent(analysisData.structured_analysis)
+    ? analysisData.structured_analysis
+    : null;
   const issues = analysisData.deduplicated_issues || [];
   const trends = analysisData.all_trends || [];
   const rawOutputs = analysisData.raw_analyses ? Object.entries(analysisData.raw_analyses) : [];
@@ -1582,6 +1602,13 @@ function ProcessedOutput({ analysisData }: { analysisData: AdminAnalysisData }) 
         <Fact label="Total issues" value={formatNullable(analysisData.total_issue_count)} />
         <Fact label="Processed at" value={formatDate(analysisData.generatedAt || null)} />
       </div>
+
+      {structuredAnalysis && (
+        <ConsultantReviewPanel
+          structuredAnalysis={structuredAnalysis}
+          providerStatuses={structuredProviderStatuses}
+        />
+      )}
 
       {providerStatuses.length > 0 && (
         <div className="mt-5">
@@ -1646,6 +1673,350 @@ function ProcessedOutput({ analysisData }: { analysisData: AdminAnalysisData }) 
         </details>
       )}
     </div>
+  );
+}
+
+function hasStructuredReviewContent(value: StructuredAnalysis | null | undefined): value is StructuredAnalysis {
+  if (!value) {
+    return false;
+  }
+
+  const summary = value.executiveSummary;
+  return Boolean(
+    summary?.summary
+      || summary?.primaryConcern
+      || summary?.recommendedFocus
+      || value.rankedFindings?.length
+      || value.dataQualityNotes?.length
+      || value.implementationPriorities?.length
+      || value.consultantChecklist?.length
+      || value.suggestedReportSections?.length,
+  );
+}
+
+function ConsultantReviewPanel({
+  structuredAnalysis,
+  providerStatuses,
+}: {
+  structuredAnalysis: StructuredAnalysis;
+  providerStatuses: Array<[string, StructuredProviderStatus]>;
+}) {
+  const summary = structuredAnalysis.executiveSummary || {};
+  const findings = (structuredAnalysis.rankedFindings || []).filter(hasFindingContent);
+  const dataQualityNotes = structuredAnalysis.dataQualityNotes || [];
+  const implementationPriorities = structuredAnalysis.implementationPriorities || [];
+  const consultantChecklist = structuredAnalysis.consultantChecklist || [];
+  const suggestedReportSections = structuredAnalysis.suggestedReportSections || [];
+
+  return (
+    <section className="admin-card mt-5 p-5">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#A380F6]">
+            Consultant Review
+          </p>
+          <p className="mt-2 text-sm font-semibold leading-6 text-[#0A1547]/62">
+            Structured internal review output for consultant validation before client-facing reporting.
+          </p>
+        </div>
+        <span className="w-fit rounded-full border border-[#02D99D]/25 bg-[#02D99D]/10 px-3 py-1 text-xs font-extrabold text-[#0A1547]">
+          {formatStructuredLabel(structuredAnalysis.toolType)}
+        </span>
+      </div>
+
+      {(summary.summary || summary.primaryConcern || summary.recommendedFocus) && (
+        <div className="mt-5">
+          <p className="text-sm font-black text-[#0A1547]">Executive Summary</p>
+          <div className="mt-3 grid gap-3 lg:grid-cols-3">
+            <StructuredSummaryCard label="Summary" value={summary.summary} />
+            <StructuredSummaryCard label="Primary concern" value={summary.primaryConcern} />
+            <StructuredSummaryCard label="Recommended focus" value={summary.recommendedFocus} />
+          </div>
+        </div>
+      )}
+
+      {findings.length > 0 && (
+        <div className="mt-5">
+          <p className="text-sm font-black text-[#0A1547]">Ranked Findings</p>
+          <div className="mt-3 grid gap-3">
+            {findings.map((finding, index) => (
+              <StructuredFindingCard
+                key={`${finding.rank || index}-${finding.title || "finding"}`}
+                finding={finding}
+                fallbackRank={index + 1}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="mt-5 grid gap-3 lg:grid-cols-2">
+        <StructuredListSection title="Data Quality Notes" items={dataQualityNotes} />
+        <StructuredListSection title="Implementation Priorities" items={implementationPriorities} />
+        <StructuredChecklistSection items={consultantChecklist} />
+        <StructuredReportSections items={suggestedReportSections} />
+      </div>
+
+      {providerStatuses.length > 0 && (
+        <details className="mt-5 rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+          <summary className="cursor-pointer text-sm font-extrabold text-[#0A1547]">
+            Structured parsing status
+          </summary>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {providerStatuses.map(([provider, status]) => (
+              <StructuredProviderStatusPill key={provider} provider={provider} status={status} />
+            ))}
+          </div>
+        </details>
+      )}
+    </section>
+  );
+}
+
+function hasFindingContent(finding: StructuredRankedFinding): boolean {
+  return Boolean(
+    finding.title
+      || finding.operationalImplication
+      || finding.recommendedAction
+      || finding.clientFacingSummary
+      || finding.internalReviewerNotes,
+  );
+}
+
+function StructuredSummaryCard({ label, value }: { label: string; value: string | null | undefined }) {
+  return (
+    <div className="rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+      <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/42">{label}</p>
+      <p className="mt-2 break-words text-sm font-semibold leading-6 text-[#0A1547]/72">
+        {formatNullable(value)}
+      </p>
+    </div>
+  );
+}
+
+function StructuredFindingCard({
+  finding,
+  fallbackRank,
+}: {
+  finding: StructuredRankedFinding;
+  fallbackRank: number;
+}) {
+  const evidence = finding.evidence || [];
+  const rank = finding.rank || fallbackRank;
+
+  return (
+    <article className="rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#A380F6]">
+            Finding {rank}
+          </p>
+          <h4 className="mt-1 break-words text-base font-black text-[#0A1547]">
+            {formatNullable(finding.title)}
+          </h4>
+          {finding.category && (
+            <p className="mt-1 text-xs font-bold uppercase tracking-[0.12em] text-[#0A1547]/45">
+              {formatStructuredLabel(finding.category)}
+            </p>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <StructuredMetricPill label="Severity" value={finding.severity} tone={structuredSeverityTone(finding.severity)} />
+          <StructuredMetricPill label="Confidence" value={finding.confidence} tone="blue" />
+          <StructuredMetricPill label="Difficulty" value={finding.implementationDifficulty} tone="neutral" />
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 lg:grid-cols-3">
+        <StructuredCompactFact label="Impact category" value={formatStructuredLabel(finding.estimatedImpactCategory)} />
+        <StructuredCompactFact label="Financial value" value={finding.financialValue} />
+        <StructuredCompactFact label="Confidence" value={formatStructuredLabel(finding.confidence)} />
+      </div>
+
+      {evidence.length > 0 && (
+        <div className="mt-4">
+          <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/42">Evidence</p>
+          <div className="mt-2 grid gap-2 md:grid-cols-2">
+            {evidence.map((item, index) => (
+              <StructuredEvidenceCard key={`${item.label || "evidence"}-${index}`} item={item} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="mt-4 grid gap-3 lg:grid-cols-2">
+        <StructuredTextBlock label="Operational implication" value={finding.operationalImplication} />
+        <StructuredTextBlock label="Recommended action" value={finding.recommendedAction} />
+        <StructuredTextBlock label="Follow-up question" value={finding.followUpQuestion} />
+        <StructuredTextBlock label="Client-facing summary" value={finding.clientFacingSummary} />
+      </div>
+
+      {finding.internalReviewerNotes && (
+        <div className="mt-3 rounded-xl border border-[#A380F6]/20 bg-white p-3">
+          <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#A380F6]">
+            Internal reviewer notes
+          </p>
+          <p className="mt-2 max-h-32 overflow-auto break-words text-sm font-semibold leading-6 text-[#0A1547]/72">
+            {finding.internalReviewerNotes}
+          </p>
+        </div>
+      )}
+    </article>
+  );
+}
+
+function StructuredMetricPill({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string | null | undefined;
+  tone: "red" | "amber" | "blue" | "green" | "neutral";
+}) {
+  const toneClass = {
+    red: "border-red-200 bg-red-50 text-red-700",
+    amber: "border-amber-200 bg-amber-50 text-amber-700",
+    blue: "border-[#A380F6]/30 bg-[#A380F6]/10 text-[#0A1547]",
+    green: "border-[#02D99D]/30 bg-[#02D99D]/10 text-[#0A1547]",
+    neutral: "border-[#0A1547]/10 bg-white text-[#0A1547]/70",
+  }[tone];
+
+  return (
+    <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${toneClass}`}>
+      {label}: {formatStructuredLabel(value)}
+    </span>
+  );
+}
+
+function structuredSeverityTone(value: string | null | undefined): "red" | "amber" | "blue" | "green" | "neutral" {
+  const normalized = (value || "").toLowerCase();
+  if (normalized === "critical" || normalized === "high") {
+    return "red";
+  }
+  if (normalized === "medium") {
+    return "blue";
+  }
+  if (normalized === "low") {
+    return "green";
+  }
+  return "neutral";
+}
+
+function StructuredCompactFact({ label, value }: { label: string; value: string | null | undefined }) {
+  return (
+    <div className="rounded-xl border border-[#0A1547]/10 bg-white px-3 py-2">
+      <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/38">{label}</p>
+      <p className="mt-1 break-words text-sm font-black text-[#0A1547]">{formatNullable(value)}</p>
+    </div>
+  );
+}
+
+function StructuredEvidenceCard({ item }: { item: StructuredEvidenceItem }) {
+  return (
+    <div className="rounded-xl border border-[#0A1547]/10 bg-white px-3 py-2">
+      <p className="break-words text-sm font-black text-[#0A1547]">{formatNullable(item.label)}</p>
+      <p className="mt-1 break-words text-sm font-semibold text-[#0A1547]/72">{formatNullable(item.value)}</p>
+      {item.sourceHint && (
+        <p className="mt-1 break-words text-xs font-bold text-[#0A1547]/45">{item.sourceHint}</p>
+      )}
+    </div>
+  );
+}
+
+function StructuredTextBlock({ label, value }: { label: string; value: string | null | undefined }) {
+  if (!value) {
+    return null;
+  }
+
+  return (
+    <div>
+      <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/42">{label}</p>
+      <p className="mt-1 break-words text-sm font-semibold leading-6 text-[#0A1547]/72">{value}</p>
+    </div>
+  );
+}
+
+function StructuredListSection({ title, items }: { title: string; items: string[] }) {
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+      <p className="text-sm font-black text-[#0A1547]">{title}</p>
+      <ul className="mt-3 space-y-2">
+        {items.map((item, index) => (
+          <li key={`${title}-${index}`} className="break-words text-sm font-semibold leading-6 text-[#0A1547]/72">
+            {item}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function StructuredChecklistSection({ items }: { items: string[] }) {
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+      <p className="text-sm font-black text-[#0A1547]">Consultant Checklist</p>
+      <ul className="mt-3 space-y-2">
+        {items.map((item, index) => (
+          <li key={`checklist-${index}`} className="flex gap-2 text-sm font-semibold leading-6 text-[#0A1547]/72">
+            <span className="mt-1.5 h-3 w-3 shrink-0 rounded border border-[#02D99D]/55 bg-white" aria-hidden="true" />
+            <span className="break-words">{item}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function StructuredReportSections({ items }: { items: string[] }) {
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+      <p className="text-sm font-black text-[#0A1547]">Suggested Report Sections</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {items.map((item, index) => (
+          <span
+            key={`report-section-${index}`}
+            className="max-w-full break-words rounded-full border border-[#A380F6]/25 bg-white px-3 py-1 text-xs font-extrabold text-[#0A1547]"
+          >
+            {item}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StructuredProviderStatusPill({
+  provider,
+  status,
+}: {
+  provider: string;
+  status: StructuredProviderStatus;
+}) {
+  const normalizedStatus = status.status || "missing";
+  const parsed = normalizedStatus === "parsed";
+
+  return (
+    <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${
+      parsed
+        ? "border-[#02D99D]/30 bg-[#02D99D]/10 text-[#0A1547]"
+        : "border-[#A380F6]/30 bg-[#A380F6]/10 text-[#0A1547]"
+    }`}
+    >
+      {formatProviderName(provider)}: {formatStructuredLabel(normalizedStatus)}
+    </span>
   );
 }
 

@@ -229,11 +229,59 @@ export type AdminAnalysisTrend = {
   source?: string | null;
 };
 
+export type StructuredExecutiveSummary = {
+  summary?: string | null;
+  primaryConcern?: string | null;
+  recommendedFocus?: string | null;
+};
+
+export type StructuredEvidenceItem = {
+  label?: string | null;
+  value?: string | null;
+  sourceHint?: string | null;
+};
+
+export type StructuredRankedFinding = {
+  rank?: number | null;
+  title?: string | null;
+  category?: string | null;
+  severity?: "low" | "medium" | "high" | "critical" | string | null;
+  confidence?: "low" | "medium" | "high" | string | null;
+  evidence?: StructuredEvidenceItem[];
+  financialValue?: string | null;
+  operationalImplication?: string | null;
+  recommendedAction?: string | null;
+  followUpQuestion?: string | null;
+  implementationDifficulty?: "low" | "medium" | "high" | string | null;
+  estimatedImpactCategory?: string | null;
+  clientFacingSummary?: string | null;
+  internalReviewerNotes?: string | null;
+};
+
+export type StructuredAnalysis = {
+  schemaVersion?: string | null;
+  toolType?: "financial" | "ar" | "claims" | string | null;
+  executiveSummary?: StructuredExecutiveSummary | null;
+  rankedFindings?: StructuredRankedFinding[];
+  dataQualityNotes?: string[];
+  implementationPriorities?: string[];
+  consultantChecklist?: string[];
+  suggestedReportSections?: string[];
+};
+
+export type StructuredProviderStatus = {
+  status?: "parsed" | "missing" | "invalid_json" | "validation_failed" | string | null;
+};
+
 export type AdminAnalysisData = {
   sourceFormat?: string | null;
+  toolType?: string | null;
   generatedAt?: string | null;
   raw_analyses?: Record<string, string>;
   provider_statuses?: Record<string, AdminAnalysisProviderStatus>;
+  provider_structured_outputs?: Record<string, StructuredAnalysis | null>;
+  structured_provider_statuses?: Record<string, StructuredProviderStatus>;
+  structured_analysis?: StructuredAnalysis | null;
   all_trends?: AdminAnalysisTrend[];
   deduplicated_issues?: AdminAnalysisIssue[];
   total_issue_count?: number;
