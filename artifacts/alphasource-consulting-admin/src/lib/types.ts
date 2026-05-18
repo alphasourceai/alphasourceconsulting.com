@@ -585,6 +585,22 @@ export type ClientProfileSummary = {
   latestGhlCid: string | null;
 };
 
+export type ConsultantReviewArchiveItem = {
+  id: string | null;
+  uploadId: string | null;
+  fileName: string | null;
+  toolName: string | null;
+  uploadTime: string | null;
+  paid: boolean;
+  voided: boolean;
+  pdfGeneratedAt: string | null;
+  structuredAnalysis: StructuredAnalysis;
+  providerStructuredStatuses?: Record<string, StructuredProviderStatus | null>;
+  rawAnalyses?: Record<string, string>;
+  generatedAt: string | null;
+  sourceFormat: string | null;
+};
+
 export type ClientBillingDetailResponse = {
   ok: true;
   clientEmail: string;
@@ -594,6 +610,7 @@ export type ClientBillingDetailResponse = {
   summary: BillingSummary;
   checkoutSessions: CheckoutSessionSummary[];
   recentSubmissions: ClientRecentSubmissionSummary[];
+  consultantReviews?: ConsultantReviewArchiveItem[];
   uploads: BillingUploadSummary[];
   billingOverrides: BillingOverrideSummary[];
   invoices?: unknown[];

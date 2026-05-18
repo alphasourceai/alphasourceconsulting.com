@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link } from "wouter";
 import { useAuth } from "@/auth/AuthProvider";
+import { ConsultantReviewExportControls } from "@/components/ConsultantReviewExportControls";
 import { AdminApiError, createCheckoutSession, expireCheckoutSession, getClientBillingDetail, voidAdminUpload } from "@/lib/adminApi";
 import type {
   BillingUploadSummary,
   BillingUploadStatus,
   CheckoutSessionSummary,
   ClientBillingDetailResponse,
+  ConsultantReviewArchiveItem,
   CreateCheckoutSessionResponse,
+  StructuredRankedFinding,
 } from "@/lib/types";
 
 type ClientDetailPageProps = {
@@ -166,6 +169,16 @@ function submissionSourceLabel(source: string | null): string {
   return source || "—";
 }
 
+function formatStructuredLabel(value: string | null | undefined): string {
+  if (!value) {
+    return "—";
+  }
+
+  return value
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 function isPaidSession(session: CheckoutSessionSummary): boolean {
   const status = session.status?.toLowerCase();
   const paymentStatus = session.paymentStatus?.toLowerCase();
@@ -283,6 +296,7 @@ export default function ClientDetailPage({ email }: ClientDetailPageProps) {
       detail !== null &&
       detail.checkoutSessions.length === 0 &&
       (detail.recentSubmissions?.length ?? 0) === 0 &&
+      (detail.consultantReviews?.length ?? 0) === 0 &&
       detail.uploads.length === 0 &&
       detail.billingOverrides.length === 0
     );
@@ -419,6 +433,12 @@ export default function ClientDetailPage({ email }: ClientDetailPageProps) {
               uploads={visibleUploads}
             />
           </section>
+
+          <ConsultantReviewArchivePanel
+            clientEmail={detail.clientEmail}
+            clientName={detail.clientProfile.name}
+            reviews={detail.consultantReviews ?? []}
+          />
 
           {voidTarget && (
             <VoidUploadModal
@@ -628,6 +648,207 @@ function RecentSubmissionCard({
       )}
     </article>
   );
+}
+
+function ConsultantReviewArchivePanel({
+  clientEmail,
+  clientName,
+  reviews,
+}: {
+  clientEmail: string;
+  clientName: string | null;
+  reviews: ConsultantReviewArchiveItem[];
+}) {
+  return (
+    <section className="admin-card p-5">
+      <div>
+        <h3 className="text-lg font-black text-[#0A1547]">Consultant review archive</h3>
+        <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/60">
+          Previously promoted structured reviews for this client. Use these for internal review, follow-up planning, or export.
+        </p>
+      </div>
+
+      <div className="mt-4 grid gap-3">
+        {reviews.length > 0 ? reviews.map((review) => (
+          <ConsultantReviewArchiveCard
+            key={review.id || review.uploadId || `${review.toolName}-${review.uploadTime}`}
+            clientEmail={clientEmail}
+            clientName={clientName}
+            review={review}
+          />
+        )) : (
+          <p className="rounded-2xl bg-[#F8F9FD] p-4 text-sm font-medium text-[#0A1547]/56">
+            No consultant review exports are available yet. Promote a structured Document Analysis result to make it available here.
+          </p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function ConsultantReviewArchiveCard({
+  clientEmail,
+  clientName,
+  review,
+}: {
+  clientEmail: string;
+  clientName: string | null;
+  review: ConsultantReviewArchiveItem;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const structuredAnalysis = review.structuredAnalysis;
+  const summary = structuredAnalysis.executiveSummary || {};
+  const findings = structuredAnalysis.rankedFindings || [];
+  const rawOutputs = Object.entries(review.rawAnalyses || {}).filter((entry): entry is [string, string] => (
+    typeof entry[1] === "string"
+  ));
+  const providerStatuses = Object.entries(review.providerStructuredStatuses || {});
+  const eventTime = review.generatedAt || review.uploadTime || review.pdfGeneratedAt;
+
+  return (
+    <article className="rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          <p className="break-words text-sm font-black text-[#0A1547]">{formatNullable(review.fileName)}</p>
+          <p className="mt-1 text-xs font-bold text-[#0A1547]/52">
+            {formatNullable(review.toolName)} / {formatDate(eventTime)}
+          </p>
+        </div>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <span className={`rounded-full border px-2.5 py-1 text-xs font-bold ${statusTone(review.paid ? "paid" : "unpaid")}`}>
+            {review.paid ? "Paid" : "Not paid"}
+          </span>
+          {review.voided && (
+            <span className={`rounded-full border px-2.5 py-1 text-xs font-bold ${statusTone("voided")}`}>
+              Voided
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 lg:grid-cols-3">
+        <ClientInfoFact label="Findings" value={findings.length} />
+        <ClientInfoFact label="Primary concern" value={summary.primaryConcern} />
+        <ClientInfoFact label="Recommended focus" value={summary.recommendedFocus} />
+      </div>
+
+      {summary.summary && (
+        <p className="mt-3 line-clamp-3 rounded-xl border border-[#0A1547]/10 bg-white px-3 py-2 text-sm font-semibold leading-6 text-[#0A1547]/70">
+          {summary.summary}
+        </p>
+      )}
+
+      <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <button
+          type="button"
+          onClick={() => setExpanded((current) => !current)}
+          className="admin-focus w-fit rounded-xl border border-[#0A1547]/10 bg-white px-4 py-2 text-xs font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/50 hover:bg-[#A380F6]/10"
+        >
+          {expanded ? "Hide details" : "View details"}
+        </button>
+
+        <ConsultantReviewExportControls
+          buttonLabel="Export review"
+          context={{
+            clientEmail,
+            clientName,
+            fileName: review.fileName,
+            generatedAt: review.generatedAt,
+            sourceFormat: review.sourceFormat,
+            toolName: review.toolName,
+            toolType: structuredAnalysis.toolType,
+            uploadTime: review.uploadTime,
+          }}
+          providerStatuses={providerStatuses}
+          rawOutputs={rawOutputs}
+          structuredAnalysis={structuredAnalysis}
+        />
+      </div>
+
+      {expanded && (
+        <div className="mt-4 rounded-2xl border border-[#0A1547]/10 bg-white p-4">
+          <p className="text-sm font-black text-[#0A1547]">Review preview</p>
+          <div className="mt-3 grid gap-3">
+            {summary.summary && <ArchivePreviewBlock label="Executive summary" value={summary.summary} />}
+            {findings.slice(0, 3).map((finding, index) => (
+              <ArchiveFindingPreview
+                key={`${finding.rank || index}-${finding.title || "finding"}`}
+                finding={finding}
+                fallbackRank={index + 1}
+              />
+            ))}
+            {findings.length === 0 && (
+              <p className="rounded-xl bg-[#F8F9FD] p-3 text-sm font-medium text-[#0A1547]/56">
+                No ranked findings are available for this review.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+    </article>
+  );
+}
+
+function ArchivePreviewBlock({ label, value }: { label: string; value: string | null | undefined }) {
+  if (!value) {
+    return null;
+  }
+
+  return (
+    <div>
+      <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/42">{label}</p>
+      <p className="mt-1 break-words text-sm font-semibold leading-6 text-[#0A1547]/72">{value}</p>
+    </div>
+  );
+}
+
+function ArchiveFindingPreview({
+  fallbackRank,
+  finding,
+}: {
+  fallbackRank: number;
+  finding: StructuredRankedFinding;
+}) {
+  const rank = finding.rank || fallbackRank;
+
+  return (
+    <div className="rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] p-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#A380F6]">Finding {rank}</p>
+          <p className="mt-1 text-sm font-black text-[#0A1547]">{formatNullable(finding.title)}</p>
+          <p className="mt-1 text-xs font-bold text-[#0A1547]/50">{formatStructuredLabel(finding.category)}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <span className={`rounded-full border px-2.5 py-1 text-xs font-bold ${reviewSeverityTone(finding.severity)}`}>
+            {formatStructuredLabel(finding.severity)}
+          </span>
+          <span className="rounded-full border border-[#A380F6]/25 bg-white px-2.5 py-1 text-xs font-bold text-[#0A1547]/72">
+            {formatStructuredLabel(finding.confidence)} confidence
+          </span>
+        </div>
+      </div>
+      {finding.recommendedAction && (
+        <p className="mt-3 text-sm font-semibold leading-6 text-[#0A1547]/70">
+          <span className="font-black text-[#0A1547]">Recommended action:</span> {finding.recommendedAction}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function reviewSeverityTone(value: string | null | undefined): string {
+  const normalized = value?.toLowerCase();
+  if (normalized === "critical" || normalized === "high") {
+    return "border-red-200 bg-red-50 text-red-700";
+  }
+  if (normalized === "medium") {
+    return "border-[#A380F6]/30 bg-[#A380F6]/10 text-[#0A1547]";
+  }
+  if (normalized === "low") {
+    return "border-[#02D99D]/30 bg-[#02D99D]/10 text-[#0A1547]";
+  }
+  return "border-[#0A1547]/10 bg-white text-[#0A1547]/70";
 }
 
 function CreateCheckoutLinkCard({
