@@ -473,6 +473,11 @@ export type GeneratePdfReportRequest = {
   trends: string[];
   keyTrends: string[];
   additionalNotes: string;
+  executiveSummary?: PdfGeneratorStructuredExecutiveSummary | null;
+  rankedFindings?: PdfGeneratorStructuredFinding[];
+  structuredTrends?: string[];
+  actionPlanItems?: string[];
+  dataNotes?: string[];
 };
 
 export type GeneratePdfReportResponse = {

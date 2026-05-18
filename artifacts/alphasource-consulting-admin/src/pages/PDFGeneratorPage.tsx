@@ -8,6 +8,7 @@ import type {
   PdfGeneratorMetadata,
   PdfGeneratorStructuredDraft,
   PdfGeneratorStructuredEvidence,
+  PdfGeneratorStructuredExecutiveSummary,
   PdfGeneratorStructuredFinding,
   PdfGeneratorUpload,
 } from "@/lib/types";
@@ -66,6 +67,36 @@ type DraftTextItem = {
   text: string;
 };
 
+type DraftExecutiveSummary = {
+  selected: boolean;
+  summary: string;
+  primaryConcern: string;
+  recommendedFocus: string;
+};
+
+type DraftEvidenceItem = {
+  label: string;
+  value: string;
+  sourceHint: string;
+};
+
+type DraftRankedFinding = {
+  id: string;
+  selected: boolean;
+  rank: number;
+  title: string;
+  category: string;
+  severity: string;
+  confidence: string;
+  estimatedImpactCategory: string;
+  implementationDifficulty: string;
+  financialValue: string;
+  evidence: DraftEvidenceItem[];
+  clientFacingSummary: string;
+  operationalImplication: string;
+  recommendedAction: string;
+};
+
 type ReportDraft = {
   source: "legacy" | "structured";
   uploadId: string;
@@ -73,6 +104,11 @@ type ReportDraft = {
   trends: DraftTextItem[];
   keyTrends: DraftTextItem[];
   additionalNotes: string;
+  executiveSummary?: DraftExecutiveSummary;
+  rankedFindings?: DraftRankedFinding[];
+  structuredTrends?: DraftTextItem[];
+  actionPlanItems?: DraftTextItem[];
+  dataNotes?: DraftTextItem[];
 };
 
 type PdfGenerationResult = {
@@ -88,7 +124,7 @@ type PdfGenerationError = {
 
 function createReportDraft(upload: PdfGeneratorUpload): ReportDraft {
   if (hasStructuredDraft(upload.analysis.structured)) {
-    return createStructuredReportDraft(upload.id, upload.analysis.structured);
+    return createStructuredReportDraft(upload);
   }
 
   return {
@@ -119,12 +155,18 @@ function hasStructuredDraft(value: PdfGeneratorStructuredDraft | null | undefine
   return Boolean(value?.available);
 }
 
-function createStructuredReportDraft(uploadId: string, structured: PdfGeneratorStructuredDraft): ReportDraft {
+function createStructuredReportDraft(upload: PdfGeneratorUpload): ReportDraft {
+  const uploadId = upload.id;
+  const structured = upload.analysis.structured as PdfGeneratorStructuredDraft;
   const sortedFindings = [...(structured.rankedFindings ?? [])].sort((left, right) => (
     (left.rank ?? Number.MAX_SAFE_INTEGER) - (right.rank ?? Number.MAX_SAFE_INTEGER)
   ));
   const executiveSummary = structured.executiveSummary ?? {};
   const implementationPriorities = structured.implementationPriorities ?? [];
+  const structuredTrends = uniqueTextItems([
+    ...(upload.analysis.keyTrends ?? []),
+    ...(upload.analysis.trends ?? []),
+  ]);
 
   return {
     source: "structured",
@@ -132,17 +174,14 @@ function createStructuredReportDraft(uploadId: string, structured: PdfGeneratorS
     opportunities: sortedFindings
       .map((finding, index) => structuredFindingToOpportunity(uploadId, finding, index))
       .filter((item) => item.title || item.impact || item.recommendation),
-    trends: structuredListItems("data-note", uploadId, structured.dataQualityNotes ?? [], "Data note")
-      .concat(structuredListItems("priority", uploadId, implementationPriorities, "Implementation priority"))
-      .concat(structuredListItems("section", uploadId, structured.suggestedReportSections ?? [], "Report section to consider")),
-    keyTrends: [
-      structuredTextItem("summary", uploadId, executiveSummary.summary, "Summary"),
-      structuredTextItem("primary-concern", uploadId, executiveSummary.primaryConcern, "Primary concern"),
-      structuredTextItem("recommended-focus", uploadId, executiveSummary.recommendedFocus, "Recommended focus"),
-    ].filter((item): item is DraftTextItem => item !== null),
-    additionalNotes: implementationPriorities.length > 0
-      ? `30-day action plan focus:\n${implementationPriorities.map((item) => `- ${item}`).join("\n")}`
-      : "",
+    trends: [],
+    keyTrends: [],
+    additionalNotes: "",
+    executiveSummary: structuredExecutiveSummary(executiveSummary),
+    rankedFindings: sortedFindings.map((finding, index) => structuredFindingToDraftFinding(uploadId, finding, index)),
+    structuredTrends: structuredListItems("trend", uploadId, structuredTrends),
+    actionPlanItems: structuredListItems("priority", uploadId, implementationPriorities),
+    dataNotes: structuredListItems("data-note", uploadId, structured.dataQualityNotes ?? []),
   };
 }
 
@@ -171,36 +210,72 @@ function structuredEvidenceSummary(items: PdfGeneratorStructuredEvidence[]): str
     .join(" | ");
 }
 
-function structuredTextItem(
-  key: string,
-  uploadId: string,
-  value: string | null | undefined,
-  label: string,
-): DraftTextItem | null {
-  const text = value?.trim();
-  if (!text) {
-    return null;
-  }
+function structuredExecutiveSummary(summary: PdfGeneratorStructuredExecutiveSummary): DraftExecutiveSummary {
+  const item = {
+    selected: Boolean(summary.summary || summary.primaryConcern || summary.recommendedFocus),
+    summary: summary.summary?.trim() ?? "",
+    primaryConcern: summary.primaryConcern?.trim() ?? "",
+    recommendedFocus: summary.recommendedFocus?.trim() ?? "",
+  };
+  return item;
+}
 
+function structuredFindingToDraftFinding(
+  uploadId: string,
+  finding: PdfGeneratorStructuredFinding,
+  index: number,
+): DraftRankedFinding {
   return {
-    id: `structured-${key}-${uploadId}`,
+    id: `structured-finding-${uploadId}-${finding.id || finding.rank || index}`,
     selected: true,
-    text: `${label}: ${text}`,
+    rank: finding.rank ?? index + 1,
+    title: finding.title?.trim() || `Finding ${index + 1}`,
+    category: finding.category?.trim() ?? "",
+    severity: finding.severity?.trim() ?? "",
+    confidence: finding.confidence?.trim() ?? "",
+    estimatedImpactCategory: finding.estimatedImpactCategory?.trim() ?? "",
+    implementationDifficulty: finding.implementationDifficulty?.trim() ?? "",
+    financialValue: finding.financialValue?.trim() ?? "",
+    evidence: (finding.evidence ?? [])
+      .map((item) => ({
+        label: item.label?.trim() ?? "",
+        value: item.value?.trim() ?? "",
+        sourceHint: item.sourceHint?.trim() ?? "",
+      }))
+      .filter((item) => item.label || item.value || item.sourceHint),
+    clientFacingSummary: finding.clientFacingSummary?.trim() ?? "",
+    operationalImplication: finding.operationalImplication?.trim() ?? "",
+    recommendedAction: finding.recommendedAction?.trim() ?? "",
   };
 }
 
-function structuredListItems(prefix: string, uploadId: string, values: string[], label: string): DraftTextItem[] {
+function structuredListItems(prefix: string, uploadId: string, values: string[]): DraftTextItem[] {
   return values
     .map((value, index) => value.trim() ? ({
       id: `structured-${prefix}-${uploadId}-${index}`,
       selected: true,
-      text: `${label}: ${value.trim()}`,
+      text: value.trim(),
     }) : null)
     .filter((item): item is DraftTextItem => item !== null);
 }
 
+function uniqueTextItems(values: string[]): string[] {
+  const seen = new Set<string>();
+  const items: string[] = [];
+  values.forEach((value) => {
+    const text = value.trim();
+    const key = text.toLowerCase();
+    if (!text || seen.has(key)) {
+      return;
+    }
+    seen.add(key);
+    items.push(text);
+  });
+  return items;
+}
+
 function createGeneratePdfPayload(draft: ReportDraft): Omit<GeneratePdfReportRequest, "uploadId"> {
-  return {
+  const payload: Omit<GeneratePdfReportRequest, "uploadId"> = {
     opportunities: draft.opportunities
       .filter((item) => item.selected)
       .map((item) => ({
@@ -219,13 +294,78 @@ function createGeneratePdfPayload(draft: ReportDraft): Omit<GeneratePdfReportReq
       .filter(Boolean),
     additionalNotes: draft.additionalNotes.trim(),
   };
+
+  if (draft.source === "structured") {
+    const executiveSummary = draft.executiveSummary;
+    payload.executiveSummary = executiveSummary?.selected ? {
+      summary: executiveSummary.summary.trim(),
+      primaryConcern: executiveSummary.primaryConcern.trim(),
+      recommendedFocus: executiveSummary.recommendedFocus.trim(),
+    } : null;
+    payload.rankedFindings = (draft.rankedFindings ?? [])
+      .filter((item) => item.selected)
+      .map((item, index) => ({
+        rank: index + 1,
+        title: item.title.trim(),
+        category: item.category.trim(),
+        severity: item.severity.trim(),
+        confidence: item.confidence.trim(),
+        estimatedImpactCategory: item.estimatedImpactCategory.trim(),
+        implementationDifficulty: item.implementationDifficulty.trim(),
+        financialValue: item.financialValue.trim(),
+        evidence: item.evidence
+          .map((evidence) => ({
+            label: evidence.label.trim(),
+            value: evidence.value.trim(),
+            sourceHint: evidence.sourceHint.trim(),
+          }))
+          .filter((evidence) => evidence.label || evidence.value || evidence.sourceHint),
+        clientFacingSummary: item.clientFacingSummary.trim(),
+        operationalImplication: item.operationalImplication.trim(),
+        recommendedAction: item.recommendedAction.trim(),
+      }))
+      .filter((item) => (
+        item.title ||
+        item.financialValue ||
+        item.clientFacingSummary ||
+        item.operationalImplication ||
+        item.recommendedAction ||
+        (item.evidence?.length ?? 0) > 0
+      ));
+    payload.structuredTrends = (draft.structuredTrends ?? [])
+      .filter((item) => item.selected)
+      .map((item) => item.text.trim())
+      .filter(Boolean);
+    payload.actionPlanItems = (draft.actionPlanItems ?? [])
+      .filter((item) => item.selected)
+      .map((item) => item.text.trim())
+      .filter(Boolean);
+    payload.dataNotes = (draft.dataNotes ?? [])
+      .filter((item) => item.selected)
+      .map((item) => item.text.trim())
+      .filter(Boolean);
+  }
+
+  return payload;
 }
 
 function hasGeneratePdfContent(payload: Omit<GeneratePdfReportRequest, "uploadId">): boolean {
+  const summary = payload.executiveSummary;
+  const hasExecutiveSummary = Boolean(summary && (
+    summary.summary ||
+    summary.primaryConcern ||
+    summary.recommendedFocus
+  ));
+
   return (
     payload.opportunities.length > 0 ||
     payload.trends.length > 0 ||
     payload.keyTrends.length > 0 ||
+    hasExecutiveSummary ||
+    (payload.rankedFindings?.length ?? 0) > 0 ||
+    (payload.structuredTrends?.length ?? 0) > 0 ||
+    (payload.actionPlanItems?.length ?? 0) > 0 ||
+    (payload.dataNotes?.length ?? 0) > 0 ||
     Boolean(payload.additionalNotes)
   );
 }
@@ -382,7 +522,7 @@ export default function PDFGeneratorPage() {
     if (!hasGeneratePdfContent(draftPayload)) {
       setGenerationError({
         uploadId: selectedUpload.id,
-        message: "Select at least one opportunity, trend, key trend, or add notes before generating.",
+        message: "Select at least one report section or add notes before generating.",
       });
       return;
     }
@@ -807,7 +947,7 @@ function GeneratePdfPanel({
 
       {!canGenerate && (
         <p className="mt-4 rounded-xl bg-white px-4 py-3 text-sm font-medium text-[#0A1547]/58">
-          Select at least one opportunity, trend, key trend, or add notes to generate a PDF.
+          Select at least one report section or add notes to generate a PDF.
         </p>
       )}
 
@@ -859,6 +999,16 @@ function DraftBuilder({
   onChange: (draft: ReportDraft) => void;
   onReset: () => void;
 }) {
+  if (draft.source === "structured") {
+    return (
+      <StructuredDraftBuilder
+        draft={draft}
+        onChange={onChange}
+        onReset={onReset}
+      />
+    );
+  }
+
   const updateOpportunity = (id: string, patch: Partial<DraftOpportunity>) => {
     onChange({
       ...draft,
@@ -899,17 +1049,6 @@ function DraftBuilder({
           <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/62">
             These edits are used for this PDF generation request only and are not saved back to the analysis data.
           </p>
-          {draft.source === "structured" && (
-            <div className="mt-3 rounded-2xl border border-[#02D99D]/25 bg-[#02D99D]/10 px-4 py-3">
-              <p className="text-sm font-black text-[#0A1547]">Structured draft available</p>
-              <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
-                This draft was initialized from structured consultant-review output. Review and edit all client-facing language before generating the PDF.
-              </p>
-              <p className="mt-1 text-xs font-bold leading-5 text-[#0A1547]/48">
-                Internal notes and raw AI outputs are not included.
-              </p>
-            </div>
-          )}
         </div>
         <button
           type="button"
@@ -953,18 +1092,400 @@ function DraftBuilder({
   );
 }
 
+function StructuredDraftBuilder({
+  draft,
+  onChange,
+  onReset,
+}: {
+  draft: ReportDraft;
+  onChange: (draft: ReportDraft) => void;
+  onReset: () => void;
+}) {
+  const updateExecutiveSummary = (patch: Partial<DraftExecutiveSummary>) => {
+    const current = draft.executiveSummary ?? {
+      selected: false,
+      summary: "",
+      primaryConcern: "",
+      recommendedFocus: "",
+    };
+    onChange({ ...draft, executiveSummary: { ...current, ...patch } });
+  };
+
+  const updateRankedFinding = (id: string, patch: Partial<DraftRankedFinding>) => {
+    onChange({
+      ...draft,
+      rankedFindings: (draft.rankedFindings ?? []).map((item) => (
+        item.id === id ? { ...item, ...patch } : item
+      )),
+    });
+  };
+
+  const updateFindingEvidence = (
+    findingId: string,
+    evidenceIndex: number,
+    patch: Partial<DraftEvidenceItem>,
+  ) => {
+    onChange({
+      ...draft,
+      rankedFindings: (draft.rankedFindings ?? []).map((finding) => (
+        finding.id === findingId
+          ? {
+              ...finding,
+              evidence: finding.evidence.map((evidence, index) => (
+                index === evidenceIndex ? { ...evidence, ...patch } : evidence
+              )),
+            }
+          : finding
+      )),
+    });
+  };
+
+  const moveRankedFinding = (id: string, direction: -1 | 1) => {
+    const findings = draft.rankedFindings ?? [];
+    const currentIndex = findings.findIndex((item) => item.id === id);
+    const nextIndex = currentIndex + direction;
+    if (currentIndex < 0 || nextIndex < 0 || nextIndex >= findings.length) {
+      return;
+    }
+
+    const nextFindings = [...findings];
+    const [item] = nextFindings.splice(currentIndex, 1);
+    nextFindings.splice(nextIndex, 0, item);
+    onChange({
+      ...draft,
+      rankedFindings: nextFindings.map((finding, index) => ({ ...finding, rank: index + 1 })),
+    });
+  };
+
+  const updateOpportunity = (id: string, patch: Partial<DraftOpportunity>) => {
+    onChange({
+      ...draft,
+      opportunities: draft.opportunities.map((item) => (
+        item.id === id ? { ...item, ...patch } : item
+      )),
+    });
+  };
+
+  const moveOpportunity = (id: string, direction: -1 | 1) => {
+    const currentIndex = draft.opportunities.findIndex((item) => item.id === id);
+    const nextIndex = currentIndex + direction;
+    if (currentIndex < 0 || nextIndex < 0 || nextIndex >= draft.opportunities.length) {
+      return;
+    }
+
+    const nextOpportunities = [...draft.opportunities];
+    const [item] = nextOpportunities.splice(currentIndex, 1);
+    nextOpportunities.splice(nextIndex, 0, item);
+    onChange({ ...draft, opportunities: nextOpportunities });
+  };
+
+  const updateStructuredTextItem = (
+    section: "structuredTrends" | "actionPlanItems" | "dataNotes",
+    id: string,
+    patch: Partial<DraftTextItem>,
+  ) => {
+    onChange({
+      ...draft,
+      [section]: (draft[section] ?? []).map((item) => (
+        item.id === id ? { ...item, ...patch } : item
+      )),
+    });
+  };
+
+  return (
+    <section className="rounded-2xl border border-[#A380F6]/20 bg-[#A380F6]/8 p-4">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div>
+          <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#A380F6]">Structured report draft</p>
+          <h4 className="mt-2 text-lg font-black text-[#0A1547]">Edit client-facing report sections</h4>
+          <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/62">
+            This draft was initialized from structured consultant-review output. Review and edit all client-facing language before generating the PDF.
+          </p>
+          <p className="mt-1 text-xs font-bold leading-5 text-[#0A1547]/48">
+            Internal notes, raw AI outputs, provider statuses, and technical metadata are not included.
+          </p>
+          <div className="mt-3 inline-flex rounded-full border border-[#02D99D]/25 bg-[#02D99D]/10 px-3 py-1 text-xs font-extrabold text-[#0A1547]">
+            Structured draft available
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onReset}
+          className="admin-focus rounded-xl border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/60"
+        >
+          Reset
+        </button>
+      </div>
+
+      <div className="mt-5 grid gap-5">
+        <StructuredExecutiveSummaryEditor
+          item={draft.executiveSummary}
+          onChange={updateExecutiveSummary}
+        />
+        <StructuredRankedFindingsEditor
+          items={draft.rankedFindings ?? []}
+          onChange={updateRankedFinding}
+          onEvidenceChange={updateFindingEvidence}
+          onMove={moveRankedFinding}
+        />
+        <DraftOpportunityEditor
+          items={draft.opportunities}
+          label="Improvement Opportunities"
+          onChange={updateOpportunity}
+          onMove={moveOpportunity}
+        />
+        <DraftTextEditor
+          emptyText="No true trend items were returned for this upload."
+          itemLabel="Trend"
+          items={draft.structuredTrends ?? []}
+          label="Key Trends"
+          onChange={(id, patch) => updateStructuredTextItem("structuredTrends", id, patch)}
+        />
+        <DraftTextEditor
+          emptyText="No implementation priorities were returned for this upload."
+          itemLabel="Action Plan Item"
+          items={draft.actionPlanItems ?? []}
+          label="30-Day Action Plan"
+          onChange={(id, patch) => updateStructuredTextItem("actionPlanItems", id, patch)}
+        />
+        <DraftTextEditor
+          emptyText="No data notes or limitations were returned for this upload."
+          itemLabel="Data Note"
+          items={draft.dataNotes ?? []}
+          label="Data Notes / Limitations"
+          onChange={(id, patch) => updateStructuredTextItem("dataNotes", id, patch)}
+        />
+        <label className="block">
+          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0A1547]/45">Additional notes</span>
+          <textarea
+            value={draft.additionalNotes}
+            onChange={(event) => onChange({ ...draft, additionalNotes: event.target.value })}
+            rows={4}
+            placeholder="Add optional client-facing notes for this PDF report."
+            className="admin-focus mt-2 w-full resize-y rounded-xl border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-medium leading-6 text-[#0A1547] placeholder:text-[#0A1547]/38"
+          />
+        </label>
+      </div>
+    </section>
+  );
+}
+
+function StructuredExecutiveSummaryEditor({
+  item,
+  onChange,
+}: {
+  item: DraftExecutiveSummary | undefined;
+  onChange: (patch: Partial<DraftExecutiveSummary>) => void;
+}) {
+  const summary = item ?? {
+    selected: false,
+    summary: "",
+    primaryConcern: "",
+    recommendedFocus: "",
+  };
+
+  return (
+    <section>
+      <h5 className="text-sm font-black text-[#0A1547]">Executive Summary</h5>
+      <article className="mt-3 rounded-2xl border border-[#0A1547]/10 bg-white p-4">
+        <label className="inline-flex items-center gap-2 text-sm font-semibold text-[#0A1547]">
+          <input
+            type="checkbox"
+            checked={summary.selected}
+            onChange={(event) => onChange({ selected: event.target.checked })}
+            className="h-4 w-4 accent-[#A380F6]"
+          />
+          Include executive summary
+        </label>
+        {summary.selected && (
+          <div className="mt-3 grid gap-3">
+            <DraftTextarea
+              label="Summary"
+              value={summary.summary}
+              onChange={(value) => onChange({ summary: value })}
+            />
+            <DraftTextarea
+              label="Primary concern"
+              value={summary.primaryConcern}
+              onChange={(value) => onChange({ primaryConcern: value })}
+            />
+            <DraftTextarea
+              label="Recommended focus"
+              value={summary.recommendedFocus}
+              onChange={(value) => onChange({ recommendedFocus: value })}
+            />
+          </div>
+        )}
+      </article>
+    </section>
+  );
+}
+
+function StructuredRankedFindingsEditor({
+  items,
+  onChange,
+  onEvidenceChange,
+  onMove,
+}: {
+  items: DraftRankedFinding[];
+  onChange: (id: string, patch: Partial<DraftRankedFinding>) => void;
+  onEvidenceChange: (findingId: string, evidenceIndex: number, patch: Partial<DraftEvidenceItem>) => void;
+  onMove: (id: string, direction: -1 | 1) => void;
+}) {
+  return (
+    <section>
+      <h5 className="text-sm font-black text-[#0A1547]">Ranked Findings</h5>
+      {items.length === 0 ? (
+        <p className="mt-3 rounded-2xl bg-white p-4 text-sm font-medium text-[#0A1547]/56">
+          No ranked findings were returned for this upload.
+        </p>
+      ) : (
+        <div className="mt-3 grid gap-3">
+          {items.map((item, index) => (
+            <article key={item.id} className="rounded-2xl border border-[#0A1547]/10 bg-white p-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <label className="inline-flex items-center gap-2 text-sm font-semibold text-[#0A1547]">
+                    <input
+                      type="checkbox"
+                      checked={item.selected}
+                      onChange={(event) => onChange(item.id, { selected: event.target.checked })}
+                      className="h-4 w-4 accent-[#A380F6]"
+                    />
+                    Include finding {index + 1}
+                  </label>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <DraftBadge label="Category" value={item.category} />
+                    <DraftBadge label="Severity" value={item.severity} tone={item.severity} />
+                    <DraftBadge label="Confidence" value={item.confidence} />
+                    <DraftBadge label="Impact" value={item.estimatedImpactCategory} />
+                  </div>
+                </div>
+                <OpportunityMoveControls
+                  disabledDown={index === items.length - 1}
+                  disabledUp={index === 0}
+                  onMoveDown={() => onMove(item.id, 1)}
+                  onMoveUp={() => onMove(item.id, -1)}
+                />
+              </div>
+
+              {item.selected && (
+                <div className="mt-3 grid gap-3">
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <DraftInput
+                      label="Title"
+                      value={item.title}
+                      onChange={(value) => onChange(item.id, { title: value })}
+                    />
+                    <DraftInput
+                      label="Financial value"
+                      value={item.financialValue}
+                      onChange={(value) => onChange(item.id, { financialValue: value })}
+                    />
+                    <DraftInput
+                      label="Category"
+                      value={item.category}
+                      onChange={(value) => onChange(item.id, { category: value })}
+                    />
+                    <DraftInput
+                      label="Severity"
+                      value={item.severity}
+                      onChange={(value) => onChange(item.id, { severity: value })}
+                    />
+                    <DraftInput
+                      label="Confidence"
+                      value={item.confidence}
+                      onChange={(value) => onChange(item.id, { confidence: value })}
+                    />
+                    <DraftInput
+                      label="Impact category"
+                      value={item.estimatedImpactCategory}
+                      onChange={(value) => onChange(item.id, { estimatedImpactCategory: value })}
+                    />
+                  </div>
+                  <DraftTextarea
+                    label="Client-facing summary"
+                    value={item.clientFacingSummary}
+                    onChange={(value) => onChange(item.id, { clientFacingSummary: value })}
+                  />
+                  <DraftTextarea
+                    label="Operational implication"
+                    value={item.operationalImplication}
+                    onChange={(value) => onChange(item.id, { operationalImplication: value })}
+                  />
+                  <DraftTextarea
+                    label="Recommended action"
+                    value={item.recommendedAction}
+                    onChange={(value) => onChange(item.id, { recommendedAction: value })}
+                  />
+                  {item.evidence.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0A1547]/45">Evidence</p>
+                      <div className="mt-2 grid gap-2">
+                        {item.evidence.map((evidence, evidenceIndex) => (
+                          <div key={`${item.id}-evidence-${evidenceIndex}`} className="grid gap-2 rounded-xl bg-[#F8F9FD] p-3 md:grid-cols-3">
+                            <DraftInput
+                              label="Label"
+                              value={evidence.label}
+                              onChange={(value) => onEvidenceChange(item.id, evidenceIndex, { label: value })}
+                            />
+                            <DraftInput
+                              label="Value"
+                              value={evidence.value}
+                              onChange={(value) => onEvidenceChange(item.id, evidenceIndex, { value })}
+                            />
+                            <DraftInput
+                              label="Source"
+                              value={evidence.sourceHint}
+                              onChange={(value) => onEvidenceChange(item.id, evidenceIndex, { sourceHint: value })}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function DraftBadge({ label, tone, value }: { label: string; tone?: string; value: string }) {
+  if (!value) {
+    return null;
+  }
+  const toneValue = tone?.toLowerCase() ?? "";
+  const className = toneValue.includes("critical") || toneValue.includes("high")
+    ? "border-amber-200 bg-amber-50 text-amber-700"
+    : toneValue.includes("low")
+      ? "border-[#02D99D]/25 bg-[#02D99D]/10 text-[#0A1547]"
+      : "border-[#A380F6]/25 bg-[#A380F6]/10 text-[#0A1547]";
+
+  return (
+    <span className={`rounded-full border px-2.5 py-1 text-xs font-extrabold capitalize ${className}`}>
+      {label}: {warningLabel(value)}
+    </span>
+  );
+}
+
 function DraftOpportunityEditor({
   items,
+  label = "Opportunities",
   onChange,
   onMove,
 }: {
   items: DraftOpportunity[];
+  label?: string;
   onChange: (id: string, patch: Partial<DraftOpportunity>) => void;
   onMove: (id: string, direction: -1 | 1) => void;
 }) {
   return (
     <section>
-      <h5 className="text-sm font-black text-[#0A1547]">Opportunities</h5>
+      <h5 className="text-sm font-black text-[#0A1547]">{label}</h5>
       {items.length === 0 ? (
         <p className="mt-3 rounded-2xl bg-white p-4 text-sm font-medium text-[#0A1547]/56">
           No opportunities were returned for this upload.
@@ -1078,11 +1599,13 @@ function OpportunityMoveControls({
 
 function DraftTextEditor({
   emptyText,
+  itemLabel,
   items,
   label,
   onChange,
 }: {
   emptyText: string;
+  itemLabel?: string;
   items: DraftTextItem[];
   label: string;
   onChange: (id: string, patch: Partial<DraftTextItem>) => void;
@@ -1108,7 +1631,7 @@ function DraftTextEditor({
                 Include in draft
               </label>
               <DraftTextarea
-                label={label.slice(0, -1)}
+                label={itemLabel ?? label.slice(0, -1)}
                 value={item.text}
                 onChange={(value) => onChange(item.id, { text: value })}
               />
@@ -1161,6 +1684,10 @@ function DraftPreviewModal({
 }
 
 function DraftPreview({ draft }: { draft: ReportDraft }) {
+  if (draft.source === "structured") {
+    return <StructuredDraftPreview draft={draft} />;
+  }
+
   const selectedOpportunities = draft.opportunities.filter((item) => item.selected);
   const selectedKeyTrends = draft.keyTrends.filter((item) => item.selected && item.text.trim());
   const selectedTrends = draft.trends.filter((item) => item.selected && item.text.trim());
@@ -1189,13 +1716,92 @@ function DraftPreview({ draft }: { draft: ReportDraft }) {
   );
 }
 
-function PreviewOpportunities({ items }: { items: DraftOpportunity[] }) {
+function StructuredDraftPreview({ draft }: { draft: ReportDraft }) {
+  const summary = draft.executiveSummary;
+  const selectedSummary = summary?.selected ? summary : null;
+  const selectedFindings = (draft.rankedFindings ?? []).filter((item) => item.selected);
+  const selectedOpportunities = draft.opportunities.filter((item) => item.selected);
+  const selectedTrends = (draft.structuredTrends ?? []).filter((item) => item.selected && item.text.trim());
+  const selectedActionItems = (draft.actionPlanItems ?? []).filter((item) => item.selected && item.text.trim());
+  const selectedDataNotes = (draft.dataNotes ?? []).filter((item) => item.selected && item.text.trim());
+  const notes = draft.additionalNotes.trim();
+
+  return (
+    <section className="rounded-2xl border border-[#02ABE0]/20 bg-[#02ABE0]/8 p-4">
+      <h4 className="mt-2 text-lg font-black text-[#0A1547]">Selected report content</h4>
+      <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/62">
+        Structured sections below will be sent to the client-facing PDF renderer. No raw AI output, internal notes, email, GHL update, or report delivery is triggered.
+      </p>
+
+      {selectedSummary && (
+        <section className="mt-5">
+          <h5 className="text-sm font-black text-[#0A1547]">Executive Summary</h5>
+          <dl className="mt-3 grid gap-3 rounded-2xl border border-[#0A1547]/10 bg-white p-4 text-sm">
+            <Detail label="Summary" value={selectedSummary.summary} />
+            <Detail label="Primary concern" value={selectedSummary.primaryConcern} />
+            <Detail label="Recommended focus" value={selectedSummary.recommendedFocus} />
+          </dl>
+        </section>
+      )}
+
+      <PreviewRankedFindings items={selectedFindings} />
+      <PreviewOpportunities items={selectedOpportunities} title="Improvement Opportunities" />
+      <PreviewTextList title="Key Trends" items={selectedTrends.map((item) => item.text)} />
+      <PreviewTextList title="30-Day Action Plan" items={selectedActionItems.map((item) => item.text)} />
+      <PreviewTextList title="Data Notes / Limitations" items={selectedDataNotes.map((item) => item.text)} />
+
+      {notes && (
+        <section className="mt-5">
+          <h5 className="text-sm font-black text-[#0A1547]">Additional notes</h5>
+          <p className="mt-3 rounded-2xl border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-medium leading-6 text-[#0A1547]/75">
+            {notes}
+          </p>
+        </section>
+      )}
+    </section>
+  );
+}
+
+function PreviewRankedFindings({ items }: { items: DraftRankedFinding[] }) {
   return (
     <section className="mt-5">
-      <h5 className="text-sm font-black text-[#0A1547]">Opportunities</h5>
+      <h5 className="text-sm font-black text-[#0A1547]">Ranked Findings</h5>
       {items.length === 0 ? (
         <p className="mt-3 rounded-2xl bg-white p-4 text-sm font-medium text-[#0A1547]/56">
-          No opportunities selected.
+          No ranked findings selected.
+        </p>
+      ) : (
+        <div className="mt-3 grid gap-3">
+          {items.map((item, index) => (
+            <article key={item.id} className="rounded-2xl border border-[#0A1547]/10 bg-white p-4">
+              <h6 className="text-sm font-black text-[#0A1547]">{index + 1}. {formatNullable(item.title)}</h6>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <DraftBadge label="Category" value={item.category} />
+                <DraftBadge label="Severity" value={item.severity} tone={item.severity} />
+                <DraftBadge label="Confidence" value={item.confidence} />
+                <DraftBadge label="Impact" value={item.estimatedImpactCategory} />
+              </div>
+              <dl className="mt-3 grid gap-3 text-sm">
+                <Detail label="Financial value" value={item.financialValue} />
+                <Detail label="Client summary" value={item.clientFacingSummary} />
+                <Detail label="Operational implication" value={item.operationalImplication} />
+                <Detail label="Recommended action" value={item.recommendedAction} />
+              </dl>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function PreviewOpportunities({ items, title = "Opportunities" }: { items: DraftOpportunity[]; title?: string }) {
+  return (
+    <section className="mt-5">
+      <h5 className="text-sm font-black text-[#0A1547]">{title}</h5>
+      {items.length === 0 ? (
+        <p className="mt-3 rounded-2xl bg-white p-4 text-sm font-medium text-[#0A1547]/56">
+          No {title.toLowerCase()} selected.
         </p>
       ) : (
         <div className="mt-3 grid gap-3">
