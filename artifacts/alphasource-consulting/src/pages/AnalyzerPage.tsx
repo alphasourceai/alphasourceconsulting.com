@@ -780,8 +780,7 @@ export default function AnalyzerPage() {
                 </button>
 
                 <div className="space-y-1 text-xs font-medium leading-5 text-[#0A1547]/45">
-                  <p>* Analysis may take approximately 3–5 minutes for standard files. Please keep this page open while we process your file.</p>
-                  <p>* Image-based or scanned PDFs may use OCR and can take 10–20 minutes depending on file quality and page count.</p>
+                  <p>* Analysis may take approximately 1–2 minutes for standard files and 3–5 minutes for image-based or scanned PDF files. Please keep this page open until status shows complete.</p>
                 </div>
 
                 {canCancelAnalysis && (
