@@ -382,11 +382,54 @@ export type PdfGeneratorOpportunity = {
   recommendation: string;
 };
 
+export type PdfGeneratorStructuredExecutiveSummary = {
+  summary?: string | null;
+  primaryConcern?: string | null;
+  recommendedFocus?: string | null;
+};
+
+export type PdfGeneratorStructuredEvidence = {
+  label?: string | null;
+  value?: string | null;
+  sourceHint?: string | null;
+};
+
+export type PdfGeneratorStructuredFinding = {
+  id?: string | null;
+  rank?: number | null;
+  title?: string | null;
+  category?: string | null;
+  severity?: string | null;
+  confidence?: string | null;
+  financialValue?: string | null;
+  evidence?: PdfGeneratorStructuredEvidence[];
+  operationalImplication?: string | null;
+  recommendedAction?: string | null;
+  followUpQuestion?: string | null;
+  estimatedImpactCategory?: string | null;
+  implementationDifficulty?: string | null;
+  clientFacingSummary?: string | null;
+};
+
+export type PdfGeneratorStructuredDraft = {
+  available?: boolean;
+  schemaVersion?: string | null;
+  toolType?: string | null;
+  generatedAt?: string | null;
+  sourceFormat?: string | null;
+  executiveSummary?: PdfGeneratorStructuredExecutiveSummary | null;
+  rankedFindings?: PdfGeneratorStructuredFinding[];
+  dataQualityNotes?: string[];
+  implementationPriorities?: string[];
+  suggestedReportSections?: string[];
+};
+
 export type PdfGeneratorAnalysis = {
   hasAnalysisData: boolean;
   opportunities: PdfGeneratorOpportunity[];
   trends: string[];
   keyTrends: string[];
+  structured?: PdfGeneratorStructuredDraft | null;
 };
 
 export type PdfGeneratorMetadata = {

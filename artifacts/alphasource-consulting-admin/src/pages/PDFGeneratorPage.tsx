@@ -6,6 +6,9 @@ import type {
   PdfGeneratorClientOption,
   PdfGeneratorClientResponse,
   PdfGeneratorMetadata,
+  PdfGeneratorStructuredDraft,
+  PdfGeneratorStructuredEvidence,
+  PdfGeneratorStructuredFinding,
   PdfGeneratorUpload,
 } from "@/lib/types";
 
@@ -64,6 +67,7 @@ type DraftTextItem = {
 };
 
 type ReportDraft = {
+  source: "legacy" | "structured";
   uploadId: string;
   opportunities: DraftOpportunity[];
   trends: DraftTextItem[];
@@ -83,7 +87,12 @@ type PdfGenerationError = {
 };
 
 function createReportDraft(upload: PdfGeneratorUpload): ReportDraft {
+  if (hasStructuredDraft(upload.analysis.structured)) {
+    return createStructuredReportDraft(upload.id, upload.analysis.structured);
+  }
+
   return {
+    source: "legacy",
     uploadId: upload.id,
     opportunities: upload.analysis.opportunities.map((opportunity, index) => ({
       id: `opportunity-${upload.id}-${index}`,
@@ -104,6 +113,90 @@ function createReportDraft(upload: PdfGeneratorUpload): ReportDraft {
     })),
     additionalNotes: "",
   };
+}
+
+function hasStructuredDraft(value: PdfGeneratorStructuredDraft | null | undefined): value is PdfGeneratorStructuredDraft {
+  return Boolean(value?.available);
+}
+
+function createStructuredReportDraft(uploadId: string, structured: PdfGeneratorStructuredDraft): ReportDraft {
+  const sortedFindings = [...(structured.rankedFindings ?? [])].sort((left, right) => (
+    (left.rank ?? Number.MAX_SAFE_INTEGER) - (right.rank ?? Number.MAX_SAFE_INTEGER)
+  ));
+  const executiveSummary = structured.executiveSummary ?? {};
+  const implementationPriorities = structured.implementationPriorities ?? [];
+
+  return {
+    source: "structured",
+    uploadId,
+    opportunities: sortedFindings
+      .map((finding, index) => structuredFindingToOpportunity(uploadId, finding, index))
+      .filter((item) => item.title || item.impact || item.recommendation),
+    trends: structuredListItems("data-note", uploadId, structured.dataQualityNotes ?? [], "Data note")
+      .concat(structuredListItems("priority", uploadId, implementationPriorities, "Implementation priority"))
+      .concat(structuredListItems("section", uploadId, structured.suggestedReportSections ?? [], "Report section to consider")),
+    keyTrends: [
+      structuredTextItem("summary", uploadId, executiveSummary.summary, "Summary"),
+      structuredTextItem("primary-concern", uploadId, executiveSummary.primaryConcern, "Primary concern"),
+      structuredTextItem("recommended-focus", uploadId, executiveSummary.recommendedFocus, "Recommended focus"),
+    ].filter((item): item is DraftTextItem => item !== null),
+    additionalNotes: implementationPriorities.length > 0
+      ? `30-day action plan focus:\n${implementationPriorities.map((item) => `- ${item}`).join("\n")}`
+      : "",
+  };
+}
+
+function structuredFindingToOpportunity(
+  uploadId: string,
+  finding: PdfGeneratorStructuredFinding,
+  index: number,
+): DraftOpportunity {
+  const evidenceSummary = structuredEvidenceSummary(finding.evidence ?? []);
+  const financialSummary = finding.financialValue ? `Financial value: ${finding.financialValue}` : "";
+  return {
+    id: `structured-opportunity-${uploadId}-${finding.id || finding.rank || index}`,
+    selected: true,
+    title: finding.title || `Opportunity ${index + 1}`,
+    impact: finding.clientFacingSummary
+      || finding.operationalImplication
+      || [financialSummary, evidenceSummary].filter(Boolean).join(" | "),
+    recommendation: finding.recommendedAction || "",
+  };
+}
+
+function structuredEvidenceSummary(items: PdfGeneratorStructuredEvidence[]): string {
+  return items
+    .map((item) => [item.label, item.value, item.sourceHint].filter(Boolean).join(": "))
+    .filter(Boolean)
+    .join(" | ");
+}
+
+function structuredTextItem(
+  key: string,
+  uploadId: string,
+  value: string | null | undefined,
+  label: string,
+): DraftTextItem | null {
+  const text = value?.trim();
+  if (!text) {
+    return null;
+  }
+
+  return {
+    id: `structured-${key}-${uploadId}`,
+    selected: true,
+    text: `${label}: ${text}`,
+  };
+}
+
+function structuredListItems(prefix: string, uploadId: string, values: string[], label: string): DraftTextItem[] {
+  return values
+    .map((value, index) => value.trim() ? ({
+      id: `structured-${prefix}-${uploadId}-${index}`,
+      selected: true,
+      text: `${label}: ${value.trim()}`,
+    }) : null)
+    .filter((item): item is DraftTextItem => item !== null);
 }
 
 function createGeneratePdfPayload(draft: ReportDraft): Omit<GeneratePdfReportRequest, "uploadId"> {
@@ -775,6 +868,19 @@ function DraftBuilder({
     });
   };
 
+  const moveOpportunity = (id: string, direction: -1 | 1) => {
+    const currentIndex = draft.opportunities.findIndex((item) => item.id === id);
+    const nextIndex = currentIndex + direction;
+    if (currentIndex < 0 || nextIndex < 0 || nextIndex >= draft.opportunities.length) {
+      return;
+    }
+
+    const nextOpportunities = [...draft.opportunities];
+    const [item] = nextOpportunities.splice(currentIndex, 1);
+    nextOpportunities.splice(nextIndex, 0, item);
+    onChange({ ...draft, opportunities: nextOpportunities });
+  };
+
   const updateTextItem = (section: "keyTrends" | "trends", id: string, patch: Partial<DraftTextItem>) => {
     onChange({
       ...draft,
@@ -793,6 +899,17 @@ function DraftBuilder({
           <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/62">
             These edits are used for this PDF generation request only and are not saved back to the analysis data.
           </p>
+          {draft.source === "structured" && (
+            <div className="mt-3 rounded-2xl border border-[#02D99D]/25 bg-[#02D99D]/10 px-4 py-3">
+              <p className="text-sm font-black text-[#0A1547]">Structured draft available</p>
+              <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
+                This draft was initialized from structured consultant-review output. Review and edit all client-facing language before generating the PDF.
+              </p>
+              <p className="mt-1 text-xs font-bold leading-5 text-[#0A1547]/48">
+                Internal notes and raw AI outputs are not included.
+              </p>
+            </div>
+          )}
         </div>
         <button
           type="button"
@@ -804,7 +921,11 @@ function DraftBuilder({
       </div>
 
       <div className="mt-5 grid gap-5">
-        <DraftOpportunityEditor items={draft.opportunities} onChange={updateOpportunity} />
+        <DraftOpportunityEditor
+          items={draft.opportunities}
+          onChange={updateOpportunity}
+          onMove={moveOpportunity}
+        />
         <DraftTextEditor
           emptyText="No key trends were returned for this upload."
           items={draft.keyTrends}
@@ -823,7 +944,7 @@ function DraftBuilder({
             value={draft.additionalNotes}
             onChange={(event) => onChange({ ...draft, additionalNotes: event.target.value })}
             rows={4}
-            placeholder="Add admin-only draft notes for the future report."
+            placeholder="Add optional notes for this PDF report."
             className="admin-focus mt-2 w-full resize-y rounded-xl border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-medium leading-6 text-[#0A1547] placeholder:text-[#0A1547]/38"
           />
         </label>
@@ -835,9 +956,11 @@ function DraftBuilder({
 function DraftOpportunityEditor({
   items,
   onChange,
+  onMove,
 }: {
   items: DraftOpportunity[];
   onChange: (id: string, patch: Partial<DraftOpportunity>) => void;
+  onMove: (id: string, direction: -1 | 1) => void;
 }) {
   return (
     <section>
@@ -848,23 +971,10 @@ function DraftOpportunityEditor({
         </p>
       ) : (
         <div className="mt-3 grid gap-3">
-          {items.map((item) => (
+          {items.map((item, index) => (
             <article key={item.id} className="rounded-2xl border border-[#0A1547]/10 bg-white p-3">
               {item.selected ? (
-                <label className="inline-flex items-center gap-2 text-sm font-semibold text-[#0A1547]">
-                  <input
-                    type="checkbox"
-                    checked={item.selected}
-                    onChange={(event) => onChange(item.id, { selected: event.target.checked })}
-                    className="h-4 w-4 accent-[#A380F6]"
-                  />
-                  Include in draft
-                </label>
-              ) : (
-                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-                  <p className="break-words text-sm font-black leading-5 text-[#0A1547]">
-                    {formatNullable(item.title)}
-                  </p>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <label className="inline-flex items-center gap-2 text-sm font-semibold text-[#0A1547]">
                     <input
                       type="checkbox"
@@ -872,8 +982,37 @@ function DraftOpportunityEditor({
                       onChange={(event) => onChange(item.id, { selected: event.target.checked })}
                       className="h-4 w-4 accent-[#A380F6]"
                     />
-                    Include
+                    Include in draft
                   </label>
+                  <OpportunityMoveControls
+                    disabledDown={index === items.length - 1}
+                    disabledUp={index === 0}
+                    onMoveDown={() => onMove(item.id, 1)}
+                    onMoveUp={() => onMove(item.id, -1)}
+                  />
+                </div>
+              ) : (
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                  <p className="break-words text-sm font-black leading-5 text-[#0A1547]">
+                    {formatNullable(item.title)}
+                  </p>
+                  <div className="flex flex-col items-end gap-2">
+                    <label className="inline-flex items-center gap-2 text-sm font-semibold text-[#0A1547]">
+                      <input
+                        type="checkbox"
+                        checked={item.selected}
+                        onChange={(event) => onChange(item.id, { selected: event.target.checked })}
+                        className="h-4 w-4 accent-[#A380F6]"
+                      />
+                      Include
+                    </label>
+                    <OpportunityMoveControls
+                      disabledDown={index === items.length - 1}
+                      disabledUp={index === 0}
+                      onMoveDown={() => onMove(item.id, 1)}
+                      onMoveUp={() => onMove(item.id, -1)}
+                    />
+                  </div>
                 </div>
               )}
 
@@ -901,6 +1040,39 @@ function DraftOpportunityEditor({
         </div>
       )}
     </section>
+  );
+}
+
+function OpportunityMoveControls({
+  disabledDown,
+  disabledUp,
+  onMoveDown,
+  onMoveUp,
+}: {
+  disabledDown: boolean;
+  disabledUp: boolean;
+  onMoveDown: () => void;
+  onMoveUp: () => void;
+}) {
+  return (
+    <div className="flex shrink-0 gap-2">
+      <button
+        type="button"
+        onClick={onMoveUp}
+        disabled={disabledUp}
+        className="admin-focus rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-2.5 py-1 text-xs font-extrabold text-[#0A1547]/70 transition hover:border-[#A380F6]/50 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        Move up
+      </button>
+      <button
+        type="button"
+        onClick={onMoveDown}
+        disabled={disabledDown}
+        className="admin-focus rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-2.5 py-1 text-xs font-extrabold text-[#0A1547]/70 transition hover:border-[#A380F6]/50 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        Move down
+      </button>
+    </div>
   );
 }
 
