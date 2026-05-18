@@ -280,7 +280,7 @@ export type AdminAnalysisData = {
   raw_analyses?: Record<string, string>;
   provider_statuses?: Record<string, AdminAnalysisProviderStatus>;
   provider_structured_outputs?: Record<string, StructuredAnalysis | null>;
-  structured_provider_statuses?: Record<string, StructuredProviderStatus>;
+  structured_provider_statuses?: Record<string, StructuredProviderStatus | null>;
   structured_analysis?: StructuredAnalysis | null;
   all_trends?: AdminAnalysisTrend[];
   deduplicated_issues?: AdminAnalysisIssue[];
