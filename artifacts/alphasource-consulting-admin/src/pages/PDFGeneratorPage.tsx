@@ -45,6 +45,16 @@ function warningLabel(value: string): string {
   return value.replaceAll("_", " ");
 }
 
+function cleanClientReportText(value: string): string {
+  return value
+    .trim()
+    .replace(/^\s*[-*•]\s+/, "")
+    .replace(/^\s*(trend|key trend|data note|implementation priority|report section to consider)\s*:\s*/i, "")
+    .replace(/[*_`]+/g, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/^[\s-]+|[\s-]+$/g, "");
+}
+
 function pdfLink(upload: PdfGeneratorUpload): string {
   return upload.pdf.signedUrl || upload.pdf.pdfUrl || "";
 }
@@ -163,7 +173,7 @@ function createStructuredReportDraft(upload: PdfGeneratorUpload): ReportDraft {
   ));
   const executiveSummary = structured.executiveSummary ?? {};
   const implementationPriorities = structured.implementationPriorities ?? [];
-  const structuredTrends = uniqueTextItems([
+  const structuredTrends = curateStructuredTrends([
     ...(upload.analysis.keyTrends ?? []),
     ...(upload.analysis.trends ?? []),
   ]);
@@ -251,27 +261,43 @@ function structuredFindingToDraftFinding(
 
 function structuredListItems(prefix: string, uploadId: string, values: string[]): DraftTextItem[] {
   return values
-    .map((value, index) => value.trim() ? ({
+    .map((value, index) => cleanClientReportText(value) ? ({
       id: `structured-${prefix}-${uploadId}-${index}`,
       selected: true,
-      text: value.trim(),
+      text: cleanClientReportText(value),
     }) : null)
     .filter((item): item is DraftTextItem => item !== null);
 }
 
-function uniqueTextItems(values: string[]): string[] {
+function trendTopicKey(value: string): string {
+  const normalized = value.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+  const topics: Array<[string, string[]]> = [
+    ["gross production", ["gross", "production"]],
+    ["net production", ["net", "production"]],
+    ["writeoffs", ["writeoff"]],
+    ["adjustments", ["adjustment"]],
+    ["collections", ["collection"]],
+    ["labor", ["labor"]],
+    ["payroll", ["payroll"]],
+    ["hygiene", ["hygiene"]],
+  ];
+  const match = topics.find(([, markers]) => markers.every((marker) => normalized.includes(marker)));
+  return match?.[0] ?? normalized.slice(0, 90);
+}
+
+function curateStructuredTrends(values: string[]): string[] {
   const seen = new Set<string>();
   const items: string[] = [];
   values.forEach((value) => {
-    const text = value.trim();
-    const key = text.toLowerCase();
+    const text = cleanClientReportText(value);
+    const key = trendTopicKey(text);
     if (!text || seen.has(key)) {
       return;
     }
     seen.add(key);
     items.push(text);
   });
-  return items;
+  return items.slice(0, 7);
 }
 
 function createGeneratePdfPayload(draft: ReportDraft): Omit<GeneratePdfReportRequest, "uploadId"> {
@@ -384,6 +410,7 @@ export default function PDFGeneratorPage() {
   const [generatingUploadId, setGeneratingUploadId] = useState("");
   const [generationError, setGenerationError] = useState<PdfGenerationError | null>(null);
   const [generationResult, setGenerationResult] = useState<PdfGenerationResult | null>(null);
+  const [uploadsExpanded, setUploadsExpanded] = useState(false);
 
   const token = session?.access_token || "";
   const canGeneratePdf = permissions.canGeneratePdf;
@@ -469,6 +496,7 @@ export default function PDFGeneratorPage() {
     setReportDraft(null);
     setGenerationError(null);
     setGenerationResult(null);
+    setUploadsExpanded(false);
 
     const controller = new AbortController();
     void loadClient(selectedEmail, controller.signal);
@@ -615,61 +643,59 @@ export default function PDFGeneratorPage() {
       )}
 
       {selectedEmail && (
-        <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-          <div className="space-y-6">
-            <ClientSummary
-              option={options.find((option) => option.email === selectedEmail)}
-              clientData={clientData}
-              loading={loadingClient}
+        <div className="space-y-6">
+          <ClientSummary
+            option={options.find((option) => option.email === selectedEmail)}
+            clientData={clientData}
+            loading={loadingClient}
+          />
+
+          {loadingClient && (
+            <div className="admin-card p-8 text-center text-sm font-medium text-[#0A1547]/60">
+              Loading client uploads...
+            </div>
+          )}
+
+          {clientError && !loadingClient && (
+            <ErrorState message={clientError} />
+          )}
+
+          {clientData && !loadingClient && !clientError && clientData.uploads.length === 0 && (
+            <EmptyState
+              title="No eligible uploads for this client"
+              description="The client was found, but no uploads with parsed analysis data were returned."
             />
+          )}
 
-            {loadingClient && (
-              <div className="admin-card p-8 text-center text-sm font-medium text-[#0A1547]/60">
-                Loading client uploads...
-              </div>
-            )}
+          {clientData && !loadingClient && !clientError && clientData.uploads.length > 0 && (
+            <UploadList
+              expanded={uploadsExpanded}
+              onExpandedChange={setUploadsExpanded}
+              uploads={clientData.uploads}
+              selectedUploadId={selectedUploadId}
+              onSelect={setSelectedUploadId}
+            />
+          )}
 
-            {clientError && !loadingClient && (
-              <ErrorState message={clientError} />
-            )}
-
-            {clientData && !loadingClient && !clientError && clientData.uploads.length === 0 && (
-              <EmptyState
-                title="No eligible uploads for this client"
-                description="The client was found, but no uploads with parsed analysis data were returned."
-              />
-            )}
-
-            {clientData && !loadingClient && !clientError && clientData.uploads.length > 0 && (
-              <UploadList
-                uploads={clientData.uploads}
-                selectedUploadId={selectedUploadId}
-                onSelect={setSelectedUploadId}
-              />
-            )}
-          </div>
-
-          <div>
-            {selectedUpload ? (
-              <UploadDetail
-                canGeneratePdf={canGeneratePdf}
-                upload={selectedUpload}
-                draft={reportDraft}
-                generationError={generationError?.uploadId === selectedUpload.id ? generationError.message : ""}
-                generationResult={generationResult?.uploadId === selectedUpload.id ? generationResult : null}
-                generating={Boolean(generatingUploadId)}
-                onGeneratePdf={handleGeneratePdf}
-                onDraftChange={setReportDraft}
-                onResetDraft={() => setReportDraft(createReportDraft(selectedUpload))}
-              />
-            ) : (
-              <EmptyState
-                title="Select an upload"
-                description="Choose an eligible upload to preview opportunities, trends, and existing PDF metadata."
-              />
-            )}
-          </div>
-        </section>
+          {selectedUpload ? (
+            <UploadDetail
+              canGeneratePdf={canGeneratePdf}
+              upload={selectedUpload}
+              draft={reportDraft}
+              generationError={generationError?.uploadId === selectedUpload.id ? generationError.message : ""}
+              generationResult={generationResult?.uploadId === selectedUpload.id ? generationResult : null}
+              generating={Boolean(generatingUploadId)}
+              onGeneratePdf={handleGeneratePdf}
+              onDraftChange={setReportDraft}
+              onResetDraft={() => setReportDraft(createReportDraft(selectedUpload))}
+            />
+          ) : (
+            <EmptyState
+              title="Select an upload"
+              description="Choose an eligible upload to preview opportunities, trends, and existing PDF metadata."
+            />
+          )}
+        </div>
       )}
     </div>
   );
@@ -715,14 +741,21 @@ function ClientSummary({
 }
 
 function UploadList({
+  expanded,
+  onExpandedChange,
   onSelect,
   selectedUploadId,
   uploads,
 }: {
+  expanded: boolean;
+  onExpandedChange: (expanded: boolean) => void;
   onSelect: (uploadId: string) => void;
   selectedUploadId: string;
   uploads: PdfGeneratorUpload[];
 }) {
+  const visibleUploads = expanded ? uploads : uploads.slice(0, 2);
+  const hasMoreUploads = uploads.length > 2;
+
   return (
     <section className="admin-card p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -738,7 +771,7 @@ function UploadList({
       </div>
 
       <div className="mt-4 grid gap-3">
-        {uploads.map((upload) => (
+        {visibleUploads.map((upload) => (
           <article
             key={upload.id}
             className={`rounded-2xl border text-left transition ${
@@ -780,6 +813,18 @@ function UploadList({
           </article>
         ))}
       </div>
+
+      {hasMoreUploads && (
+        <div className="mt-4 flex justify-end">
+          <button
+            type="button"
+            onClick={() => onExpandedChange(!expanded)}
+            className="admin-focus rounded-xl border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/60"
+          >
+            {expanded ? "Show less" : `Show all (${uploads.length})`}
+          </button>
+        </div>
+      )}
     </section>
   );
 }
