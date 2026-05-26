@@ -592,6 +592,26 @@ export default function AnalyzerPage() {
             </div>
           </div>
 
+          <div className="mb-8 rounded-3xl border border-[#A380F6]/20 bg-white p-6 shadow-sm">
+            <div className="grid gap-5 md:grid-cols-[1fr_auto] md:items-center">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-[#A380F6] mb-2">Consultant Review</p>
+                <p className="text-sm leading-6 text-[#0A1547]/65">
+                  The analyzer provides an initial preview. For a consultant-reviewed action plan, book a Practice Opportunity Review.
+                </p>
+                <p className="mt-3 text-xs leading-5 text-[#0A1547]/45">
+                  Use the public analyzer for approved financial and operations files only. For sensitive or PHI-related documents, our team will provide a secure upload workflow.
+                </p>
+              </div>
+              <a
+                href="/practice-opportunity-review"
+                className="inline-flex justify-center rounded-full bg-[#0A1547] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[#A380F6] active:scale-95"
+              >
+                Book a Practice Opportunity Review
+              </a>
+            </div>
+          </div>
+
           <div className="w-full rounded-3xl border border-gray-100 bg-white shadow-sm overflow-hidden">
             <div className="grid lg:grid-cols-[1.3fr_0.7fr]">
               <form onSubmit={handleSubmit} className="p-8 lg:p-10 space-y-5">

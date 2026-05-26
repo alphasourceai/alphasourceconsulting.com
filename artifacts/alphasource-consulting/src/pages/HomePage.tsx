@@ -49,6 +49,30 @@ const stats = [
   { value: "AI", label: "Powered Operations Analysis" },
 ];
 
+const offerCards = [
+  {
+    title: "Free Analyzer",
+    eyebrow: "Initial preview",
+    body: "Upload approved practice financial or operations files and receive an initial AI-assisted view of trends, risks, and improvement opportunities.",
+    cta: "Run the Analyzer",
+    href: "/analyzer",
+  },
+  {
+    title: "Practice Opportunity Review",
+    eyebrow: "$995 founder pricing",
+    body: "A consultant-reviewed diagnostic that turns your files into 5–7 prioritized findings, a PDF summary, a 30-minute review call, and a 30-day action plan.",
+    cta: "Book a Review Call",
+    href: "/practice-opportunity-review",
+  },
+  {
+    title: "Operations Intelligence Partner",
+    eyebrow: "Starting at $2,500/month",
+    body: "Ongoing monthly review, KPI/action planning, workflow recommendations, and implementation accountability for practices ready to act on the findings.",
+    cta: "Start a Conversation",
+    href: "#contact",
+  },
+];
+
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-white font-sans">
@@ -161,8 +185,49 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* About Teaser */}
+      {/* Offer Ladder */}
       <section className="py-24 bg-[#F8F9FD]">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <div className="max-w-3xl mb-12">
+            <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#A380F6] mb-3">From Signal to Action</span>
+            <h2 className="text-4xl font-black text-[#0A1547] mb-5">Turn practice files into operational priorities.</h2>
+            <p className="text-lg text-[#0A1547]/65 leading-relaxed">
+              The analyzer gives an initial view. The Practice Opportunity Review turns that signal into a consultant-reviewed action plan.
+            </p>
+          </div>
+
+          <div className="grid gap-5 md:grid-cols-3">
+            {offerCards.map((offer, index) => (
+              <div key={offer.title} className="flex h-full flex-col rounded-3xl border border-gray-100 bg-white p-7 shadow-sm">
+                <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#F8F9FD] text-lg font-black text-[#0A1547]">
+                  {index + 1}
+                </div>
+                <p className="mb-3 text-xs font-bold uppercase tracking-widest text-[#A380F6]">{offer.eyebrow}</p>
+                <h3 className="mb-4 text-2xl font-black text-[#0A1547] md:min-h-[4rem]">{offer.title}</h3>
+                <p className="mb-7 text-sm leading-6 text-[#0A1547]/65">{offer.body}</p>
+                <a
+                  href={offer.href}
+                  className="mt-auto inline-flex w-fit items-center gap-2 rounded-full bg-[#0A1547] px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-[#A380F6] active:scale-95"
+                >
+                  {offer.cta}
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                  </svg>
+                </a>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 rounded-3xl border border-[#A380F6]/20 bg-white p-6">
+            <p className="text-sm leading-6 text-[#0A1547]/65">
+              Use the public analyzer for approved financial and operations files only. For sensitive or PHI-related documents, our team will provide a secure upload workflow.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* About Teaser */}
+      <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="grid md:grid-cols-2 gap-16 items-center">
             <div>
@@ -201,21 +266,7 @@ export default function HomePage() {
                 <img src={`${import.meta.env.BASE_URL}headshot-ashley.jpg`} alt="Ashley Stephens" className="w-40 h-48 object-cover object-[center_18%] rounded-3xl shadow-lg" />
               </div>
             </div>
-          </div>
         </div>
-      </section>
-
-      {/* Testimonial */}
-      <section className="py-24 bg-white">
-        <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">
-          <div className="w-12 h-12 rounded-full bg-[#A380F6]/10 flex items-center justify-center mx-auto mb-8">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="#A380F6">
-              <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/>
-            </svg>
-          </div>
-          <blockquote className="text-2xl font-semibold text-[#0A1547] leading-relaxed mb-8 italic">
-            "alphaSource pulled out at least 4 trends hiding in our reports. The operational clarity we got in week one would have taken us months to figure out on our own."
-          </blockquote>
         </div>
       </section>
 

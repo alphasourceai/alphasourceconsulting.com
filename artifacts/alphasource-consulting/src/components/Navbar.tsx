@@ -7,7 +7,7 @@ const navLinks = [
   { label: "Dental Operations Analyzer", href: "/analyzer" },
   { label: "About Us", href: "/about" },
 ];
-const contactPagePaths = new Set(["/", "/dental-consulting", "/about"]);
+const contactPagePaths = new Set(["/", "/dental-consulting", "/about", "/practice-opportunity-review"]);
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);

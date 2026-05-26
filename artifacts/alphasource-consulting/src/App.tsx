@@ -7,6 +7,7 @@ import HomePage from "@/pages/HomePage";
 import DentalConsultingPage from "@/pages/DentalConsultingPage";
 import AnalyzerPage from "@/pages/AnalyzerPage";
 import AboutPage from "@/pages/AboutPage";
+import PracticeOpportunityReviewPage from "@/pages/PracticeOpportunityReviewPage";
 import { PaymentCancelPage, PaymentSuccessPage } from "@/pages/PaymentResultPage";
 
 const queryClient = new QueryClient();
@@ -17,6 +18,7 @@ function Router() {
       <Route path="/" component={HomePage} />
       <Route path="/dental-consulting" component={DentalConsultingPage} />
       <Route path="/analyzer" component={AnalyzerPage} />
+      <Route path="/practice-opportunity-review" component={PracticeOpportunityReviewPage} />
       <Route path="/about" component={AboutPage} />
       <Route path="/payment-success" component={PaymentSuccessPage} />
       <Route path="/payment-cancel" component={PaymentCancelPage} />
