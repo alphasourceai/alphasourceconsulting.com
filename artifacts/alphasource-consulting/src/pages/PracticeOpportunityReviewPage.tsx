@@ -1,3 +1,4 @@
+import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ContactForm from "@/components/ContactForm";
@@ -128,6 +129,16 @@ function CheckList({ items }: { items: string[] }) {
 }
 
 export default function PracticeOpportunityReviewPage() {
+  const [openFaqIndexes, setOpenFaqIndexes] = useState<number[]>([]);
+
+  const toggleFaq = (index: number) => {
+    setOpenFaqIndexes((current) => (
+      current.includes(index)
+        ? current.filter((item) => item !== index)
+        : [...current, index]
+    ));
+  };
+
   return (
     <div className="min-h-screen bg-white font-sans">
       <Navbar />
@@ -284,12 +295,39 @@ export default function PracticeOpportunityReviewPage() {
             body="Clear answers about the analyzer, the paid review, file handling, and next steps."
           />
           <div className="grid gap-4">
-            {faqItems.map((item) => (
-              <div key={item.question} className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
-                <h3 className="mb-2 text-lg font-black text-[#0A1547]">{item.question}</h3>
-                <p className="text-sm leading-6 text-[#0A1547]/65">{item.answer}</p>
-              </div>
-            ))}
+            {faqItems.map((item, index) => {
+              const isOpen = openFaqIndexes.includes(index);
+              const panelId = `practice-review-faq-${index}`;
+
+              return (
+                <div key={item.question} className="rounded-3xl border border-gray-100 bg-white shadow-sm">
+                  <button
+                    type="button"
+                    aria-expanded={isOpen}
+                    aria-controls={panelId}
+                    onClick={() => toggleFaq(index)}
+                    className="flex w-full items-center justify-between gap-4 rounded-3xl px-6 py-5 text-left transition-colors hover:bg-[#F8F9FD]"
+                  >
+                    <span className="text-base font-black text-[#0A1547]">{item.question}</span>
+                    <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-lg font-black transition-colors ${
+                      isOpen
+                        ? "border-[#02D99D]/30 bg-[#02D99D]/10 text-[#0A1547]"
+                        : "border-[#A380F6]/30 bg-[#A380F6]/10 text-[#A380F6]"
+                    }`}
+                    >
+                      {isOpen ? "-" : "+"}
+                    </span>
+                  </button>
+                  {isOpen && (
+                    <div id={panelId} className="px-6 pb-6">
+                      <p className="border-t border-gray-100 pt-4 text-sm leading-6 text-[#0A1547]/65">
+                        {item.answer}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
