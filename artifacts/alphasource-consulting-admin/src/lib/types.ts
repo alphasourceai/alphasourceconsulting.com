@@ -571,6 +571,13 @@ export type CheckoutSessionSummary = {
   contractMonths?: number | null;
   stripeSubscriptionId?: string | null;
   subscriptionStatus?: string | null;
+  subscriptionCurrentPeriodStart?: string | null;
+  subscriptionCurrentPeriodEnd?: string | null;
+  subscriptionCancelAt?: string | null;
+  subscriptionCancelAtPeriodEnd?: boolean | null;
+  subscriptionCanceledAt?: string | null;
+  latestPaymentStatus?: string | null;
+  cancelScheduleStatus?: string | null;
   currentPeriodEnd?: string | null;
   cancelAt?: string | null;
   internalNote?: string | null;
@@ -777,6 +784,13 @@ export type OfferPaymentLinkResponse = {
   contractMonths?: number | null;
   stripeSubscriptionId?: string | null;
   subscriptionStatus?: string | null;
+  subscriptionCurrentPeriodStart?: string | null;
+  subscriptionCurrentPeriodEnd?: string | null;
+  subscriptionCancelAt?: string | null;
+  subscriptionCancelAtPeriodEnd?: boolean | null;
+  subscriptionCanceledAt?: string | null;
+  latestPaymentStatus?: string | null;
+  cancelScheduleStatus?: string | null;
   currentPeriodEnd?: string | null;
   cancelAt?: string | null;
   internalNote?: string | null;

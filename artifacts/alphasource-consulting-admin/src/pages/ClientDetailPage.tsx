@@ -21,6 +21,15 @@ const UPLOAD_STATUS_FILTERS: Array<{ label: string; value: BillingUploadStatus }
   { label: "Voided", value: "voided" },
   { label: "All", value: "all" },
 ];
+const checkedOutSubscriptionStatuses = new Set([
+  "active",
+  "trialing",
+  "past_due",
+  "canceled",
+  "incomplete",
+  "incomplete_expired",
+  "unpaid",
+]);
 
 function formatNullable(value: string | number | boolean | null | undefined): string {
   if (value === null || value === undefined || value === "") {
@@ -88,10 +97,10 @@ function formatCurrency(amount: number | null, currency: string | null): string 
   }
 }
 
-function statusTone(status: string | null): string {
+function statusTone(status: string | null | undefined): string {
   const normalized = status?.toLowerCase();
 
-  if (normalized === "paid" || normalized === "complete" || normalized === "completed") {
+  if (normalized === "paid" || normalized === "complete" || normalized === "completed" || normalized === "active" || normalized === "trialing") {
     return "border-[#02D99D]/30 bg-[#02D99D]/12 text-[#0A1547]";
   }
 
@@ -103,8 +112,12 @@ function statusTone(status: string | null): string {
     return "border-[#A380F6]/30 bg-[#A380F6]/12 text-[#0A1547]";
   }
 
-  if (normalized === "expired") {
+  if (normalized === "expired" || normalized === "canceled" || normalized === "incomplete_expired") {
     return "border-[#A380F6]/30 bg-[#A380F6]/12 text-[#0A1547]";
+  }
+
+  if (normalized === "needs_review" || normalized === "failed" || normalized === "past_due" || normalized === "incomplete") {
+    return "border-red-200 bg-red-50 text-red-700";
   }
 
   return "border-[#0A1547]/10 bg-white text-[#0A1547]/70";
@@ -191,6 +204,36 @@ function isExpiredSession(session: CheckoutSessionSummary): boolean {
 
 function isOpenSession(session: CheckoutSessionSummary): boolean {
   return !isPaidSession(session) && !isExpiredSession(session);
+}
+
+function formatStatusLabel(value: string | null | undefined): string {
+  if (!value) {
+    return "—";
+  }
+
+  return value
+    .split(/[_\s-]+/)
+    .filter(Boolean)
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(" ");
+}
+
+function isCheckedOutRecurringSession(session: CheckoutSessionSummary): boolean {
+  if (session.billingMode !== "recurring") {
+    return false;
+  }
+
+  const subscriptionStatus = session.subscriptionStatus?.toLowerCase();
+  return Boolean(session.stripeSubscriptionId) || Boolean(subscriptionStatus && checkedOutSubscriptionStatuses.has(subscriptionStatus));
+}
+
+function subscriptionSummaryText(session: CheckoutSessionSummary): string {
+  const label = formatStatusLabel(session.subscriptionStatus);
+  if (label === "—") {
+    return "Subscription checked out";
+  }
+
+  return `Subscription ${label.toLowerCase()}`;
 }
 
 function uploadTimeValue(upload: BillingUploadSummary): number {
@@ -1035,11 +1078,22 @@ function CheckoutSessionCard({
   const checkoutUrl = session.checkoutUrl?.trim() || "";
   const paid = isPaidSession(session);
   const expired = isExpiredSession(session);
-  const canUseCheckoutLink = checkoutUrl !== "" && !paid && !expired;
-  const canExpire = canWriteBilling && isOpenSession(session);
+  const subscriptionCheckedOut = isCheckedOutRecurringSession(session);
+  const canUseCheckoutLink = checkoutUrl !== "" && !paid && !expired && !subscriptionCheckedOut;
+  const canExpire = canWriteBilling && isOpenSession(session) && !subscriptionCheckedOut;
   const relatedUploads = session.relatedUploads?.length > 0 ? session.relatedUploads : upload ? [upload] : [];
   const hasLegacyUploadOnly = relatedUploads.length === 0 && Boolean(session.uploadId);
   const technicalUploadIds = session.uploadIds?.length ? session.uploadIds.join(", ") : session.uploadId;
+  const isRecurringSession = session.billingMode === "recurring";
+  const recurringAmount = session.monthlyAmount ?? session.amountTotal;
+  const amountLabel = isRecurringSession && recurringAmount !== null && recurringAmount !== undefined
+    ? `${formatCurrency(recurringAmount, session.currency)}/month`
+    : formatCurrency(session.amountTotal, session.currency);
+  const subscriptionCancelAt = session.subscriptionCancelAt ?? session.cancelAt ?? null;
+  const subscriptionCurrentPeriodEnd = session.subscriptionCurrentPeriodEnd ?? session.currentPeriodEnd ?? null;
+  const subscriptionPaymentStatus = session.latestPaymentStatus || session.paymentStatus;
+  const displayStatus = subscriptionCheckedOut ? session.subscriptionStatus : expired ? "expired" : session.status;
+  const displayPaymentStatus = subscriptionCheckedOut ? subscriptionPaymentStatus : session.paymentStatus;
 
   const handleCopy = async () => {
     if (!checkoutUrl) {
@@ -1079,31 +1133,85 @@ function CheckoutSessionCard({
     <article className="rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-black text-[#0A1547]">{formatNullable(session.purpose)}</p>
+          <p className="text-sm font-black text-[#0A1547]">{formatNullable(session.offerName || session.purpose)}</p>
           <p className="mt-1 text-sm font-medium text-[#0A1547]/58">
-            {formatCurrency(session.amountTotal, session.currency)}
+            {amountLabel}
           </p>
+          {isRecurringSession ? (
+            <div className="mt-2 flex flex-wrap gap-2">
+              <span className="rounded-full border border-[#02D99D]/25 bg-white px-2.5 py-1 text-xs font-bold text-[#0A1547]/70">
+                Monthly retainer
+              </span>
+              {session.contractMonths ? (
+                <span className="rounded-full border border-[#A380F6]/25 bg-white px-2.5 py-1 text-xs font-bold text-[#0A1547]/70">
+                  {session.contractMonths} months
+                </span>
+              ) : null}
+              {session.subscriptionStatus ? (
+                <span className={`rounded-full border px-2.5 py-1 text-xs font-bold ${statusTone(session.subscriptionStatus)}`}>
+                  {formatStatusLabel(session.subscriptionStatus)}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
           <p className="mt-1 text-xs font-medium text-[#0A1547]/52">
-            {expired ? `Expired ${formatMountainDate(session.expiredAt)}` : `Expires ${formatMountainDate(session.expiresAt)}`}
+            {subscriptionCheckedOut
+              ? subscriptionCancelAt
+                ? `Auto-cancels ${formatMountainDate(subscriptionCancelAt)}`
+                : session.contractMonths
+                  ? `Term: ${session.contractMonths} months`
+                  : "Monthly retainer"
+              : expired
+                ? `Expired ${formatMountainDate(session.expiredAt)}`
+                : `Expires ${formatMountainDate(session.expiresAt)}`}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${statusTone(expired ? "expired" : session.status)}`}>
-            {expired ? "Expired" : formatNullable(session.status)}
+          <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${statusTone(displayStatus)}`}>
+            {formatStatusLabel(displayStatus)}
           </span>
-          <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${statusTone(session.paymentStatus)}`}>
-            {formatNullable(session.paymentStatus)}
+          <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${statusTone(displayPaymentStatus)}`}>
+            {formatStatusLabel(displayPaymentStatus)}
           </span>
         </div>
       </div>
       <dl className="mt-4 grid gap-3 text-sm md:grid-cols-2">
-        <Detail label="Amount" value={formatCurrency(session.amountTotal, session.currency)} />
-        <Detail label="Status" value={session.status} />
-        <Detail label="Payment" value={session.paymentStatus} />
+        <Detail label="Amount" value={amountLabel} />
+        <Detail label="Status" value={formatStatusLabel(displayStatus)} />
+        <Detail label="Payment" value={formatStatusLabel(displayPaymentStatus)} />
         <Detail label="Created" value={formatDate(session.createdAt)} />
-        <Detail label="Expires" value={formatMountainDate(session.expiresAt)} />
+        <Detail label={subscriptionCheckedOut ? "Auto-cancels" : "Expires"} value={subscriptionCheckedOut ? formatMountainDate(subscriptionCancelAt) : formatMountainDate(session.expiresAt)} />
         <Detail label="Expired" value={formatMountainDate(session.expiredAt)} />
       </dl>
+
+      {subscriptionCheckedOut && (
+        <div className="mt-4 rounded-2xl border border-[#02D99D]/20 bg-white p-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-sm font-black text-[#0A1547]">{subscriptionSummaryText(session)}</p>
+              <p className="mt-1 text-sm font-medium text-[#0A1547]/58">
+                {session.contractMonths ? `Term: ${session.contractMonths} months` : "Monthly retainer"}
+                {subscriptionCancelAt ? ` / Auto-cancels ${formatMountainDate(subscriptionCancelAt)}` : ""}
+              </p>
+              {subscriptionCurrentPeriodEnd ? (
+                <p className="mt-1 text-xs font-medium text-[#0A1547]/52">
+                  Current period ends {formatMountainDate(subscriptionCurrentPeriodEnd)}
+                </p>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${statusTone(session.subscriptionStatus)}`}>
+                {formatStatusLabel(session.subscriptionStatus)}
+              </span>
+              {subscriptionPaymentStatus ? (
+                <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${statusTone(subscriptionPaymentStatus)}`}>
+                  {formatStatusLabel(subscriptionPaymentStatus)}
+                </span>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      )}
 
       {relatedUploads.length > 0 && (
         <div className="mt-4 rounded-2xl border border-[#0A1547]/10 bg-white p-4">
@@ -1216,6 +1324,20 @@ function CheckoutSessionCard({
         <dl className="mt-3 grid gap-3 text-sm md:grid-cols-2">
           <Detail label="Stripe session ID" value={session.stripeCheckoutSessionId} />
           <Detail label="Local session ID" value={session.id} />
+          <Detail label="Offer name" value={session.offerName} />
+          <Detail label="Billing mode" value={formatStructuredLabel(session.billingMode)} />
+          <Detail label="Interval" value={formatStructuredLabel(session.interval)} />
+          <Detail label="Monthly amount" value={session.monthlyAmount !== null && session.monthlyAmount !== undefined ? formatCurrency(session.monthlyAmount, session.currency) : null} />
+          <Detail label="Months" value={session.contractMonths} />
+          <Detail label="Subscription status" value={formatStatusLabel(session.subscriptionStatus)} />
+          <Detail label="Latest payment status" value={session.latestPaymentStatus} />
+          <Detail label="Current period start" value={formatMountainDate(session.subscriptionCurrentPeriodStart ?? null)} />
+          <Detail label="Current period end" value={formatMountainDate(subscriptionCurrentPeriodEnd)} />
+          <Detail label="Cancel at" value={formatMountainDate(subscriptionCancelAt)} />
+          <Detail label="Cancel at period end" value={session.subscriptionCancelAtPeriodEnd} />
+          <Detail label="Canceled at" value={formatMountainDate(session.subscriptionCanceledAt ?? null)} />
+          <Detail label="Cancel schedule" value={formatStatusLabel(session.cancelScheduleStatus)} />
+          <Detail label="Stripe subscription ID" value={session.stripeSubscriptionId} />
           <Detail label="Upload IDs" value={technicalUploadIds} />
           <Detail label="Submission ID" value={session.clientSubmissionId} />
           <Detail label="Mode" value={session.mode} />
