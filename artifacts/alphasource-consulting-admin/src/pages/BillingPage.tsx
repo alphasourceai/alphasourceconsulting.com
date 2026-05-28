@@ -10,6 +10,7 @@ import type {
   BillingUploadSummary,
   CheckoutSessionSummary,
   ClientBillingDetailResponse,
+  OfferPaymentLinkOfferType,
   OfferPaymentLinkResponse,
   OneTimeOfferType,
 } from "@/lib/types";
@@ -17,9 +18,12 @@ import type {
 type BillingRecordFilter = "all" | "paid" | "open" | "expired" | "overrides";
 type OfferPreset = {
   amountCents: number;
+  billingMode: "one_time" | "recurring";
+  defaultContractMonths?: number;
   helper: string;
+  interval?: "month";
   label: string;
-  offerType: OneTimeOfferType;
+  offerType: OfferPaymentLinkOfferType;
 };
 
 const billingRecordFilters: Array<{ accent: string; label: string; value: BillingRecordFilter }> = [
@@ -29,30 +33,43 @@ const billingRecordFilters: Array<{ accent: string; label: string; value: Billin
   { label: "Expired", value: "expired", accent: "#A380F6" },
   { label: "Overrides", value: "overrides", accent: "#1A2460" },
 ];
-const oneTimeOfferPresets: OfferPreset[] = [
+const offerPresets: OfferPreset[] = [
   {
     amountCents: 99500,
+    billingMode: "one_time",
     helper: "One-time Practice Opportunity Review founder pricing.",
     label: "Practice Opportunity Review",
     offerType: "practice_opportunity_review",
   },
   {
     amountCents: 350000,
+    billingMode: "one_time",
     helper: "One-time scoped sprint for production, collection, write-off, and conversion leakage.",
     label: "Revenue Leak Sprint",
     offerType: "revenue_leak_sprint",
   },
   {
     amountCents: 250000,
+    billingMode: "one_time",
     helper: "One-time scoped sprint for claims, collections, documentation, and follow-up workflow.",
     label: "AR / Claims Cleanup Sprint",
     offerType: "ar_claims_cleanup_sprint",
   },
   {
     amountCents: 350000,
+    billingMode: "one_time",
     helper: "One-time scoped sprint for lead flow, scheduling, follow-up, conversion, and patient experience friction.",
     label: "Growth + New Patient Conversion Sprint",
     offerType: "growth_new_patient_conversion_sprint",
+  },
+  {
+    amountCents: 250000,
+    billingMode: "recurring",
+    defaultContractMonths: 3,
+    helper: "Monthly retainer subscription.",
+    interval: "month",
+    label: "Operations Intelligence Partner",
+    offerType: "operations_intelligence_partner",
   },
 ];
 
@@ -201,7 +218,7 @@ function dollarsToCents(value: string): number | null {
 }
 
 function offerTypeLabel(value: string | null | undefined): string {
-  const preset = oneTimeOfferPresets.find((offer) => offer.offerType === value);
+  const preset = offerPresets.find((offer) => offer.offerType === value);
   if (preset) {
     return preset.label;
   }
@@ -212,6 +229,17 @@ function offerTypeLabel(value: string | null | undefined): string {
 function billingModeLabel(value: string | null | undefined): string {
   if (value === "one_time") {
     return "One-time payment link";
+  }
+  if (value === "recurring") {
+    return "Recurring";
+  }
+
+  return formatNullable(value);
+}
+
+function intervalLabel(value: string | null | undefined): string {
+  if (value === "month") {
+    return "Monthly";
   }
 
   return formatNullable(value);
@@ -666,11 +694,11 @@ function OfferPaymentLinkPrompt() {
           <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#A380F6]">Offer payment links</p>
           <h3 className="mt-2 text-lg font-black text-[#0A1547]">Create offer payment link</h3>
           <p className="mt-1 max-w-2xl text-sm font-medium leading-6 text-[#0A1547]/60">
-            Select a client before creating an offer payment link.
+            Select a client before creating an offer or monthly retainer payment link.
           </p>
         </div>
         <span className="rounded-full border border-[#0A1547]/10 bg-[#F8F9FD] px-3 py-1 text-xs font-extrabold text-[#0A1547]/58">
-          One-time offers
+          One-time and recurring
         </span>
       </div>
     </section>
@@ -688,12 +716,14 @@ function CreateOfferPaymentLinkCard({
   token: string;
   uploads: BillingUploadSummary[];
 }) {
-  const [offerType, setOfferType] = useState<OneTimeOfferType>("practice_opportunity_review");
+  const [offerType, setOfferType] = useState<OfferPaymentLinkOfferType>("practice_opportunity_review");
   const selectedPreset = useMemo(
-    () => oneTimeOfferPresets.find((offer) => offer.offerType === offerType) ?? oneTimeOfferPresets[0],
+    () => offerPresets.find((offer) => offer.offerType === offerType) ?? offerPresets[0],
     [offerType],
   );
+  const isRecurring = selectedPreset.billingMode === "recurring";
   const [amountDollars, setAmountDollars] = useState(centsToDollarInput(selectedPreset.amountCents));
+  const [contractMonths, setContractMonths] = useState(String(selectedPreset.defaultContractMonths ?? 3));
   const [description, setDescription] = useState(selectedPreset.label);
   const [internalNote, setInternalNote] = useState("");
   const [selectedUploadIds, setSelectedUploadIds] = useState<string[]>([]);
@@ -713,7 +743,11 @@ function CreateOfferPaymentLinkCard({
 
   useEffect(() => {
     setAmountDollars(centsToDollarInput(selectedPreset.amountCents));
+    setContractMonths(String(selectedPreset.defaultContractMonths ?? 3));
     setDescription(selectedPreset.label);
+    if (selectedPreset.billingMode === "recurring") {
+      setSelectedUploadIds([]);
+    }
     setCopyStatus("");
     setError("");
     setCreatedLink(null);
@@ -743,27 +777,49 @@ function CreateOfferPaymentLinkCard({
     const cents = dollarsToCents(amountDollars);
     const trimmedDescription = description.trim() || selectedPreset.label;
     const trimmedInternalNote = internalNote.trim();
+    const parsedContractMonths = Number(contractMonths);
 
     if (!cents) {
       setError("Enter a valid dollar amount greater than zero, using up to two decimal places.");
       return;
     }
 
+    if (isRecurring && (!Number.isInteger(parsedContractMonths) || parsedContractMonths < 1 || parsedContractMonths > 24)) {
+      setError("Enter a number of months from 1 to 24.");
+      return;
+    }
+
     setCreating(true);
 
     try {
-      const response = await createOfferPaymentLink(token, {
-        clientEmail,
-        offerType,
-        offerName: selectedPreset.label,
-        amount: cents,
-        currency: "usd",
-        description: trimmedDescription,
-        ...(trimmedInternalNote ? { internalNote: trimmedInternalNote } : {}),
-        ...(selectedSelectableUploadIds.length > 0 ? { uploadIds: selectedSelectableUploadIds } : {}),
-        successUrl: `${window.location.origin}/payment-success`,
-        cancelUrl: `${window.location.origin}/payment-cancel`,
-      });
+      const response = await createOfferPaymentLink(
+        token,
+        isRecurring ? {
+          clientEmail,
+          offerType: "operations_intelligence_partner",
+          offerName: selectedPreset.label,
+          billingMode: "recurring",
+          interval: "month",
+          monthlyAmount: cents,
+          contractMonths: parsedContractMonths,
+          currency: "usd",
+          description: trimmedDescription,
+          ...(trimmedInternalNote ? { internalNote: trimmedInternalNote } : {}),
+          successUrl: `${window.location.origin}/payment-success`,
+          cancelUrl: `${window.location.origin}/payment-cancel`,
+        } : {
+          clientEmail,
+          offerType: offerType as OneTimeOfferType,
+          offerName: selectedPreset.label,
+          amount: cents,
+          currency: "usd",
+          description: trimmedDescription,
+          ...(trimmedInternalNote ? { internalNote: trimmedInternalNote } : {}),
+          ...(selectedSelectableUploadIds.length > 0 ? { uploadIds: selectedSelectableUploadIds } : {}),
+          successUrl: `${window.location.origin}/payment-success`,
+          cancelUrl: `${window.location.origin}/payment-cancel`,
+        },
+      );
 
       setCreatedLink(response);
       await onCreated();
@@ -798,25 +854,25 @@ function CreateOfferPaymentLinkCard({
           <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#A380F6]">Offer payment links</p>
           <h3 className="mt-2 text-lg font-black text-[#0A1547]">Create offer payment link</h3>
           <p className="mt-1 max-w-2xl text-sm font-medium leading-6 text-[#0A1547]/60">
-            Create one-time payment links for Practice Opportunity Reviews and scoped consulting sprints. Recurring retainer links will be added separately.
+            Create one-time payment links for Practice Opportunity Reviews and scoped consulting sprints, or monthly retainer links for Operations Intelligence Partner.
           </p>
         </div>
         <span className="w-fit rounded-full border border-[#02D99D]/25 bg-[#02D99D]/10 px-3 py-1 text-xs font-extrabold text-[#0A1547]">
-          One-time payment link
+          Offer checkout link
         </span>
       </div>
 
       <form onSubmit={handleSubmit} className="mt-5 space-y-4">
-        <div className="grid gap-4 lg:grid-cols-[1fr_0.38fr_1fr]">
+        <div className={`grid gap-4 ${isRecurring ? "lg:grid-cols-[1fr_0.36fr_0.32fr_1fr]" : "lg:grid-cols-[1fr_0.38fr_1fr]"}`}>
           <label className="block">
             <span className="text-sm font-extrabold text-[#0A1547]">Offer</span>
             <select
               value={offerType}
-              onChange={(event) => setOfferType(event.target.value as OneTimeOfferType)}
+              onChange={(event) => setOfferType(event.target.value as OfferPaymentLinkOfferType)}
               disabled={creating}
               className="admin-focus mt-2 h-12 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547]"
             >
-              {oneTimeOfferPresets.map((offer) => (
+              {offerPresets.map((offer) => (
                 <option key={offer.offerType} value={offer.offerType}>
                   {offer.label}
                 </option>
@@ -828,7 +884,7 @@ function CreateOfferPaymentLinkCard({
           </label>
 
           <label className="block">
-            <span className="text-sm font-extrabold text-[#0A1547]">Amount</span>
+            <span className="text-sm font-extrabold text-[#0A1547]">{isRecurring ? "Monthly amount" : "Amount"}</span>
             <input
               type="text"
               inputMode="decimal"
@@ -837,8 +893,27 @@ function CreateOfferPaymentLinkCard({
               disabled={creating}
               className="admin-focus mt-2 h-12 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547]"
             />
-            <span className="mt-2 block text-xs font-semibold text-[#0A1547]/52">USD / one-time</span>
+            <span className="mt-2 block text-xs font-semibold text-[#0A1547]/52">
+              {isRecurring ? "USD / month" : "USD / one-time"}
+            </span>
           </label>
+
+          {isRecurring && (
+            <label className="block">
+              <span className="text-sm font-extrabold text-[#0A1547]">Number of months</span>
+              <input
+                type="number"
+                min={1}
+                max={24}
+                step={1}
+                value={contractMonths}
+                onChange={(event) => setContractMonths(event.target.value)}
+                disabled={creating}
+                className="admin-focus mt-2 h-12 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547]"
+              />
+              <span className="mt-2 block text-xs font-semibold text-[#0A1547]/52">1-24 months</span>
+            </label>
+          )}
 
           <label className="block">
             <span className="text-sm font-extrabold text-[#0A1547]">Description</span>
@@ -864,49 +939,61 @@ function CreateOfferPaymentLinkCard({
           />
         </label>
 
-        <div className="rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-extrabold text-[#0A1547]">Optional: link this payment to analyzed uploads</p>
-              <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/58">
-                Leave uploads unchecked for standalone offer payments. Paid or voided uploads cannot be selected.
-              </p>
+        {isRecurring ? (
+          <div className="rounded-2xl border border-[#A380F6]/20 bg-[#A380F6]/10 p-4">
+            <p className="text-sm font-extrabold text-[#0A1547]">Monthly retainer</p>
+            <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/62">
+              Creates a monthly subscription checkout link. The backend tracks the selected term and attempts to schedule cancellation at the end of the term.
+            </p>
+            <p className="mt-2 text-xs font-bold text-[#0A1547]/52">
+              Upload linking is not available for recurring retainers.
+            </p>
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-extrabold text-[#0A1547]">Optional: link this payment to analyzed uploads</p>
+                <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/58">
+                  Leave uploads unchecked for standalone offer payments. Paid or voided uploads cannot be selected.
+                </p>
+              </div>
+              <span className="rounded-full border border-[#0A1547]/10 bg-white px-3 py-1 text-xs font-bold text-[#0A1547]/60">
+                {selectedSelectableUploadIds.length} selected
+              </span>
             </div>
-            <span className="rounded-full border border-[#0A1547]/10 bg-white px-3 py-1 text-xs font-bold text-[#0A1547]/60">
-              {selectedSelectableUploadIds.length} selected
-            </span>
-          </div>
 
-          <div className="mt-3 grid gap-2">
-            {selectableUploads.length > 0 ? selectableUploads.map((upload) => (
-              <label
-                key={upload.id}
-                className="flex cursor-pointer flex-col gap-2 rounded-xl border border-[#0A1547]/10 bg-white px-4 py-3 text-sm transition hover:border-[#A380F6]/35 md:flex-row md:items-center md:justify-between"
-              >
-                <span className="min-w-0">
-                  <span className="block break-words font-black text-[#0A1547]">{formatNullable(upload.fileName)}</span>
-                  <span className="mt-1 block text-xs font-medium text-[#0A1547]/52">
-                    {formatNullable(upload.toolName)} / {formatDate(upload.uploadTime)}
+            <div className="mt-3 grid gap-2">
+              {selectableUploads.length > 0 ? selectableUploads.map((upload) => (
+                <label
+                  key={upload.id}
+                  className="flex cursor-pointer flex-col gap-2 rounded-xl border border-[#0A1547]/10 bg-white px-4 py-3 text-sm transition hover:border-[#A380F6]/35 md:flex-row md:items-center md:justify-between"
+                >
+                  <span className="min-w-0">
+                    <span className="block break-words font-black text-[#0A1547]">{formatNullable(upload.fileName)}</span>
+                    <span className="mt-1 block text-xs font-medium text-[#0A1547]/52">
+                      {formatNullable(upload.toolName)} / {formatDate(upload.uploadTime)}
+                    </span>
                   </span>
-                </span>
-                <span className="flex shrink-0 items-center gap-2 text-xs font-extrabold text-[#0A1547]/62">
-                  <input
-                    type="checkbox"
-                    checked={selectedSelectableUploadIds.includes(upload.id)}
-                    onChange={() => toggleUpload(upload.id)}
-                    disabled={creating}
-                    className="h-4 w-4 rounded border-[#0A1547]/20 text-[#A380F6]"
-                  />
-                  Link upload
-                </span>
-              </label>
-            )) : (
-              <p className="rounded-xl border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-medium text-[#0A1547]/56">
-                No unpaid active uploads are available for optional linking.
-              </p>
-            )}
+                  <span className="flex shrink-0 items-center gap-2 text-xs font-extrabold text-[#0A1547]/62">
+                    <input
+                      type="checkbox"
+                      checked={selectedSelectableUploadIds.includes(upload.id)}
+                      onChange={() => toggleUpload(upload.id)}
+                      disabled={creating}
+                      className="h-4 w-4 rounded border-[#0A1547]/20 text-[#A380F6]"
+                    />
+                    Link upload
+                  </span>
+                </label>
+              )) : (
+                <p className="rounded-xl border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-medium text-[#0A1547]/56">
+                  No unpaid active uploads are available for optional linking.
+                </p>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <p className="text-xs font-semibold leading-5 text-[#0A1547]/52">
@@ -922,10 +1009,6 @@ function CreateOfferPaymentLinkCard({
         </div>
       </form>
 
-      <p className="mt-4 rounded-xl border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-semibold text-[#0A1547]/62">
-        Recurring retainer links coming later.
-      </p>
-
       {error && (
         <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
           {error}
@@ -938,7 +1021,9 @@ function CreateOfferPaymentLinkCard({
             <div>
               <p className="text-sm font-black text-[#0A1547]">Offer payment link created.</p>
               <p className="mt-1 max-w-xl text-sm font-semibold text-[#0A1547]/62">
-                {offerTypeLabel(createdLink.offerType)} / {billingModeLabel(createdLink.billingMode)} / Expires {formatMountainDate(createdLink.expiresAt ?? null)}
+                {offerTypeLabel(createdLink.offerType)} / {billingModeLabel(createdLink.billingMode)}
+                {createdLink.billingMode === "recurring" ? ` / ${intervalLabel(createdLink.interval)} / ${formatNullable(createdLink.contractMonths ?? null)} months` : ""}
+                {" / "}Expires {formatMountainDate(createdLink.expiresAt ?? null)}
               </p>
               <p className="mt-1 text-xs font-semibold text-[#0A1547]/52">
                 Status: {formatNullable(createdLink.status)} / Payment: {formatNullable(createdLink.paymentStatus)}
@@ -1099,6 +1184,11 @@ function CheckoutSessionCard({
   const clientEmail = session.clientEmail || "";
   const offerName = session.offerName || "";
   const isOfferSession = Boolean(offerName || session.offerType || session.billingMode);
+  const isRecurringSession = session.billingMode === "recurring";
+  const recurringAmount = session.monthlyAmount ?? session.amountTotal;
+  const amountLabel = isRecurringSession && recurringAmount !== null && recurringAmount !== undefined
+    ? `${formatCurrency(recurringAmount, session.currency)}/month`
+    : formatCurrency(session.amountTotal, session.currency);
 
   const handleCopy = async () => {
     if (!checkoutUrl) {
@@ -1159,10 +1249,27 @@ function CheckoutSessionCard({
               <span className="rounded-full border border-[#02D99D]/25 bg-white px-2.5 py-1 text-xs font-bold text-[#0A1547]/70">
                 {billingModeLabel(session.billingMode)}
               </span>
+              {isRecurringSession && (
+                <>
+                  <span className="rounded-full border border-[#02ABE0]/25 bg-white px-2.5 py-1 text-xs font-bold text-[#0A1547]/70">
+                    {intervalLabel(session.interval)}
+                  </span>
+                  {session.contractMonths ? (
+                    <span className="rounded-full border border-[#A380F6]/25 bg-white px-2.5 py-1 text-xs font-bold text-[#0A1547]/70">
+                      {session.contractMonths} months
+                    </span>
+                  ) : null}
+                  {session.subscriptionStatus ? (
+                    <span className={`rounded-full border px-2.5 py-1 text-xs font-bold ${statusTone(session.subscriptionStatus)}`}>
+                      {formatNullable(session.subscriptionStatus)}
+                    </span>
+                  ) : null}
+                </>
+              )}
             </div>
           )}
           <p className="mt-1 text-xs font-medium text-[#0A1547]/52">
-            {formatDate(session.createdAt)} / {formatCurrency(session.amountTotal, session.currency)}
+            {formatDate(session.createdAt)} / {amountLabel}
           </p>
           <p className="mt-1 text-xs font-medium text-[#0A1547]/52">
             {expired ? `Expired ${formatMountainDate(session.expiredAt)}` : `Expires ${formatMountainDate(session.expiresAt)}`}
@@ -1260,6 +1367,13 @@ function CheckoutSessionCard({
           <Detail label="Offer name" value={session.offerName} />
           <Detail label="Offer type" value={offerTypeLabel(session.offerType)} />
           <Detail label="Billing mode" value={billingModeLabel(session.billingMode)} />
+          <Detail label="Interval" value={intervalLabel(session.interval)} />
+          <Detail label="Monthly amount" value={session.monthlyAmount !== null && session.monthlyAmount !== undefined ? formatCurrency(session.monthlyAmount, session.currency) : null} />
+          <Detail label="Number of months" value={session.contractMonths} />
+          <Detail label="Subscription status" value={session.subscriptionStatus} />
+          <Detail label="Current period end" value={formatMountainDate(session.currentPeriodEnd ?? null)} />
+          <Detail label="Cancel at" value={formatMountainDate(session.cancelAt ?? null)} />
+          <Detail label="Stripe subscription ID" value={session.stripeSubscriptionId} />
           <Detail label="Internal note" value={session.internalNote} />
           <Detail label="Upload ID" value={session.uploadId} />
           <Detail label="Submission ID" value={session.clientSubmissionId} />

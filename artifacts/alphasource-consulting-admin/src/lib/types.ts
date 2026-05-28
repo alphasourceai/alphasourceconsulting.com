@@ -124,6 +124,7 @@ export type BillingSummary = {
   paidCheckoutSessionCount: number;
   openCheckoutSessionCount: number;
   expiredCheckoutSessionCount: number;
+  subscriptionCount?: number;
   manualOverrideCount: number;
   latestPaymentStatus: string | null;
 };
@@ -136,6 +137,7 @@ export type BillingOverviewSummary = {
   paidCheckoutSessionCount: number;
   openCheckoutSessionCount: number;
   expiredCheckoutSessionCount: number;
+  subscriptionCount?: number;
   manualOverrideCount: number;
   needsReviewEventCount: number;
 };
@@ -565,6 +567,12 @@ export type CheckoutSessionSummary = {
   offerName?: string | null;
   billingMode?: string | null;
   interval?: string | null;
+  monthlyAmount?: number | null;
+  contractMonths?: number | null;
+  stripeSubscriptionId?: string | null;
+  subscriptionStatus?: string | null;
+  currentPeriodEnd?: string | null;
+  cancelAt?: string | null;
   internalNote?: string | null;
   mode: string | null;
   status: string | null;
@@ -716,10 +724,14 @@ export type OneTimeOfferType =
   | "ar_claims_cleanup_sprint"
   | "growth_new_patient_conversion_sprint";
 
-export type OfferPaymentLinkRequest = {
+export type RecurringOfferType = "operations_intelligence_partner";
+export type OfferPaymentLinkOfferType = OneTimeOfferType | RecurringOfferType;
+
+export type OneTimeOfferPaymentLinkRequest = {
   clientEmail: string;
   offerType: OneTimeOfferType;
   offerName?: string;
+  billingMode?: "one_time";
   amount: number;
   currency: "usd";
   description?: string;
@@ -728,6 +740,23 @@ export type OfferPaymentLinkRequest = {
   cancelUrl: string;
   uploadIds?: string[];
 };
+
+export type RecurringOfferPaymentLinkRequest = {
+  clientEmail: string;
+  offerType: RecurringOfferType;
+  offerName?: string;
+  billingMode: "recurring";
+  interval: "month";
+  monthlyAmount: number;
+  contractMonths: number;
+  currency: "usd";
+  description?: string;
+  internalNote?: string;
+  successUrl: string;
+  cancelUrl: string;
+};
+
+export type OfferPaymentLinkRequest = OneTimeOfferPaymentLinkRequest | RecurringOfferPaymentLinkRequest;
 
 export type OfferPaymentLinkResponse = {
   ok: true;
@@ -740,10 +769,16 @@ export type OfferPaymentLinkResponse = {
   uploadId?: string | null;
   uploadIds?: string[];
   relatedUploads?: BillingUploadSummary[];
-  offerType: OneTimeOfferType | string;
+  offerType: OfferPaymentLinkOfferType | string;
   offerName: string | null;
   billingMode: string | null;
   interval?: string | null;
+  monthlyAmount?: number | null;
+  contractMonths?: number | null;
+  stripeSubscriptionId?: string | null;
+  subscriptionStatus?: string | null;
+  currentPeriodEnd?: string | null;
+  cancelAt?: string | null;
   internalNote?: string | null;
 };
 
