@@ -482,7 +482,7 @@ function SecureUploadCard({
   return (
     <article className="admin-card p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0">
+        <div className="min-w-0 lg:flex-1 lg:pr-4">
           <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#A380F6]">Secure upload file</p>
           <h3 className="mt-1 break-words text-lg font-black text-[#0A1547]">
             {formatNullable(file.originalFilename)}
@@ -494,32 +494,34 @@ function SecureUploadCard({
             Created {formatDate(file.createdAt)} / Completed {formatDate(file.completedAt)}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${status === "Completed" ? "border-[#02D99D]/30 bg-[#02D99D]/12 text-[#0A1547]" : "border-amber-200 bg-amber-50 text-amber-700"}`}>
-            {status}
-          </span>
-          {isCompleted && (
-            <button
-              type="button"
-              onClick={() => onDownload(file)}
-              disabled={downloading || downloadDisabled}
-              className="admin-focus rounded-xl bg-[#0A1547] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#1A2460] disabled:cursor-not-allowed disabled:opacity-55"
-            >
-              {downloading ? "Preparing..." : "Download file"}
-            </button>
-          )}
-          {file.consoleUrl && (
-            <a
-              href={file.consoleUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="admin-focus rounded-xl bg-[#02ABE0] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#0096C9]"
-            >
-              Open in Google Cloud
-            </a>
-          )}
+        <div className="shrink-0 lg:ml-4">
+          <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap lg:justify-end">
+            <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${status === "Completed" ? "border-[#02D99D]/30 bg-[#02D99D]/12 text-[#0A1547]" : "border-amber-200 bg-amber-50 text-amber-700"}`}>
+              {status}
+            </span>
+            {isCompleted && (
+              <button
+                type="button"
+                onClick={() => onDownload(file)}
+                disabled={downloading || downloadDisabled}
+                className="admin-focus whitespace-nowrap rounded-lg bg-[#0A1547] px-3 py-1.5 text-xs font-extrabold text-white transition hover:bg-[#1A2460] disabled:cursor-not-allowed disabled:opacity-55"
+              >
+                {downloading ? "Preparing..." : "Download file"}
+              </button>
+            )}
+            {file.consoleUrl && (
+              <a
+                href={file.consoleUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="admin-focus whitespace-nowrap rounded-lg bg-[#02ABE0] px-3 py-1.5 text-xs font-extrabold text-white transition hover:bg-[#0096C9]"
+              >
+                Open in Google Cloud
+              </a>
+            )}
+          </div>
           {downloadError && (
-            <p className="basis-full text-xs font-bold text-red-700">
+            <p className="mt-2 text-xs font-bold text-red-700 lg:text-right">
               {downloadError}
             </p>
           )}
