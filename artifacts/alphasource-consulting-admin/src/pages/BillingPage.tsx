@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { Link } from "wouter";
 import { useAuth } from "@/auth/AuthProvider";
-import { CreateCheckoutLinkCard } from "@/components/CreateCheckoutLinkCard";
 import { AdminApiError, createOfferPaymentLink, expireCheckoutSession, getAdminClients, getBillingOverview, getClientBillingDetail } from "@/lib/adminApi";
 import type {
   AdminClient,
@@ -544,23 +543,13 @@ export default function BillingPage() {
           <SelectedClientCheckoutSummary detail={selectedClientDetail} uploadCount={selectedActiveUploads.length} />
 
           {canWriteBilling ? (
-            <>
-              <CreateOfferPaymentLinkCard
-                key={`${selectedClientDetail.clientEmail}-offer`}
-                clientEmail={selectedClientDetail.clientEmail}
-                onCreated={handleSelectedClientCheckoutCreated}
-                token={token}
-                uploads={selectedActiveUploads}
-              />
-              <CreateCheckoutLinkCard
-                key={`${selectedClientDetail.clientEmail}-upload`}
-                clientEmail={selectedClientDetail.clientEmail}
-                helperText="Create upload-based checkout links for selected client files. This does not email the client, update GHL, or deliver reports."
-                onCreated={handleSelectedClientCheckoutCreated}
-                token={token}
-                uploads={selectedActiveUploads}
-              />
-            </>
+            <CreateOfferPaymentLinkCard
+              key={`${selectedClientDetail.clientEmail}-offer`}
+              clientEmail={selectedClientDetail.clientEmail}
+              onCreated={handleSelectedClientCheckoutCreated}
+              token={token}
+              uploads={selectedActiveUploads}
+            />
           ) : (
             <section className="rounded-2xl border border-[#A380F6]/25 bg-[#A380F6]/10 p-5">
               <p className="text-sm font-black text-[#0A1547]">Read-only billing access</p>
@@ -825,7 +814,7 @@ function CreateOfferPaymentLinkCard({
               value={offerType}
               onChange={(event) => setOfferType(event.target.value as OneTimeOfferType)}
               disabled={creating}
-              className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547]"
+              className="admin-focus mt-2 h-12 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547]"
             >
               {oneTimeOfferPresets.map((offer) => (
                 <option key={offer.offerType} value={offer.offerType}>
@@ -846,7 +835,7 @@ function CreateOfferPaymentLinkCard({
               value={amountDollars}
               onChange={(event) => setAmountDollars(event.target.value)}
               disabled={creating}
-              className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547]"
+              className="admin-focus mt-2 h-12 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547]"
             />
             <span className="mt-2 block text-xs font-semibold text-[#0A1547]/52">USD / one-time</span>
           </label>
@@ -858,7 +847,7 @@ function CreateOfferPaymentLinkCard({
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               disabled={creating}
-              className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547]"
+              className="admin-focus mt-2 h-12 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547]"
             />
           </label>
         </div>
@@ -1003,11 +992,11 @@ function SelectedClientCheckoutSummary({
             {detail.clientEmail}
           </Link>
           <p className="mt-1 text-sm font-medium text-[#0A1547]/58">
-            Current upload checkout workflow for this client.
+            Current billing workspace for this client.
           </p>
         </div>
         <span className="rounded-full border border-[#02ABE0]/20 bg-[#02ABE0]/10 px-3 py-1 text-xs font-extrabold text-[#0A1547]">
-          Upload checkout
+          Billing workspace
         </span>
       </div>
 
