@@ -560,6 +560,12 @@ export type CheckoutSessionSummary = {
   stripeCheckoutSessionId: string | null;
   clientEmail: string | null;
   purpose: string | null;
+  description?: string | null;
+  offerType?: OneTimeOfferType | string | null;
+  offerName?: string | null;
+  billingMode?: string | null;
+  interval?: string | null;
+  internalNote?: string | null;
   mode: string | null;
   status: string | null;
   paymentStatus: string | null;
@@ -702,6 +708,43 @@ export type CreateCheckoutSessionResponse = {
   uploadIds?: string[];
   relatedUploads?: BillingUploadSummary[];
   clientSubmissionId?: string | null;
+};
+
+export type OneTimeOfferType =
+  | "practice_opportunity_review"
+  | "revenue_leak_sprint"
+  | "ar_claims_cleanup_sprint"
+  | "growth_new_patient_conversion_sprint";
+
+export type OfferPaymentLinkRequest = {
+  clientEmail: string;
+  offerType: OneTimeOfferType;
+  offerName?: string;
+  amount: number;
+  currency: "usd";
+  description?: string;
+  internalNote?: string;
+  successUrl: string;
+  cancelUrl: string;
+  uploadIds?: string[];
+};
+
+export type OfferPaymentLinkResponse = {
+  ok: true;
+  checkoutSessionId: string;
+  url: string;
+  status: string | null;
+  paymentStatus: string | null;
+  expiresAt?: string | null;
+  expiredAt?: string | null;
+  uploadId?: string | null;
+  uploadIds?: string[];
+  relatedUploads?: BillingUploadSummary[];
+  offerType: OneTimeOfferType | string;
+  offerName: string | null;
+  billingMode: string | null;
+  interval?: string | null;
+  internalNote?: string | null;
 };
 
 export type ExpireCheckoutSessionResponse = {

@@ -24,6 +24,8 @@ import type {
   ExpireCheckoutSessionResponse,
   GeneratePdfReportRequest,
   GeneratePdfReportResponse,
+  OfferPaymentLinkRequest,
+  OfferPaymentLinkResponse,
   PdfGeneratorClientResponse,
   PdfGeneratorOptionsResponse,
   SafeApiError,
@@ -546,6 +548,19 @@ export function createCheckoutSession(
   signal?: AbortSignal,
 ): Promise<CreateCheckoutSessionResponse> {
   return adminRequest<CreateCheckoutSessionResponse>("/api/admin/billing/checkout-sessions", {
+    token,
+    signal,
+    method: "POST",
+    body: payload,
+  });
+}
+
+export function createOfferPaymentLink(
+  token: string,
+  payload: OfferPaymentLinkRequest,
+  signal?: AbortSignal,
+): Promise<OfferPaymentLinkResponse> {
+  return adminRequest<OfferPaymentLinkResponse>("/api/admin/billing/payment-links", {
     token,
     signal,
     method: "POST",
