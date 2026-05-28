@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react
 import { Link } from "wouter";
 import { useAuth } from "@/auth/AuthProvider";
 import { ConsultantReviewExportControls } from "@/components/ConsultantReviewExportControls";
-import { CreateCheckoutLinkCard } from "@/components/CreateCheckoutLinkCard";
 import { AdminApiError, expireCheckoutSession, getClientBillingDetail, voidAdminUpload } from "@/lib/adminApi";
 import type {
   BillingUploadSummary,
@@ -269,9 +268,6 @@ export default function ClientDetailPage({ email }: ClientDetailPageProps) {
   const sortedUploads = useMemo(() => {
     return [...(detail?.uploads ?? [])].sort((left, right) => uploadTimeValue(right) - uploadTimeValue(left));
   }, [detail?.uploads]);
-  const activeUploads = useMemo(() => {
-    return sortedUploads.filter((upload) => !upload.voided);
-  }, [sortedUploads]);
   const visibleUploads = uploadsExpanded ? sortedUploads : sortedUploads.slice(0, 4);
   const empty = useMemo(() => {
     return (
@@ -367,21 +363,7 @@ export default function ClientDetailPage({ email }: ClientDetailPageProps) {
           <ClientInformationPanel detail={detail} />
           <RecentSubmissionsPanel submissions={detail.recentSubmissions ?? []} />
 
-          {canWriteBilling ? (
-            <CreateCheckoutLinkCard
-              clientEmail={detail.clientEmail}
-              onCreated={() => loadDetail(undefined, { showLoading: false })}
-              token={token}
-              uploads={activeUploads}
-            />
-          ) : (
-            <section className="rounded-2xl border border-[#A380F6]/25 bg-[#A380F6]/10 p-5">
-              <p className="text-sm font-black text-[#0A1547]">Read-only billing access</p>
-              <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
-                You can inspect billing and upload records, but creating checkout links requires billing write permission.
-              </p>
-            </section>
-          )}
+          <BillingHandoffCard />
 
           <BillingSummaryPanel summary={detail.summary} />
 
@@ -833,6 +815,27 @@ function reviewSeverityTone(value: string | null | undefined): string {
     return "border-[#02D99D]/30 bg-[#02D99D]/10 text-[#0A1547]";
   }
   return "border-[#0A1547]/10 bg-white text-[#0A1547]/70";
+}
+
+function BillingHandoffCard() {
+  return (
+    <section className="admin-card p-5">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h3 className="text-lg font-black text-[#0A1547]">Create payment links in Billing</h3>
+          <p className="mt-1 max-w-2xl text-sm font-semibold leading-6 text-[#0A1547]/62">
+            Checkout links are now created from the Billing tab so client payments, upload links, and future offer links stay in one workspace.
+          </p>
+        </div>
+        <Link
+          href="/billing"
+          className="admin-focus w-fit rounded-xl bg-[#0A1547] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#1A2460]"
+        >
+          Open Billing
+        </Link>
+      </div>
+    </section>
+  );
 }
 
 function BackLink() {
