@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "wouter";
 import { useAuth } from "@/auth/AuthProvider";
-import { AdminApiError, expireCheckoutSession, getBillingOverview } from "@/lib/adminApi";
+import { CreateCheckoutLinkCard } from "@/components/CreateCheckoutLinkCard";
+import { AdminApiError, expireCheckoutSession, getAdminClients, getBillingOverview, getClientBillingDetail } from "@/lib/adminApi";
 import type {
+  AdminClient,
   BillingOverviewResponse,
   BillingOverviewStatus,
   BillingOverrideSummary,
+  BillingUploadSummary,
   CheckoutSessionSummary,
+  ClientBillingDetailResponse,
 } from "@/lib/types";
 
 type BillingRecordFilter = "all" | "paid" | "open" | "expired" | "overrides";
@@ -134,25 +138,47 @@ function isOpenSession(session: CheckoutSessionSummary): boolean {
   return !isPaidSession(session) && !isExpiredSession(session);
 }
 
+function uploadTimeValue(upload: BillingUploadSummary): number {
+  if (!upload.uploadTime) {
+    return 0;
+  }
+
+  const date = new Date(upload.uploadTime);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
 export default function BillingPage() {
   const { permissions, session } = useAuth();
   const [overview, setOverview] = useState<BillingOverviewResponse | null>(null);
   const [recordFilter, setRecordFilter] = useState<BillingRecordFilter>("open");
   const [search, setSearch] = useState("");
+  const [clientSearch, setClientSearch] = useState("");
+  const [clientOptions, setClientOptions] = useState<AdminClient[]>([]);
+  const [selectedClientEmail, setSelectedClientEmail] = useState("");
+  const [selectedClientDetail, setSelectedClientDetail] = useState<ClientBillingDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingClients, setLoadingClients] = useState(true);
+  const [loadingClientDetail, setLoadingClientDetail] = useState(false);
   const [error, setError] = useState("");
+  const [clientsError, setClientsError] = useState("");
+  const [clientDetailError, setClientDetailError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
 
   const token = session?.access_token || "";
   const canWriteBilling = permissions.canWriteBilling;
   const queryStatus = statusForFilter(recordFilter);
 
-  const loadOverview = useCallback(async (signal?: AbortSignal) => {
+  const loadOverview = useCallback(async (
+    signal?: AbortSignal,
+    options: { showLoading?: boolean } = {},
+  ) => {
     if (!token) {
       return;
     }
 
-    setLoading(true);
+    if (options.showLoading !== false) {
+      setLoading(true);
+    }
     setError("");
 
     try {
@@ -173,11 +199,75 @@ export default function BillingPage() {
         setError("Billing overview could not be loaded.");
       }
     } finally {
-      if (!signal?.aborted) {
+      if (!signal?.aborted && options.showLoading !== false) {
         setLoading(false);
       }
     }
   }, [queryStatus, search, token]);
+
+  const loadClientOptions = useCallback(async (signal?: AbortSignal) => {
+    if (!token) {
+      return;
+    }
+
+    setLoadingClients(true);
+    setClientsError("");
+
+    try {
+      const response = await getAdminClients(token, {
+        search: clientSearch,
+        limit: 8,
+      }, signal);
+      setClientOptions(response.items);
+    } catch (clientError) {
+      if (clientError instanceof DOMException && clientError.name === "AbortError") {
+        return;
+      }
+
+      if (clientError instanceof AdminApiError) {
+        setClientsError(clientError.message);
+      } else {
+        setClientsError("Clients could not be loaded.");
+      }
+    } finally {
+      if (!signal?.aborted) {
+        setLoadingClients(false);
+      }
+    }
+  }, [clientSearch, token]);
+
+  const loadSelectedClientDetail = useCallback(async (
+    signal?: AbortSignal,
+    options: { showLoading?: boolean } = {},
+  ) => {
+    if (!token || !selectedClientEmail) {
+      return;
+    }
+
+    if (options.showLoading !== false) {
+      setLoadingClientDetail(true);
+    }
+    setClientDetailError("");
+
+    try {
+      const response = await getClientBillingDetail(token, selectedClientEmail, signal, { uploadStatus: "active" });
+      setSelectedClientDetail(response);
+    } catch (detailError) {
+      if (detailError instanceof DOMException && detailError.name === "AbortError") {
+        return;
+      }
+
+      if (detailError instanceof AdminApiError) {
+        setClientDetailError(detailError.message);
+      } else {
+        setClientDetailError("Client billing details could not be loaded.");
+      }
+    } finally {
+      if (!signal?.aborted && options.showLoading !== false) {
+        setLoadingClientDetail(false);
+      }
+    }
+  }, [selectedClientEmail, token]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -191,7 +281,42 @@ export default function BillingPage() {
     };
   }, [loadOverview]);
 
+  useEffect(() => {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => {
+      void loadClientOptions(controller.signal);
+    }, 250);
+
+    return () => {
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [loadClientOptions]);
+
+  useEffect(() => {
+    if (!selectedClientEmail) {
+      setSelectedClientDetail(null);
+      setClientDetailError("");
+      setLoadingClientDetail(false);
+      return;
+    }
+
+    setSelectedClientDetail(null);
+
+    const controller = new AbortController();
+    void loadSelectedClientDetail(controller.signal);
+
+    return () => {
+      controller.abort();
+    };
+  }, [loadSelectedClientDetail, selectedClientEmail]);
+
   const summary = overview?.summary;
+  const selectedActiveUploads = useMemo(() => {
+    return [...(selectedClientDetail?.uploads ?? [])]
+      .filter((upload) => !upload.voided)
+      .sort((left, right) => uploadTimeValue(right) - uploadTimeValue(left));
+  }, [selectedClientDetail?.uploads]);
   const visibleCheckoutSessions = useMemo(() => {
     const sessions = overview?.checkoutSessions ?? [];
 
@@ -226,7 +351,15 @@ export default function BillingPage() {
 
   const handleSessionExpired = async () => {
     setActionMessage("Checkout link expired.");
-    await loadOverview();
+    await loadOverview(undefined, { showLoading: false });
+  };
+
+  const handleSelectedClientCheckoutCreated = async () => {
+    await loadSelectedClientDetail(undefined, { showLoading: false });
+
+    if (overview) {
+      await loadOverview(undefined, { showLoading: false });
+    }
   };
 
   return (
@@ -249,6 +382,111 @@ export default function BillingPage() {
           />
         ))}
       </section>
+
+      <section className="admin-card p-5">
+        <div className="grid gap-4 lg:grid-cols-[1fr_420px] lg:items-end">
+          <div>
+            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#A380F6]">Upload checkout</p>
+            <h2 className="mt-2 text-xl font-black text-[#0A1547]">Create checkout link</h2>
+            <p className="mt-1 max-w-2xl text-sm font-medium leading-6 text-[#0A1547]/60">
+              Create upload-based checkout links for selected client files. Offer-based and recurring payment links will be added separately.
+            </p>
+          </div>
+
+          <label>
+            <span className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#0A1547]/45">Search client</span>
+            <input
+              type="search"
+              value={clientSearch}
+              onChange={(event) => setClientSearch(event.target.value)}
+              placeholder="Search client email, name, office, phone"
+              className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547] placeholder:text-[#0A1547]/38"
+            />
+          </label>
+        </div>
+
+        {loadingClients && (
+          <p className="mt-4 rounded-xl bg-[#F8F9FD] px-4 py-3 text-sm font-medium text-[#0A1547]/58">
+            Loading clients...
+          </p>
+        )}
+
+        {clientsError && !loadingClients && (
+          <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+            {clientsError}
+          </p>
+        )}
+
+        {!loadingClients && !clientsError && (
+          <div className="mt-4 grid gap-2">
+            {clientOptions.length > 0 ? clientOptions.map((client) => {
+              const active = selectedClientEmail === client.email;
+              return (
+                <button
+                  key={client.email}
+                  type="button"
+                  onClick={() => setSelectedClientEmail(client.email)}
+                  className={`admin-focus rounded-xl border px-4 py-3 text-left transition ${
+                    active ? "border-[#A380F6]/55 bg-[#A380F6]/10" : "border-[#0A1547]/10 bg-[#F8F9FD] hover:border-[#A380F6]/35"
+                  }`}
+                >
+                  <span className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+                    <span className="min-w-0">
+                      <span className="block break-all text-sm font-black text-[#0A1547]">{client.email}</span>
+                      <span className="mt-1 block text-xs font-medium text-[#0A1547]/58">
+                        {formatNullable(client.latestName)} / {formatNullable(client.latestOfficeName)}
+                      </span>
+                    </span>
+                    <span className="shrink-0 rounded-full border border-[#0A1547]/10 bg-white px-3 py-1 text-xs font-bold text-[#0A1547]/60">
+                      {client.uploadCount} uploads
+                    </span>
+                  </span>
+                </button>
+              );
+            }) : (
+              <p className="rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-medium text-[#0A1547]/56">
+                No clients found. Refine the search to select a client before creating an upload checkout link.
+              </p>
+            )}
+          </div>
+        )}
+      </section>
+
+      {selectedClientEmail && loadingClientDetail && (
+        <div className="admin-card p-8 text-center text-sm font-medium text-[#0A1547]/60">
+          Loading selected client billing detail...
+        </div>
+      )}
+
+      {selectedClientEmail && clientDetailError && !loadingClientDetail && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-bold text-red-700">
+          {clientDetailError}
+        </div>
+      )}
+
+      {selectedClientDetail && !loadingClientDetail && !clientDetailError && (
+        <>
+          <SelectedClientCheckoutSummary detail={selectedClientDetail} uploadCount={selectedActiveUploads.length} />
+
+          {canWriteBilling ? (
+            <CreateCheckoutLinkCard
+              key={selectedClientDetail.clientEmail}
+              clientEmail={selectedClientDetail.clientEmail}
+              helperText="Create upload-based checkout links for selected client files. Offer-based and recurring payment links will be added separately."
+              onCreated={handleSelectedClientCheckoutCreated}
+              token={token}
+              uploads={selectedActiveUploads}
+            />
+          ) : (
+            <section className="rounded-2xl border border-[#A380F6]/25 bg-[#A380F6]/10 p-5">
+              <p className="text-sm font-black text-[#0A1547]">Read-only billing access</p>
+              <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
+                You can inspect billing records, but creating checkout links requires billing write permission.
+              </p>
+            </section>
+          )}
+        </>
+      )}
 
       {actionMessage && (
         <p className="rounded-2xl border border-[#02D99D]/25 bg-[#02D99D]/10 px-5 py-4 text-sm font-semibold text-[#0A1547]">
@@ -344,6 +582,45 @@ export default function BillingPage() {
         </section>
       )}
     </div>
+  );
+}
+
+function SelectedClientCheckoutSummary({
+  detail,
+  uploadCount,
+}: {
+  detail: ClientBillingDetailResponse;
+  uploadCount: number;
+}) {
+  const profile = detail.clientProfile;
+
+  return (
+    <section className="admin-card p-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#0A1547]/45">Selected client</p>
+          <Link
+            href={clientHref(detail.clientEmail)}
+            className="admin-focus mt-2 block break-all text-xl font-black text-[#0A1547] underline decoration-[#A380F6]/35 underline-offset-4 transition hover:text-[#1A2460]"
+          >
+            {detail.clientEmail}
+          </Link>
+          <p className="mt-1 text-sm font-medium text-[#0A1547]/58">
+            Current upload checkout workflow for this client.
+          </p>
+        </div>
+        <span className="rounded-full border border-[#02ABE0]/20 bg-[#02ABE0]/10 px-3 py-1 text-xs font-extrabold text-[#0A1547]">
+          Upload checkout
+        </span>
+      </div>
+
+      <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+        <Detail label="Client name" value={profile.name} />
+        <Detail label="Office" value={profile.officeName} />
+        <Detail label="Selectable active uploads" value={uploadCount} />
+        <Detail label="Stripe customer" value={detail.customer?.stripeCustomerId || null} />
+      </dl>
+    </section>
   );
 }
 
