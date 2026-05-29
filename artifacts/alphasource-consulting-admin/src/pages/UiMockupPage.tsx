@@ -431,7 +431,7 @@ function IconButton({
 
 function IconBadge({ compact = false, icon, tone }: { compact?: boolean; icon: IconName; tone: IconTone }) {
   return (
-    <span className={`flex shrink-0 items-center justify-center rounded-lg ${compact ? "h-9 w-9" : "h-10 w-10"} ${badgeToneClassName(tone)}`}>
+    <span className={`flex shrink-0 items-center justify-center rounded-lg border ${compact ? "h-9 w-9" : "h-10 w-10"} ${badgeToneClassName(tone)} [&_svg]:stroke-[2.4]`}>
       <Icon name={icon} size={compact ? 17 : 18} />
     </span>
   );
@@ -466,30 +466,30 @@ function chipToneClassName(tone: StatusTone): string {
 function badgeToneClassName(tone: IconTone): string {
   switch (tone) {
     case "clients":
-      return "bg-[#A380F6]/12 text-[#5D43B8]";
+      return "border-[#A380F6]/40 bg-[#A380F6]/18 text-[#5D35C8]";
     case "agreements":
-      return "bg-[#A380F6]/14 text-[#0A1547]";
+      return "border-[#A380F6]/45 bg-[#F1EAFF] text-[#5130A8]";
     case "billing":
-      return "bg-[#02ABE0]/12 text-[#056A8C]";
+      return "border-[#02ABE0]/42 bg-[#E7F8FD] text-[#056E92]";
     case "secure":
-      return "bg-amber-50 text-amber-700";
+      return "border-amber-300/80 bg-amber-100/70 text-amber-700";
     case "analysis":
-      return "bg-[#00CFC8]/12 text-[#087874]";
+      return "border-[#00CFC8]/45 bg-[#E5FFFC] text-[#067E79]";
     case "reports":
-      return "bg-[#0A1547]/10 text-[#0A1547]/72";
+      return "border-[#0A1547]/20 bg-[#EEF1F8] text-[#0A1547]";
     case "success":
-      return "bg-[#02D99D]/12 text-[#087A5D]";
+      return "border-[#02D99D]/40 bg-[#E7FFF7] text-[#047A5B]";
     case "info":
-      return "bg-[#02ABE0]/12 text-[#0A1547]";
+      return "border-[#02ABE0]/38 bg-[#E8F8FC] text-[#056E92]";
     case "warning":
-      return "bg-amber-50 text-amber-700";
+      return "border-amber-300/80 bg-amber-100/70 text-amber-700";
     case "danger":
-      return "bg-red-50 text-red-700";
+      return "border-red-300/70 bg-red-100/60 text-red-700";
     case "lilac":
-      return "bg-[#A380F6]/14 text-[#0A1547]";
+      return "border-[#A380F6]/40 bg-[#A380F6]/18 text-[#5D35C8]";
     case "neutral":
     default:
-      return "bg-[#F8F9FD] text-[#0A1547]/64";
+      return "border-[#0A1547]/16 bg-[#F1F3FA] text-[#0A1547]/76";
   }
 }
 
