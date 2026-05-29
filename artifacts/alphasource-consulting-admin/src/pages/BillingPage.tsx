@@ -16,6 +16,8 @@ import type {
 } from "@/lib/types";
 
 type BillingRecordFilter = "all" | "paid" | "open" | "expired" | "overrides";
+type IconName = "check" | "clock" | "copy" | "credit" | "file" | "link" | "lock" | "search" | "users";
+type IconTone = "clients" | "billing" | "subscription" | "success" | "warning" | "danger" | "neutral" | "lilac";
 type OfferPreset = {
   amountCents: number;
   billingMode: "one_time" | "recurring";
@@ -26,12 +28,12 @@ type OfferPreset = {
   offerType: OfferPaymentLinkOfferType;
 };
 
-const billingRecordFilters: Array<{ accent: string; label: string; value: BillingRecordFilter }> = [
-  { label: "Total Sessions", value: "all", accent: "#A380F6" },
-  { label: "Paid", value: "paid", accent: "#02D99D" },
-  { label: "Open", value: "open", accent: "#02ABE0" },
-  { label: "Expired", value: "expired", accent: "#A380F6" },
-  { label: "Overrides", value: "overrides", accent: "#1A2460" },
+const billingRecordFilters: Array<{ icon: IconName; iconTone: IconTone; label: string; value: BillingRecordFilter }> = [
+  { label: "Total Sessions", value: "all", icon: "credit", iconTone: "billing" },
+  { label: "Paid", value: "paid", icon: "check", iconTone: "success" },
+  { label: "Open", value: "open", icon: "link", iconTone: "billing" },
+  { label: "Expired", value: "expired", icon: "clock", iconTone: "warning" },
+  { label: "Overrides", value: "overrides", icon: "file", iconTone: "neutral" },
 ];
 const offerPresets: OfferPreset[] = [
   {
@@ -81,6 +83,12 @@ const checkedOutSubscriptionStatuses = new Set([
   "incomplete_expired",
   "unpaid",
 ]);
+const sectionClassName = "rounded-lg border border-[#0A1547]/10 bg-white shadow-[0_12px_28px_rgba(10,21,71,0.05)]";
+const compactRowClassName = "rounded-lg border border-[#0A1547]/10 bg-white p-4";
+const quietDetailsClassName = "mt-4 rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3";
+const quietSummaryClassName = "cursor-pointer text-xs font-semibold uppercase tracking-[0.12em] text-[#0A1547]/46";
+const fieldClassName = "admin-focus mt-2 h-11 w-full rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-4 text-sm font-medium text-[#0A1547] placeholder:text-[#0A1547]/38";
+const textareaClassName = "admin-focus mt-2 w-full rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-medium text-[#0A1547] placeholder:text-[#0A1547]/38";
 
 function formatNullable(value: string | number | boolean | null | undefined): string {
   if (value === null || value === undefined || value === "") {
@@ -234,6 +242,73 @@ function uploadTimeValue(upload: BillingUploadSummary): number {
 
   const date = new Date(upload.uploadTime);
   return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
+function SectionHeader({
+  action,
+  description,
+  icon,
+  iconTone,
+  title,
+}: {
+  action?: ReactNode;
+  description?: string;
+  icon: IconName;
+  iconTone: IconTone;
+  title: string;
+}) {
+  return (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex min-w-0 items-start gap-3">
+        <IconBadge icon={icon} tone={iconTone} />
+        <div className="min-w-0">
+          <h3 className="text-lg font-black text-[#0A1547]">{title}</h3>
+          {description && (
+            <p className="mt-1 max-w-2xl text-sm font-medium leading-6 text-[#0A1547]/56">
+              {description}
+            </p>
+          )}
+        </div>
+      </div>
+      {action && <div className="shrink-0">{action}</div>}
+    </div>
+  );
+}
+
+function IconBadge({ compact = false, icon, tone }: { compact?: boolean; icon: IconName; tone: IconTone }) {
+  return (
+    <span className={`flex shrink-0 items-center justify-center rounded-lg border border-[#0A1547]/10 bg-white ${compact ? "h-9 w-9" : "h-10 w-10"} ${iconToneClassName(tone)} [&_svg]:stroke-[2.6]`}>
+      <Icon name={icon} size={compact ? 17 : 18} />
+    </span>
+  );
+}
+
+function iconToneClassName(tone: IconTone): string {
+  switch (tone) {
+    case "clients":
+    case "lilac":
+    case "subscription":
+      return "text-[#A380F6]";
+    case "billing":
+      return "text-[#02ABE0]";
+    case "success":
+      return "text-[#02D99D]";
+    case "warning":
+      return "text-[#F59E0B]";
+    case "danger":
+      return "text-[#EF4444]";
+    case "neutral":
+    default:
+      return "text-[#0A1547]/78";
+  }
+}
+
+function StatusPill({ children, className }: { children: ReactNode; className: string }) {
+  return (
+    <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${className}`}>
+      {children}
+    </span>
+  );
 }
 
 function centsToDollarInput(amount: number): string {
@@ -500,13 +575,23 @@ export default function BillingPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <section className="grid gap-4 md:grid-cols-5">
+    <div className="space-y-5">
+      <section className={`${sectionClassName} px-5 py-4`}>
+        <SectionHeader
+          description="Create checkout links, inspect payment records, and manage active billing visibility."
+          icon="credit"
+          iconTone="billing"
+          title="Billing"
+        />
+      </section>
+
+      <section className="grid gap-3 md:grid-cols-5">
         {billingRecordFilters.map((filter) => (
           <MetricCard
             key={filter.value}
             active={recordFilter === filter.value}
-            accent={filter.accent}
+            icon={filter.icon}
+            iconTone={filter.iconTone}
             label={filter.label}
             onClick={() => setRecordFilter(filter.value)}
             value={
@@ -520,36 +605,38 @@ export default function BillingPage() {
         ))}
       </section>
 
-      <section className="admin-card p-5">
-        <div className="grid gap-4 lg:grid-cols-[1fr_420px] lg:items-end">
-          <div>
-            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#A380F6]">Payment workspace</p>
-            <h2 className="mt-2 text-xl font-black text-[#0A1547]">Select client</h2>
-            <p className="mt-1 max-w-2xl text-sm font-medium leading-6 text-[#0A1547]/60">
-              Select a client once, then create offer payment links or upload-based checkout links from the workspace below.
-            </p>
-          </div>
+      <section className={`${sectionClassName} p-5`}>
+        <div className="grid gap-4 lg:grid-cols-[1fr_420px] lg:items-start">
+          <SectionHeader
+            description="Select a client before creating offer or upload-linked checkout links."
+            icon="users"
+            iconTone="clients"
+            title="Payment workspace"
+          />
 
-          <label>
-            <span className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#0A1547]/45">Search client</span>
+          <label className="relative">
+            <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#0A1547]/38">Search client</span>
+            <span className="pointer-events-none absolute left-3 top-[2.45rem] text-[#02ABE0]">
+              <Icon name="search" size={17} />
+            </span>
             <input
               type="search"
               value={clientSearch}
               onChange={(event) => setClientSearch(event.target.value)}
               placeholder="Search client email, name, office, phone"
-              className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547] placeholder:text-[#0A1547]/38"
+              className="admin-focus mt-2 h-11 w-full rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] pl-10 pr-4 text-sm font-medium text-[#0A1547] placeholder:text-[#0A1547]/38"
             />
           </label>
         </div>
 
         {loadingClients && (
-          <p className="mt-4 rounded-xl bg-[#F8F9FD] px-4 py-3 text-sm font-medium text-[#0A1547]/58">
+          <p className="mt-4 rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-medium text-[#0A1547]/54">
             Loading clients...
           </p>
         )}
 
         {clientsError && !loadingClients && (
-          <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+          <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
             {clientsError}
           </p>
         )}
@@ -563,25 +650,28 @@ export default function BillingPage() {
                   key={client.email}
                   type="button"
                   onClick={() => setSelectedClientEmail(client.email)}
-                  className={`admin-focus rounded-xl border px-4 py-3 text-left transition ${
-                    active ? "border-[#A380F6]/55 bg-[#A380F6]/10" : "border-[#0A1547]/10 bg-[#F8F9FD] hover:border-[#A380F6]/35"
+                  className={`admin-focus rounded-lg border px-4 py-3 text-left transition ${
+                    active ? "border-[#A380F6]/55 bg-[#A380F6]/10" : "border-[#0A1547]/10 bg-white hover:border-[#A380F6]/35"
                   }`}
                 >
-                  <span className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
-                    <span className="min-w-0">
-                      <span className="block break-all text-sm font-black text-[#0A1547]">{client.email}</span>
-                      <span className="mt-1 block text-xs font-medium text-[#0A1547]/58">
-                        {formatNullable(client.latestName)} / {formatNullable(client.latestOfficeName)}
+                  <span className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                    <span className="flex min-w-0 items-start gap-3">
+                      <IconBadge compact icon="users" tone="clients" />
+                      <span className="min-w-0">
+                        <span className="block break-all text-sm font-semibold text-[#0A1547]">{client.email}</span>
+                        <span className="mt-1 block text-xs font-medium text-[#0A1547]/52">
+                          {formatNullable(client.latestName)} / {formatNullable(client.latestOfficeName)}
+                        </span>
                       </span>
                     </span>
-                    <span className="shrink-0 rounded-full border border-[#0A1547]/10 bg-white px-3 py-1 text-xs font-bold text-[#0A1547]/60">
+                    <StatusPill className="shrink-0 border-[#0A1547]/10 bg-[#F8F9FD] text-[#0A1547]/58">
                       {client.uploadCount} uploads
-                    </span>
+                    </StatusPill>
                   </span>
                 </button>
               );
             }) : (
-              <p className="rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-medium text-[#0A1547]/56">
+              <p className="rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-medium text-[#0A1547]/54">
                 No clients found. Refine the search to select a client before creating a payment link.
               </p>
             )}
@@ -594,13 +684,13 @@ export default function BillingPage() {
       )}
 
       {selectedClientEmail && loadingClientDetail && (
-        <div className="admin-card p-8 text-center text-sm font-medium text-[#0A1547]/60">
+        <div className={`${sectionClassName} p-8 text-center text-sm font-medium text-[#0A1547]/56`}>
           Loading selected client billing detail...
         </div>
       )}
 
       {selectedClientEmail && clientDetailError && !loadingClientDetail && (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-bold text-red-700">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-700">
           {clientDetailError}
         </div>
       )}
@@ -618,9 +708,9 @@ export default function BillingPage() {
               uploads={selectedActiveUploads}
             />
           ) : (
-            <section className="rounded-2xl border border-[#A380F6]/25 bg-[#A380F6]/10 p-5">
-              <p className="text-sm font-black text-[#0A1547]">Read-only billing access</p>
-              <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
+            <section className="rounded-lg border border-[#A380F6]/25 bg-[#A380F6]/10 p-5">
+              <p className="text-sm font-semibold text-[#0A1547]">Read-only billing access</p>
+              <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/62">
                 You can inspect billing records, but creating checkout links requires billing write permission.
               </p>
             </section>
@@ -629,37 +719,39 @@ export default function BillingPage() {
       )}
 
       {actionMessage && (
-        <p className="rounded-2xl border border-[#02D99D]/25 bg-[#02D99D]/10 px-5 py-4 text-sm font-semibold text-[#0A1547]">
+        <p className="rounded-lg border border-[#02D99D]/25 bg-[#02D99D]/10 px-5 py-4 text-sm font-semibold text-[#0A1547]">
           {actionMessage}
         </p>
       )}
 
-      <section className="admin-card p-5">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div>
-            <h2 className="text-xl font-black text-[#0A1547]">Billing</h2>
-            <p className="mt-1 max-w-2xl text-sm font-medium leading-6 text-[#0A1547]/60">
-              Manage checkout sessions, payment visibility, and manual billing override records.
-            </p>
-            <p className="mt-2 max-w-2xl text-xs font-medium leading-5 text-[#0A1547]/52">
-              Manual overrides are admin-entered billing status notes used when Stripe or session data alone does not tell the full payment or report-handling story.
-            </p>
+      <section className={`${sectionClassName} p-5`}>
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div className="min-w-0">
+            <SectionHeader
+              description="Checkout sessions, payment visibility, and manual billing override records."
+              icon="credit"
+              iconTone="billing"
+              title="Billing records"
+            />
             {!canWriteBilling && (
-              <p className="mt-2 text-sm font-medium text-[#0A1547]/58">
+              <p className="mt-3 text-sm font-medium text-[#0A1547]/58">
                 Checkout creation and billing override actions are hidden or disabled unless your role includes billing write permission.
               </p>
             )}
           </div>
 
           <div className="flex flex-col gap-3 md:flex-row md:items-center">
-            <label className="w-full md:w-80">
+            <label className="relative w-full md:w-80">
               <span className="sr-only">Search billing records</span>
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#02ABE0]">
+                <Icon name="search" size={17} />
+              </span>
               <input
                 type="search"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search client email or purpose"
-                className="admin-focus w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-medium text-[#0A1547] placeholder:text-[#0A1547]/38"
+                className="admin-focus h-11 w-full rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] pl-10 pr-4 text-sm font-medium text-[#0A1547] placeholder:text-[#0A1547]/38"
               />
             </label>
           </div>
@@ -667,28 +759,28 @@ export default function BillingPage() {
       </section>
 
       {loading && (
-        <div className="admin-card p-8 text-center text-sm font-medium text-[#0A1547]/60">
+        <div className={`${sectionClassName} p-8 text-center text-sm font-medium text-[#0A1547]/56`}>
           Loading billing overview...
         </div>
       )}
 
       {error && !loading && (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-bold text-red-700">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-700">
           {error}
         </div>
       )}
 
       {empty && (
-        <div className="admin-card p-8 text-center">
+        <div className={`${sectionClassName} p-8 text-center`}>
           <h3 className="text-lg font-black text-[#0A1547]">No billing records found</h3>
-          <p className="mt-2 text-sm font-medium text-[#0A1547]/60">
+          <p className="mt-2 text-sm font-medium text-[#0A1547]/56">
             Try another status filter or clear the search field.
           </p>
         </div>
       )}
 
       {overview && !loading && !error && !empty && (
-        <section className="grid gap-6">
+        <section className="grid gap-5">
           {recordFilter !== "overrides" && (
             <Panel
               count={visibleCheckoutSessions.length}
@@ -727,19 +819,18 @@ export default function BillingPage() {
 
 function OfferPaymentLinkPrompt() {
   return (
-    <section className="admin-card p-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#A380F6]">Offer payment links</p>
-          <h3 className="mt-2 text-lg font-black text-[#0A1547]">Create offer payment link</h3>
-          <p className="mt-1 max-w-2xl text-sm font-medium leading-6 text-[#0A1547]/60">
-            Select a client before creating an offer or monthly retainer payment link.
-          </p>
-        </div>
-        <span className="rounded-full border border-[#0A1547]/10 bg-[#F8F9FD] px-3 py-1 text-xs font-extrabold text-[#0A1547]/58">
-          One-time and recurring
-        </span>
-      </div>
+    <section className={`${sectionClassName} p-5`}>
+      <SectionHeader
+        action={(
+          <StatusPill className="border-[#0A1547]/10 bg-[#F8F9FD] text-[#0A1547]/58">
+            One-time and recurring
+          </StatusPill>
+        )}
+        description="Select a client before creating an offer or monthly retainer payment link."
+        icon="link"
+        iconTone="billing"
+        title="Create offer payment link"
+      />
     </section>
   );
 }
@@ -887,29 +978,28 @@ function CreateOfferPaymentLinkCard({
   };
 
   return (
-    <section className="admin-card p-5">
-      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-        <div>
-          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#A380F6]">Offer payment links</p>
-          <h3 className="mt-2 text-lg font-black text-[#0A1547]">Create offer payment link</h3>
-          <p className="mt-1 max-w-2xl text-sm font-medium leading-6 text-[#0A1547]/60">
-            Create one-time payment links for Practice Opportunity Reviews and scoped consulting sprints, or monthly retainer links for Operations Intelligence Partner.
-          </p>
-        </div>
-        <span className="w-fit rounded-full border border-[#02D99D]/25 bg-[#02D99D]/10 px-3 py-1 text-xs font-extrabold text-[#0A1547]">
-          Offer checkout link
-        </span>
-      </div>
+    <section className={`${sectionClassName} p-5`}>
+      <SectionHeader
+        action={(
+          <StatusPill className="border-[#02D99D]/25 bg-[#02D99D]/10 text-[#0A1547]">
+            Offer checkout link
+          </StatusPill>
+        )}
+        description="Create one-time consulting offer links or monthly retainer checkout links."
+        icon="link"
+        iconTone={isRecurring ? "subscription" : "billing"}
+        title="Create offer payment link"
+      />
 
       <form onSubmit={handleSubmit} className="mt-5 space-y-4">
         <div className={`grid gap-4 ${isRecurring ? "lg:grid-cols-[minmax(16rem,1fr)_9rem_6.5rem_minmax(14rem,1fr)]" : "lg:grid-cols-[1fr_0.38fr_1fr]"}`}>
           <label className="block">
-            <span className="text-sm font-extrabold text-[#0A1547]">Offer</span>
+            <span className="text-sm font-semibold text-[#0A1547]">Offer</span>
             <select
               value={offerType}
               onChange={(event) => setOfferType(event.target.value as OfferPaymentLinkOfferType)}
               disabled={creating}
-              className="admin-focus mt-2 h-12 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547]"
+              className={fieldClassName}
             >
               {offerPresets.map((offer) => (
                 <option key={offer.offerType} value={offer.offerType}>
@@ -917,29 +1007,29 @@ function CreateOfferPaymentLinkCard({
                 </option>
               ))}
             </select>
-            <span className="mt-2 block text-xs font-semibold leading-5 text-[#0A1547]/52">
+            <span className="mt-2 block text-xs font-medium leading-5 text-[#0A1547]/50">
               {selectedPreset.helper}
             </span>
           </label>
 
           <label className="block">
-            <span className="text-sm font-extrabold text-[#0A1547]">{isRecurring ? "Monthly amount" : "Amount"}</span>
+            <span className="text-sm font-semibold text-[#0A1547]">{isRecurring ? "Monthly amount" : "Amount"}</span>
             <input
               type="text"
               inputMode="decimal"
               value={amountDollars}
               onChange={(event) => setAmountDollars(event.target.value)}
               disabled={creating}
-              className="admin-focus mt-2 h-12 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547]"
+              className={fieldClassName}
             />
-            <span className="mt-2 block text-xs font-semibold text-[#0A1547]/52">
+            <span className="mt-2 block text-xs font-medium text-[#0A1547]/50">
               {isRecurring ? "USD / month" : "USD / one-time"}
             </span>
           </label>
 
           {isRecurring && (
             <label className="block">
-              <span className="text-sm font-extrabold text-[#0A1547]">Months</span>
+              <span className="text-sm font-semibold text-[#0A1547]">Months</span>
               <input
                 type="number"
                 min={1}
@@ -948,73 +1038,81 @@ function CreateOfferPaymentLinkCard({
                 value={contractMonths}
                 onChange={(event) => setContractMonths(event.target.value)}
                 disabled={creating}
-                className="admin-focus mt-2 h-12 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-3 py-3 text-sm font-semibold text-[#0A1547]"
+                className={fieldClassName}
               />
-              <span className="mt-2 block text-xs font-semibold text-[#0A1547]/52">1-24 months</span>
+              <span className="mt-2 block text-xs font-medium text-[#0A1547]/50">1-24 months</span>
             </label>
           )}
 
           <label className="block">
-            <span className="text-sm font-extrabold text-[#0A1547]">Description</span>
+            <span className="text-sm font-semibold text-[#0A1547]">Description</span>
             <input
               type="text"
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               disabled={creating}
-              className="admin-focus mt-2 h-12 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547]"
+              className={fieldClassName}
             />
           </label>
         </div>
 
         <label className="block">
-          <span className="text-sm font-extrabold text-[#0A1547]">Internal note</span>
+          <span className="text-sm font-semibold text-[#0A1547]">Internal note</span>
           <textarea
             value={internalNote}
             onChange={(event) => setInternalNote(event.target.value)}
             disabled={creating}
             rows={3}
             placeholder="Optional admin-only context for this offer link."
-            className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547] placeholder:text-[#0A1547]/38"
+            className={textareaClassName}
           />
         </label>
 
         {isRecurring ? (
-          <div className="rounded-2xl border border-[#A380F6]/20 bg-[#A380F6]/10 p-4">
-            <p className="text-sm font-extrabold text-[#0A1547]">Monthly retainer</p>
-            <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/62">
-              Creates a monthly subscription checkout link. The backend tracks the selected term and attempts to schedule cancellation at the end of the term.
-            </p>
-            <p className="mt-2 text-xs font-bold text-[#0A1547]/52">
+          <div className="rounded-lg border border-[#A380F6]/20 bg-[#A380F6]/10 p-4">
+            <div className="flex items-start gap-3">
+              <IconBadge compact icon="credit" tone="subscription" />
+              <div>
+                <p className="text-sm font-semibold text-[#0A1547]">Monthly retainer</p>
+                <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/62">
+                  Creates a monthly subscription checkout link. The backend tracks the selected term and attempts to schedule cancellation at the end of the term.
+                </p>
+              </div>
+            </div>
+            <p className="mt-3 text-xs font-medium text-[#0A1547]/52">
               Upload linking is not available for recurring retainers.
             </p>
           </div>
         ) : (
-          <div className="rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+          <div className="rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-extrabold text-[#0A1547]">Optional: link this payment to analyzed uploads</p>
-                <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/58">
-                  Leave uploads unchecked for standalone offer payments. Paid or voided uploads cannot be selected.
-                </p>
+              <div className="flex min-w-0 items-start gap-3">
+                <IconBadge compact icon="file" tone="neutral" />
+                <div>
+                  <p className="text-sm font-semibold text-[#0A1547]">Optional upload linking</p>
+                  <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/56">
+                    Leave uploads unchecked for standalone offer payments. Paid or voided uploads cannot be selected.
+                  </p>
+                </div>
               </div>
-              <span className="rounded-full border border-[#0A1547]/10 bg-white px-3 py-1 text-xs font-bold text-[#0A1547]/60">
+              <StatusPill className="border-[#0A1547]/10 bg-white text-[#0A1547]/58">
                 {selectedSelectableUploadIds.length} selected
-              </span>
+              </StatusPill>
             </div>
 
             <div className="mt-3 grid gap-2">
               {selectableUploads.length > 0 ? selectableUploads.map((upload) => (
                 <label
                   key={upload.id}
-                  className="flex cursor-pointer flex-col gap-2 rounded-xl border border-[#0A1547]/10 bg-white px-4 py-3 text-sm transition hover:border-[#A380F6]/35 md:flex-row md:items-center md:justify-between"
+                  className="flex cursor-pointer flex-col gap-2 rounded-lg border border-[#0A1547]/10 bg-white px-4 py-3 text-sm transition hover:border-[#A380F6]/35 md:flex-row md:items-center md:justify-between"
                 >
                   <span className="min-w-0">
-                    <span className="block break-words font-black text-[#0A1547]">{formatNullable(upload.fileName)}</span>
+                    <span className="block break-words font-semibold text-[#0A1547]">{formatNullable(upload.fileName)}</span>
                     <span className="mt-1 block text-xs font-medium text-[#0A1547]/52">
                       {formatNullable(upload.toolName)} / {formatDate(upload.uploadTime)}
                     </span>
                   </span>
-                  <span className="flex shrink-0 items-center gap-2 text-xs font-extrabold text-[#0A1547]/62">
+                  <span className="flex shrink-0 items-center gap-2 text-xs font-semibold text-[#0A1547]/62">
                     <input
                       type="checkbox"
                       checked={selectedSelectableUploadIds.includes(upload.id)}
@@ -1026,7 +1124,7 @@ function CreateOfferPaymentLinkCard({
                   </span>
                 </label>
               )) : (
-                <p className="rounded-xl border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-medium text-[#0A1547]/56">
+                <p className="rounded-lg border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-medium text-[#0A1547]/54">
                   No unpaid active uploads are available for optional linking.
                 </p>
               )}
@@ -1035,13 +1133,13 @@ function CreateOfferPaymentLinkCard({
         )}
 
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <p className="text-xs font-semibold leading-5 text-[#0A1547]/52">
+          <p className="text-xs font-medium leading-5 text-[#0A1547]/50">
             This creates a Stripe Checkout link only. It does not send email, update GHL, deliver reports, or mark uploads paid from the dashboard.
           </p>
           <button
             type="submit"
             disabled={creating}
-            className="admin-focus rounded-xl bg-[#A380F6] px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-[#A380F6]/20 transition hover:bg-[#906cf2] disabled:opacity-60"
+            className="admin-focus rounded-lg bg-[#A380F6] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-[#A380F6]/20 transition hover:bg-[#906cf2] disabled:opacity-60"
           >
             {creating ? "Creating..." : "Create offer link"}
           </button>
@@ -1049,39 +1147,44 @@ function CreateOfferPaymentLinkCard({
       </form>
 
       {error && (
-        <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+        <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
           {error}
         </p>
       )}
 
       {createdLink?.url && (
-        <div className="mt-5 rounded-2xl border border-[#02D99D]/25 bg-[#02D99D]/10 p-4">
+        <div className="mt-5 rounded-lg border border-[#02D99D]/25 bg-[#02D99D]/10 p-4">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-sm font-black text-[#0A1547]">Offer payment link created.</p>
-              <p className="mt-1 max-w-xl text-sm font-semibold text-[#0A1547]/62">
-                {offerTypeLabel(createdLink.offerType)} / {billingModeLabel(createdLink.billingMode)}
-                {createdLink.billingMode === "recurring" ? ` / ${intervalLabel(createdLink.interval)} / ${formatNullable(createdLink.contractMonths ?? null)} months` : ""}
-                {" / "}Expires {formatMountainDate(createdLink.expiresAt ?? null)}
-              </p>
-              <p className="mt-1 text-xs font-semibold text-[#0A1547]/52">
-                Status: {formatNullable(createdLink.status)} / Payment: {formatNullable(createdLink.paymentStatus)}
-              </p>
+            <div className="flex min-w-0 items-start gap-3">
+              <IconBadge compact icon="check" tone="success" />
+              <div>
+                <p className="text-sm font-semibold text-[#0A1547]">Offer payment link created.</p>
+                <p className="mt-1 max-w-xl text-sm font-medium text-[#0A1547]/62">
+                  {offerTypeLabel(createdLink.offerType)} / {billingModeLabel(createdLink.billingMode)}
+                  {createdLink.billingMode === "recurring" ? ` / ${intervalLabel(createdLink.interval)} / ${formatNullable(createdLink.contractMonths ?? null)} months` : ""}
+                  {" / "}Expires {formatMountainDate(createdLink.expiresAt ?? null)}
+                </p>
+                <p className="mt-1 text-xs font-medium text-[#0A1547]/52">
+                  Status: {formatNullable(createdLink.status)} / Payment: {formatNullable(createdLink.paymentStatus)}
+                </p>
+              </div>
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
                 onClick={() => void handleCopy()}
-                className="admin-focus rounded-xl border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/50"
+                className="admin-focus inline-flex items-center gap-2 rounded-lg border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-semibold text-[#0A1547]/82 transition hover:border-[#A380F6]/50"
               >
+                <Icon name="copy" size={15} />
                 Copy link
               </button>
               <a
                 href={createdLink.url}
                 target="_blank"
                 rel="noreferrer"
-                className="admin-focus rounded-xl bg-[#0A1547] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#1A2460]"
+                className="admin-focus inline-flex items-center gap-2 rounded-lg bg-[#0A1547] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#1A2460]"
               >
+                <Icon name="link" size={15} />
                 Open link
               </a>
               {copyStatus && (
@@ -1105,23 +1208,26 @@ function SelectedClientCheckoutSummary({
   const profile = detail.clientProfile;
 
   return (
-    <section className="admin-card p-5">
+    <section className={`${sectionClassName} p-5`}>
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#0A1547]/45">Selected client</p>
-          <Link
-            href={clientHref(detail.clientEmail)}
-            className="admin-focus mt-2 block break-all text-xl font-black text-[#0A1547] underline decoration-[#A380F6]/35 underline-offset-4 transition hover:text-[#1A2460]"
-          >
-            {detail.clientEmail}
-          </Link>
-          <p className="mt-1 text-sm font-medium text-[#0A1547]/58">
-            Current billing workspace for this client.
-          </p>
+        <div className="flex min-w-0 items-start gap-3">
+          <IconBadge icon="users" tone="clients" />
+          <div className="min-w-0">
+            <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#0A1547]/38">Selected client</p>
+            <Link
+              href={clientHref(detail.clientEmail)}
+              className="admin-focus mt-1 block break-all text-lg font-black text-[#0A1547] underline decoration-[#A380F6]/35 underline-offset-4 transition hover:text-[#1A2460]"
+            >
+              {detail.clientEmail}
+            </Link>
+            <p className="mt-1 text-sm font-medium text-[#0A1547]/54">
+              Current billing workspace for this client.
+            </p>
+          </div>
         </div>
-        <span className="rounded-full border border-[#02ABE0]/20 bg-[#02ABE0]/10 px-3 py-1 text-xs font-extrabold text-[#0A1547]">
+        <StatusPill className="border-[#02ABE0]/20 bg-[#02ABE0]/10 text-[#0A1547]">
           Billing workspace
-        </span>
+        </StatusPill>
       </div>
 
       <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
@@ -1135,14 +1241,16 @@ function SelectedClientCheckoutSummary({
 }
 
 function MetricCard({
-  accent,
   active,
+  icon,
+  iconTone,
   label,
   onClick,
   value,
 }: {
-  accent: string;
   active: boolean;
+  icon: IconName;
+  iconTone: IconTone;
   label: string;
   onClick: () => void;
   value: string | number;
@@ -1151,13 +1259,17 @@ function MetricCard({
     <button
       type="button"
       onClick={onClick}
-      className={`admin-focus admin-card p-5 text-left transition ${
+      className={`admin-focus rounded-lg border border-[#0A1547]/10 bg-white p-4 text-left shadow-[0_10px_24px_rgba(10,21,71,0.04)] transition ${
         active ? "border-[#A380F6]/65 ring-2 ring-[#A380F6]/20" : "hover:border-[#02ABE0]/35"
       }`}
     >
-      <div className="h-1.5 w-12 rounded-full" style={{ backgroundColor: accent }} />
-      <p className="mt-4 text-xs font-extrabold uppercase tracking-[0.16em] text-[#0A1547]/45">{label}</p>
-      <p className="mt-2 break-words text-2xl font-black text-[#0A1547]">{value}</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="break-words text-2xl font-black leading-none text-[#0A1547]">{value}</p>
+          <p className="mt-2 text-[11px] font-medium uppercase tracking-[0.12em] text-[#0A1547]/40">{label}</p>
+        </div>
+        <IconBadge compact icon={icon} tone={iconTone} />
+      </div>
     </button>
   );
 }
@@ -1176,23 +1288,26 @@ function Panel({
   title: string;
 }) {
   return (
-    <section className="admin-card p-5">
+    <section className={`${sectionClassName} p-5`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h3 className="text-lg font-black text-[#0A1547]">{title}</h3>
-          {hasMore && (
-            <p className="mt-1 text-sm font-medium text-[#0A1547]/56">
-              Showing the first {count} records. Narrow the search to refine the list.
-            </p>
-          )}
+        <div className="flex min-w-0 items-start gap-3">
+          <IconBadge icon={title === "Manual Overrides" ? "file" : "credit"} tone={title === "Manual Overrides" ? "neutral" : "billing"} />
+          <div>
+            <h3 className="text-lg font-black text-[#0A1547]">{title}</h3>
+            {hasMore && (
+              <p className="mt-1 text-sm font-medium text-[#0A1547]/56">
+                Showing the first {count} records. Narrow the search to refine the list.
+              </p>
+            )}
+          </div>
         </div>
-        <span className="rounded-full border border-[#0A1547]/10 bg-[#F8F9FD] px-3 py-1 text-xs font-extrabold text-[#0A1547]/65">
+        <StatusPill className="border-[#0A1547]/10 bg-[#F8F9FD] text-[#0A1547]/58">
           {count}
-        </span>
+        </StatusPill>
       </div>
       <div className="mt-4 grid gap-3">
         {children.length > 0 ? children : (
-          <p className="rounded-2xl bg-[#F8F9FD] p-4 text-sm font-medium text-[#0A1547]/56">
+          <p className="rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] p-4 text-sm font-medium text-[#0A1547]/54">
             {emptyText}
           </p>
         )}
@@ -1270,111 +1385,119 @@ function CheckoutSessionCard({
   };
 
   return (
-    <article className="rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+    <article className={compactRowClassName}>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          {clientEmail ? (
-            <Link
-              href={clientHref(clientEmail)}
-              className="admin-focus break-all text-sm font-black text-[#0A1547] underline decoration-[#A380F6]/40 underline-offset-4 transition hover:text-[#1A2460]"
-            >
-              {clientEmail}
-            </Link>
-          ) : (
-            <p className="text-sm font-black text-[#0A1547]">No client email</p>
-          )}
-          <p className="mt-2 text-sm font-medium text-[#0A1547]/62">
-            {isOfferSession ? formatNullable(offerName || offerTypeLabel(session.offerType)) : formatNullable(session.purpose)}
-          </p>
-          {isOfferSession && (
-            <div className="mt-2 flex flex-wrap gap-2">
-              {isRecurringSession ? (
-                <>
-                  <span className="rounded-full border border-[#02ABE0]/25 bg-white px-2.5 py-1 text-xs font-bold text-[#0A1547]/70">
-                    Monthly retainer
-                  </span>
-                  {session.contractMonths ? (
-                    <span className="rounded-full border border-[#A380F6]/25 bg-white px-2.5 py-1 text-xs font-bold text-[#0A1547]/70">
-                      {session.contractMonths} months
-                    </span>
-                  ) : null}
-                </>
-              ) : (
-                <>
-                  <span className="rounded-full border border-[#A380F6]/25 bg-white px-2.5 py-1 text-xs font-bold text-[#0A1547]/70">
-                    {offerTypeLabel(session.offerType)}
-                  </span>
-                  <span className="rounded-full border border-[#02D99D]/25 bg-white px-2.5 py-1 text-xs font-bold text-[#0A1547]/70">
-                    {billingModeLabel(session.billingMode)}
-                  </span>
-                </>
-              )}
-            </div>
-          )}
-          <p className="mt-1 text-xs font-medium text-[#0A1547]/52">
-            {formatDate(session.createdAt)} / {amountLabel}
-          </p>
-          <p className="mt-1 text-xs font-medium text-[#0A1547]/52">
-            {subscriptionCheckedOut
-              ? subscriptionCancelAt
-                ? `Auto-cancels ${formatMountainDate(subscriptionCancelAt)}`
-                : session.contractMonths
-                  ? `Term: ${session.contractMonths} months`
-                  : "Monthly retainer"
-              : expired
-                ? `Expired ${formatMountainDate(session.expiredAt)}`
-                : `Expires ${formatMountainDate(session.expiresAt)}`}
-          </p>
+        <div className="flex min-w-0 items-start gap-3">
+          <IconBadge compact icon={isRecurringSession ? "credit" : "link"} tone={isRecurringSession ? "subscription" : "billing"} />
+          <div className="min-w-0">
+            {clientEmail ? (
+              <Link
+                href={clientHref(clientEmail)}
+                className="admin-focus break-all text-sm font-semibold text-[#0A1547] underline decoration-[#A380F6]/40 underline-offset-4 transition hover:text-[#1A2460]"
+              >
+                {clientEmail}
+              </Link>
+            ) : (
+              <p className="text-sm font-semibold text-[#0A1547]">No client email</p>
+            )}
+            <p className="mt-2 text-sm font-medium text-[#0A1547]/62">
+              {isOfferSession ? formatNullable(offerName || offerTypeLabel(session.offerType)) : formatNullable(session.purpose)}
+            </p>
+            {isOfferSession && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {isRecurringSession ? (
+                  <>
+                    <StatusPill className="border-[#02ABE0]/25 bg-white text-[#0A1547]/70">
+                      Monthly retainer
+                    </StatusPill>
+                    {session.contractMonths ? (
+                      <StatusPill className="border-[#A380F6]/25 bg-white text-[#0A1547]/70">
+                        {session.contractMonths} months
+                      </StatusPill>
+                    ) : null}
+                  </>
+                ) : (
+                  <>
+                    <StatusPill className="border-[#A380F6]/25 bg-white text-[#0A1547]/70">
+                      {offerTypeLabel(session.offerType)}
+                    </StatusPill>
+                    <StatusPill className="border-[#02D99D]/25 bg-white text-[#0A1547]/70">
+                      {billingModeLabel(session.billingMode)}
+                    </StatusPill>
+                  </>
+                )}
+              </div>
+            )}
+            <p className="mt-1 text-xs font-medium text-[#0A1547]/52">
+              {formatDate(session.createdAt)} / {amountLabel}
+            </p>
+            <p className="mt-1 text-xs font-medium text-[#0A1547]/52">
+              {subscriptionCheckedOut
+                ? subscriptionCancelAt
+                  ? `Auto-cancels ${formatMountainDate(subscriptionCancelAt)}`
+                  : session.contractMonths
+                    ? `Term: ${session.contractMonths} months`
+                    : "Monthly retainer"
+                : expired
+                  ? `Expired ${formatMountainDate(session.expiredAt)}`
+                  : `Expires ${formatMountainDate(session.expiresAt)}`}
+            </p>
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${statusTone(displayStatus)}`}>
+          <StatusPill className={statusTone(displayStatus)}>
             {formatStatusLabel(displayStatus)}
-          </span>
-          <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${statusTone(displayPaymentStatus)}`}>
+          </StatusPill>
+          <StatusPill className={statusTone(displayPaymentStatus)}>
             {formatStatusLabel(displayPaymentStatus)}
-          </span>
+          </StatusPill>
         </div>
       </div>
 
       {subscriptionCheckedOut && (
-        <div className="mt-4 rounded-2xl border border-[#02D99D]/20 bg-white p-4">
-          <div>
-            <p className="text-sm font-black text-[#0A1547]">{subscriptionSummaryText(session)}</p>
-            <p className="mt-1 text-sm font-medium text-[#0A1547]/58">
-              {session.contractMonths ? `Term: ${session.contractMonths} months` : "Monthly retainer"}
-            </p>
-            {subscriptionCancelAt ? (
+        <div className="mt-4 rounded-lg border border-[#02D99D]/20 bg-[#F8F9FD] p-4">
+          <div className="flex items-start gap-3">
+            <IconBadge compact icon="check" tone="success" />
+            <div>
+              <p className="text-sm font-semibold text-[#0A1547]">{subscriptionSummaryText(session)}</p>
               <p className="mt-1 text-sm font-medium text-[#0A1547]/58">
-                Auto-cancels {formatMountainDate(subscriptionCancelAt)}
+                {session.contractMonths ? `Term: ${session.contractMonths} months` : "Monthly retainer"}
               </p>
-            ) : null}
-            {subscriptionCurrentPeriodEnd ? (
-              <p className="mt-1 text-xs font-medium text-[#0A1547]/52">
-                Current period ends {formatMountainDate(subscriptionCurrentPeriodEnd)}
-              </p>
-            ) : null}
+              {subscriptionCancelAt ? (
+                <p className="mt-1 text-sm font-medium text-[#0A1547]/58">
+                  Auto-cancels {formatMountainDate(subscriptionCancelAt)}
+                </p>
+              ) : null}
+              {subscriptionCurrentPeriodEnd ? (
+                <p className="mt-1 text-xs font-medium text-[#0A1547]/52">
+                  Current period ends {formatMountainDate(subscriptionCurrentPeriodEnd)}
+                </p>
+              ) : null}
+            </div>
           </div>
         </div>
       )}
 
       {canUseCheckoutLink && (
-        <div className="mt-4 rounded-2xl border border-[#02ABE0]/20 bg-white p-4">
+        <div className="mt-4 rounded-lg border border-[#02ABE0]/20 bg-[#F8F9FD] p-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <p className="text-sm font-semibold text-[#0A1547]">Checkout link available</p>
             <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
                 onClick={() => void handleCopy()}
-                className="admin-focus rounded-xl border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/50"
+                className="admin-focus inline-flex items-center gap-2 rounded-lg border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-semibold text-[#0A1547]/82 transition hover:border-[#A380F6]/50"
               >
+                <Icon name="copy" size={15} />
                 Copy Link
               </button>
               <a
                 href={checkoutUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="admin-focus rounded-xl bg-[#0A1547] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#1A2460]"
+                className="admin-focus inline-flex items-center gap-2 rounded-lg bg-[#0A1547] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#1A2460]"
               >
+                <Icon name="link" size={15} />
                 Open Link
               </a>
               {copyStatus && (
@@ -1385,7 +1508,7 @@ function CheckoutSessionCard({
                   type="button"
                   onClick={() => void handleExpire()}
                   disabled={expiring}
-                  className="admin-focus rounded-xl border border-[#A380F6]/35 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/70 disabled:cursor-not-allowed disabled:opacity-55"
+                  className="admin-focus rounded-lg border border-[#A380F6]/35 bg-white px-4 py-2 text-sm font-semibold text-[#0A1547]/82 transition hover:border-[#A380F6]/70 disabled:cursor-not-allowed disabled:opacity-55"
                 >
                   {expiring ? "Expiring..." : "Expire link"}
                 </button>
@@ -1396,20 +1519,20 @@ function CheckoutSessionCard({
       )}
 
       {!checkoutUrl && !paid && !expired && (
-        <p className="mt-4 rounded-xl border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-medium text-[#0A1547]/50">
+        <p className="mt-4 rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-medium text-[#0A1547]/50">
           Checkout link unavailable for older session.
         </p>
       )}
 
       {canExpire && !canUseCheckoutLink && (
-        <div className="mt-4 rounded-2xl border border-[#A380F6]/20 bg-white p-4">
+        <div className="mt-4 rounded-lg border border-[#A380F6]/20 bg-[#F8F9FD] p-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <p className="text-sm font-medium text-[#0A1547]/62">This open checkout session can be expired manually.</p>
             <button
               type="button"
               onClick={() => void handleExpire()}
               disabled={expiring}
-              className="admin-focus rounded-xl border border-[#A380F6]/35 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/70 disabled:cursor-not-allowed disabled:opacity-55"
+              className="admin-focus rounded-lg border border-[#A380F6]/35 bg-white px-4 py-2 text-sm font-semibold text-[#0A1547]/82 transition hover:border-[#A380F6]/70 disabled:cursor-not-allowed disabled:opacity-55"
             >
               {expiring ? "Expiring..." : "Expire link"}
             </button>
@@ -1418,19 +1541,19 @@ function CheckoutSessionCard({
       )}
 
       {expired && (
-        <p className="mt-4 rounded-xl border border-[#A380F6]/20 bg-white px-4 py-3 text-sm font-medium text-[#0A1547]/62">
+        <p className="mt-4 rounded-lg border border-[#A380F6]/20 bg-[#F8F9FD] px-4 py-3 text-sm font-medium text-[#0A1547]/62">
           This checkout link expired {formatMountainDate(session.expiredAt)} and is no longer payable.
         </p>
       )}
 
       {expireError && (
-        <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+        <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
           {expireError}
         </p>
       )}
 
-      <details className="mt-4 rounded-xl border border-[#0A1547]/10 bg-white px-4 py-3">
-        <summary className="cursor-pointer text-xs font-extrabold uppercase tracking-[0.16em] text-[#0A1547]/50">
+      <details className={quietDetailsClassName}>
+        <summary className={quietSummaryClassName}>
           Technical details
         </summary>
         <dl className="mt-3 grid gap-3 text-sm md:grid-cols-2">
@@ -1468,33 +1591,36 @@ function OverrideCard({ override }: { override: BillingOverrideSummary }) {
   const clientEmail = override.clientEmail || "";
 
   return (
-    <article className="rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+    <article className={compactRowClassName}>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          {clientEmail ? (
-            <Link
-              href={clientHref(clientEmail)}
-              className="admin-focus break-all text-sm font-black text-[#0A1547] underline decoration-[#A380F6]/40 underline-offset-4 transition hover:text-[#1A2460]"
-            >
-              {clientEmail}
-            </Link>
-          ) : (
-            <p className="text-sm font-black text-[#0A1547]">No client email</p>
-          )}
-          <p className="mt-2 text-sm font-medium text-[#0A1547]/62">{formatNullable(override.targetType)}</p>
-          <p className="mt-1 text-xs font-medium text-[#0A1547]/52">{formatDate(override.createdAt)}</p>
+        <div className="flex min-w-0 items-start gap-3">
+          <IconBadge compact icon="file" tone="neutral" />
+          <div className="min-w-0">
+            {clientEmail ? (
+              <Link
+                href={clientHref(clientEmail)}
+                className="admin-focus break-all text-sm font-semibold text-[#0A1547] underline decoration-[#A380F6]/40 underline-offset-4 transition hover:text-[#1A2460]"
+              >
+                {clientEmail}
+              </Link>
+            ) : (
+              <p className="text-sm font-semibold text-[#0A1547]">No client email</p>
+            )}
+            <p className="mt-2 text-sm font-medium text-[#0A1547]/62">{formatNullable(override.targetType)}</p>
+            <p className="mt-1 text-xs font-medium text-[#0A1547]/52">{formatDate(override.createdAt)}</p>
+          </div>
         </div>
-        <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${statusTone(override.overridePaid ? "paid" : "unpaid")}`}>
+        <StatusPill className={statusTone(override.overridePaid ? "paid" : "unpaid")}>
           {override.overridePaid ? "Override paid" : "Override unpaid"}
-        </span>
+        </StatusPill>
       </div>
 
       <p className="mt-4 text-sm font-medium leading-6 text-[#0A1547]/68">
         {formatNullable(override.reason)}
       </p>
 
-      <details className="mt-4 rounded-xl border border-[#0A1547]/10 bg-white px-4 py-3">
-        <summary className="cursor-pointer text-xs font-extrabold uppercase tracking-[0.16em] text-[#0A1547]/50">
+      <details className={quietDetailsClassName}>
+        <summary className={quietSummaryClassName}>
           Technical details
         </summary>
         <dl className="mt-3 grid gap-3 text-sm md:grid-cols-2">
@@ -1507,11 +1633,96 @@ function OverrideCard({ override }: { override: BillingOverrideSummary }) {
   );
 }
 
+function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
+  return (
+    <svg
+      aria-hidden="true"
+      fill="none"
+      height={size}
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+      width={size}
+    >
+      {iconPath(name)}
+    </svg>
+  );
+}
+
+function iconPath(name: IconName) {
+  switch (name) {
+    case "check":
+      return <path d="m5 12 4 4L19 6" />;
+    case "clock":
+      return (
+        <>
+          <circle cx="12" cy="12" r="8" />
+          <path d="M12 8v5l3 2" />
+        </>
+      );
+    case "copy":
+      return (
+        <>
+          <rect height="13" rx="2" width="13" x="8" y="8" />
+          <path d="M4 16c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2h9c1.1 0 2 .9 2 2" />
+        </>
+      );
+    case "credit":
+      return (
+        <>
+          <rect height="14" rx="2" width="18" x="3" y="5" />
+          <path d="M3 10h18" />
+          <path d="M7 15h3" />
+        </>
+      );
+    case "file":
+      return (
+        <>
+          <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" />
+          <path d="M14 3v5h5" />
+        </>
+      );
+    case "link":
+      return (
+        <>
+          <path d="M10 13a5 5 0 0 0 7.1 0l1.4-1.4a5 5 0 0 0-7.1-7.1l-.9.9" />
+          <path d="M14 11a5 5 0 0 0-7.1 0l-1.4 1.4a5 5 0 0 0 7.1 7.1l.9-.9" />
+        </>
+      );
+    case "lock":
+      return (
+        <>
+          <rect height="11" rx="2" width="16" x="4" y="10" />
+          <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+        </>
+      );
+    case "search":
+      return (
+        <>
+          <circle cx="11" cy="11" r="7" />
+          <path d="m16 16 4 4" />
+        </>
+      );
+    case "users":
+    default:
+      return (
+        <>
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M22 21v-2a4 4 0 0 0-3-3.9" />
+          <path d="M16 3.1a4 4 0 0 1 0 7.8" />
+        </>
+      );
+  }
+}
+
 function Detail({ label, value }: { label: string; value: string | number | boolean | null | undefined }) {
   return (
-    <div>
-      <dt className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/40">{label}</dt>
-      <dd className="mt-1 break-words font-medium text-[#0A1547]">{formatNullable(value)}</dd>
+    <div className="min-w-0">
+      <dt className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#0A1547]/38">{label}</dt>
+      <dd className="mt-1 break-words font-medium text-[#0A1547]/72">{formatNullable(value)}</dd>
     </div>
   );
 }
