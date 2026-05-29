@@ -35,6 +35,19 @@ import type {
 
 type ClientMode = "existing" | "new";
 type AnalysisKind = "financial" | "ar" | "claims";
+type IconName =
+  | "alert"
+  | "arrow"
+  | "check"
+  | "clipboard"
+  | "file"
+  | "filter"
+  | "lock"
+  | "refresh"
+  | "spark"
+  | "upload"
+  | "users";
+type IconTone = "analysis" | "file" | "success" | "warning" | "danger" | "neutral" | "lilac";
 
 type PromotionMetadata = {
   submissionId?: string | null;
@@ -100,6 +113,11 @@ const analysisProcessingTitles: Record<AnalysisKind, string> = {
   claims: "Claims analysis processing",
 };
 const phiAcknowledgmentVersion = "admin_document_analysis_phi_ack_v1";
+const sectionClassName = "rounded-lg border border-[#0A1547]/10 bg-white shadow-[0_12px_28px_rgba(10,21,71,0.05)]";
+const inputClassName = "admin-focus mt-2 h-11 w-full rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-4 text-sm font-medium text-[#0A1547] placeholder:text-[#0A1547]/38";
+const selectClassName = "admin-focus mt-2 h-11 w-full rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-4 text-sm font-medium leading-tight text-[#0A1547]";
+const fileInputClassName = "admin-focus mt-2 w-full rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-medium text-[#0A1547] file:mr-4 file:rounded-lg file:border-0 file:bg-[#0A1547] file:px-4 file:py-2 file:text-sm file:font-bold file:text-white";
+const labelClassName = "text-[11px] font-medium uppercase tracking-[0.12em] text-[#0A1547]/38";
 
 function formatNullable(value: string | number | null | undefined): string {
   if (value === null || value === undefined || value === "") {
@@ -265,6 +283,73 @@ function statusTone(status: string | null): string {
   }
 
   return "border-[#02ABE0]/25 bg-[#02ABE0]/10 text-[#0A1547]";
+}
+
+function SectionHeader({
+  action,
+  description,
+  icon,
+  iconTone,
+  title,
+}: {
+  action?: ReactNode;
+  description?: string;
+  icon: IconName;
+  iconTone: IconTone;
+  title: string;
+}) {
+  return (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex min-w-0 items-start gap-3">
+        <IconBadge icon={icon} tone={iconTone} />
+        <div className="min-w-0">
+          <h3 className="text-lg font-black text-[#0A1547]">{title}</h3>
+          {description && (
+            <p className="mt-1 max-w-2xl text-sm font-medium leading-6 text-[#0A1547]/56">
+              {description}
+            </p>
+          )}
+        </div>
+      </div>
+      {action && <div className="shrink-0">{action}</div>}
+    </div>
+  );
+}
+
+function IconBadge({ compact = false, icon, tone }: { compact?: boolean; icon: IconName; tone: IconTone }) {
+  return (
+    <span className={`flex shrink-0 items-center justify-center rounded-lg border border-[#0A1547]/10 bg-white ${compact ? "h-9 w-9" : "h-10 w-10"} ${iconToneClassName(tone)} [&_svg]:stroke-[2.6]`}>
+      <Icon name={icon} size={compact ? 17 : 18} />
+    </span>
+  );
+}
+
+function iconToneClassName(tone: IconTone): string {
+  switch (tone) {
+    case "analysis":
+      return "text-[#00CFC8]";
+    case "file":
+      return "text-[#02ABE0]";
+    case "success":
+      return "text-[#02D99D]";
+    case "warning":
+      return "text-[#F59E0B]";
+    case "danger":
+      return "text-[#EF4444]";
+    case "lilac":
+      return "text-[#A380F6]";
+    case "neutral":
+    default:
+      return "text-[#0A1547]/78";
+  }
+}
+
+function StatusPill({ children, className }: { children: ReactNode; className: string }) {
+  return (
+    <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${className}`}>
+      {children}
+    </span>
+  );
 }
 
 function optionLabel(option: AdminClientOption): string {
@@ -743,132 +828,129 @@ export default function DocumentAnalysisPage() {
   const phiAcknowledgmentLoading = isProcessingKind(phiAcknowledgment?.kind ?? null);
 
   return (
-    <div className="space-y-6">
-      <WorkflowInfoPanel
-        items={[
-          {
-            title: "Purpose",
-            lines: ["Analyze approved Financial, AR, and Claims files for internal review."],
-          },
-          {
-            title: "Boundary",
-            lines: [
-              "Upload only approved, sanitized, and analysis-appropriate files.",
-              "Do not use this page for unsanitized secure-upload or PHI files.",
-            ],
-          },
-          {
-            title: "Actions",
-            lines: [
-              "Create analysis records.",
-              "Run admin-reviewed processing.",
-              "Publish completed analysis to client records when ready.",
-            ],
-          },
-        ]}
-      />
+    <div className="space-y-5">
+      <section className={`${sectionClassName} px-5 py-4`}>
+        <SectionHeader
+          action={(
+            <StatusPill className="border-[#F59E0B]/25 bg-[#F59E0B]/10 text-[#0A1547]/72">
+              Approved files only
+            </StatusPill>
+          )}
+          description="Analyze approved Financial, AR, and Claims files for internal review. Secure Uploads remains separate for sensitive or PHI-related intake."
+          icon="spark"
+          iconTone="analysis"
+          title="Document Analysis"
+        />
+      </section>
 
       {canWriteAnalysis ? (
-        <form onSubmit={handleSubmit} className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-          <section className="admin-card p-5">
+        <form onSubmit={handleSubmit} className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
+          <section className={`${sectionClassName} p-5`}>
             <StepHeader
+              icon="users"
+              iconTone="lilac"
               eyebrow="Step 1"
               title="Select or create client"
               description="Use an existing client record when available, or enter new client details for this intake job."
             />
 
-          <div className="mt-5 flex rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-1">
-            {(["existing", "new"] as const).map((option) => (
-              <button
-                key={option}
-                type="button"
-                onClick={() => handleModeChange(option)}
-                className={`admin-focus flex-1 rounded-xl px-4 py-2 text-sm font-extrabold transition ${
-                  mode === option
-                    ? "bg-[#0A1547] text-white"
-                    : "text-[#0A1547]/62 hover:bg-white hover:text-[#0A1547]"
-                }`}
-              >
-                {option === "existing" ? "Existing client" : "New client"}
-              </button>
-            ))}
-          </div>
-
-          {mode === "existing" && (
-            <div className="mt-5 grid gap-4">
-              <label className="block">
-                <span className="text-sm font-extrabold text-[#0A1547]">Search clients</span>
-                <input
-                  type="search"
-                  value={clientSearch}
-                  onChange={(event) => setClientSearch(event.target.value)}
-                  placeholder="Search email, name, office, phone"
-                  className={inputClassName}
-                />
-              </label>
-
-              <label className="block">
-                <span className="text-sm font-extrabold text-[#0A1547]">Client</span>
-                <select
-                  value={selectedClientEmail}
-                  onChange={(event) => handleSelectedClientChange(event.target.value)}
-                  className={selectClassName}
+            <div className="mt-5 flex rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] p-1">
+              {(["existing", "new"] as const).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => handleModeChange(option)}
+                  className={`admin-focus flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition ${
+                    mode === option
+                      ? "bg-[#0A1547] text-white"
+                      : "text-[#0A1547]/62 hover:bg-white hover:text-[#0A1547]"
+                  }`}
                 >
-                  <option value="">
-                    {clientOptionsLoading ? "Loading clients..." : "Select a client"}
-                  </option>
-                  {clientOptions.map((option) => (
-                    <option key={option.email} value={option.email}>
-                      {optionLabel(option)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              {clientOptionsError && <ErrorMessage message={clientOptionsError} />}
-
-              {selectedClient && (
-                <div className="rounded-2xl border border-[#02D99D]/25 bg-[#02D99D]/10 p-4">
-                  <p className="text-sm font-black text-[#0A1547]">Client loaded</p>
-                  <p className="mt-1 text-sm font-semibold text-[#0A1547]/62">
-                    Latest submission: {formatDate(selectedClient.latestSubmittedAt)}
-                  </p>
-                </div>
-              )}
+                  {option === "existing" ? "Existing client" : "New client"}
+                </button>
+              ))}
             </div>
-          )}
 
-          <ClientFields
-            form={clientForm}
-            onChange={updateClientField}
-          />
+            {mode === "existing" && (
+              <div className="mt-5 grid gap-4">
+                <label className="block">
+                  <span className={labelClassName}>Search clients</span>
+                  <input
+                    type="search"
+                    value={clientSearch}
+                    onChange={(event) => setClientSearch(event.target.value)}
+                    placeholder="Search email, name, office, phone"
+                    className={inputClassName}
+                  />
+                </label>
+
+                <label className="block">
+                  <span className={labelClassName}>Client</span>
+                  <select
+                    value={selectedClientEmail}
+                    onChange={(event) => handleSelectedClientChange(event.target.value)}
+                    className={selectClassName}
+                  >
+                    <option value="">
+                      {clientOptionsLoading ? "Loading clients..." : "Select a client"}
+                    </option>
+                    {clientOptions.map((option) => (
+                      <option key={option.email} value={option.email}>
+                        {optionLabel(option)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                {clientOptionsError && <ErrorMessage message={clientOptionsError} />}
+
+                {selectedClient && (
+                  <div className="flex items-start gap-3 rounded-lg border border-[#02D99D]/25 bg-[#02D99D]/10 p-4">
+                    <IconBadge compact icon="check" tone="success" />
+                    <div>
+                      <p className="text-sm font-semibold text-[#0A1547]">Client loaded</p>
+                      <p className="mt-1 text-sm font-medium text-[#0A1547]/58">
+                        Latest submission: {formatDate(selectedClient.latestSubmittedAt)}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <ClientFields
+              form={clientForm}
+              onChange={updateClientField}
+            />
           </section>
 
-          <section className="admin-card p-5">
+          <section className={`${sectionClassName} p-5`}>
             <StepHeader
+              icon="upload"
+              iconTone="file"
               eyebrow="Step 2"
               title="Choose analysis and upload file"
-              description="Upload only approved, sanitized, and analysis-appropriate files. Processing starts only after the analysis record is created."
+              description="Choose the analysis type, attach the approved source file, then create the intake record."
             />
 
-          <div className="mt-5 grid gap-4">
-            <div className="grid gap-2 rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-1 sm:grid-cols-3">
-              <AnalysisChoiceButton
-                active={analysisKind === "financial"}
-                label="Financial Analysis"
-                onClick={() => handleAnalysisKindChange("financial")}
-              />
-              <AnalysisChoiceButton
-                active={analysisKind === "ar"}
-                label="AR Analysis"
-                onClick={() => handleAnalysisKindChange("ar")}
-              />
-              <AnalysisChoiceButton
-                active={analysisKind === "claims"}
-                label="Claims Analysis"
-                onClick={() => handleAnalysisKindChange("claims")}
-              />
-            </div>
+            <div className="mt-5 grid gap-4">
+              <div className="grid gap-2 rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] p-1 sm:grid-cols-3">
+                <AnalysisChoiceButton
+                  active={analysisKind === "financial"}
+                  label="Financial Analysis"
+                  onClick={() => handleAnalysisKindChange("financial")}
+                />
+                <AnalysisChoiceButton
+                  active={analysisKind === "ar"}
+                  label="AR Analysis"
+                  onClick={() => handleAnalysisKindChange("ar")}
+                />
+                <AnalysisChoiceButton
+                  active={analysisKind === "claims"}
+                  label="Claims Analysis"
+                  onClick={() => handleAnalysisKindChange("claims")}
+                />
+              </div>
 
             {analysisKind === "financial" && (
               <AnalyzerToolCard
@@ -877,17 +959,17 @@ export default function DocumentAnalysisPage() {
                 title="Financial Analyzer"
               >
                 <label className="block">
-                  <span className="text-sm font-extrabold text-[#0A1547]">Financial source file</span>
+                  <span className={labelClassName}>Financial source file</span>
                   <input
                     type="file"
                     accept=".csv,.xlsx,.pdf"
                     onChange={(event) => setFinancialFile(event.target.files?.[0] ?? null)}
-                    className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547] file:mr-4 file:rounded-lg file:border-0 file:bg-[#0A1547] file:px-4 file:py-2 file:text-sm file:font-extrabold file:text-white"
+                    className={fileInputClassName}
                     disabled={submitting}
                   />
                 </label>
                 {financialFile && (
-                  <p className="mt-3 text-sm font-bold text-[#0A1547]/62">
+                  <p className="mt-3 text-sm font-medium text-[#0A1547]/58">
                     Selected: {financialFile.name} · {formatBytes(financialFile.size)}
                   </p>
                 )}
@@ -901,17 +983,17 @@ export default function DocumentAnalysisPage() {
                 title="AR Analyzer"
               >
                 <label className="block">
-                  <span className="text-sm font-extrabold text-[#0A1547]">AR source file</span>
+                  <span className={labelClassName}>AR source file</span>
                   <input
                     type="file"
                     accept=".csv,.xlsx,.pdf"
                     onChange={(event) => setArFile(event.target.files?.[0] ?? null)}
-                    className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547] file:mr-4 file:rounded-lg file:border-0 file:bg-[#0A1547] file:px-4 file:py-2 file:text-sm file:font-extrabold file:text-white"
+                    className={fileInputClassName}
                     disabled={submitting}
                   />
                 </label>
                 {arFile && (
-                  <p className="mt-3 text-sm font-bold text-[#0A1547]/62">
+                  <p className="mt-3 text-sm font-medium text-[#0A1547]/58">
                     Selected: {arFile.name} · {formatBytes(arFile.size)}
                   </p>
                 )}
@@ -925,17 +1007,17 @@ export default function DocumentAnalysisPage() {
                 title="Insurance Claim Analyzer"
               >
                 <label className="block">
-                  <span className="text-sm font-extrabold text-[#0A1547]">Claims source file</span>
+                  <span className={labelClassName}>Claims source file</span>
                   <input
                     type="file"
                     accept=".csv,.xlsx,.pdf"
                     onChange={(event) => setClaimsFile(event.target.files?.[0] ?? null)}
-                    className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547] file:mr-4 file:rounded-lg file:border-0 file:bg-[#0A1547] file:px-4 file:py-2 file:text-sm file:font-extrabold file:text-white"
+                    className={fileInputClassName}
                     disabled={submitting}
                   />
                 </label>
                 {claimsFile && (
-                  <p className="mt-3 text-sm font-bold text-[#0A1547]/62">
+                  <p className="mt-3 text-sm font-medium text-[#0A1547]/58">
                     Selected: {claimsFile.name} · {formatBytes(claimsFile.size)}
                   </p>
                 )}
@@ -943,33 +1025,43 @@ export default function DocumentAnalysisPage() {
             )}
           </div>
 
-          <div className="mt-5 rounded-2xl border border-[#A380F6]/20 bg-[#A380F6]/10 p-4">
-            <p className="text-sm font-black text-[#0A1547]">Intake and processing are separate steps.</p>
-            <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
-              Creating the analysis stores the uploaded file and analysis record. Files with current processing support can then be processed after admin review; this is not secure PHI intake and does not create a client report, email, GHL update, PDF, report delivery, or payment action.
-            </p>
-            <p className="mt-2 text-sm font-semibold leading-6 text-[#0A1547]/62">
-              CSV, XLSX, and supported PDFs can be processed manually. AR and Claims scanned PDFs may work through OCR, but OCR may fail for low-quality scans, handwriting, rotated pages, or image-heavy documents. Secure Uploads remains separate for potentially sensitive or PHI-related files.
-            </p>
-          </div>
+          <details className="mt-5 rounded-lg border border-[#A380F6]/20 bg-[#A380F6]/10 px-4 py-3">
+            <summary className="cursor-pointer text-sm font-semibold text-[#0A1547]">
+              Intake and processing boundaries
+            </summary>
+            <div className="mt-3 space-y-2 text-sm font-medium leading-6 text-[#0A1547]/62">
+              <p>
+                Creating the analysis stores the uploaded file and analysis record. Files with current processing support can then be processed after admin review.
+              </p>
+              <p>
+                This is not secure PHI intake and does not create a client report, email, GHL update, PDF, report delivery, or payment action.
+              </p>
+            </div>
+          </details>
 
           {submitError && <ErrorMessage message={submitError} />}
 
           <button
             type="submit"
             disabled={submitting}
-            className="admin-focus mt-5 w-full rounded-xl bg-[#A380F6] px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-[#A380F6]/20 transition hover:bg-[#906cf2] disabled:opacity-60"
+            className="admin-focus mt-5 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#A380F6] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-[#A380F6]/20 transition hover:bg-[#906cf2] disabled:opacity-60"
           >
+            <Icon name="upload" size={15} />
             {submitting ? "Creating analysis..." : analysisCreateLabels[analysisKind]}
           </button>
           </section>
         </form>
       ) : (
-        <section className="rounded-2xl border border-[#A380F6]/25 bg-[#A380F6]/10 p-5">
-          <p className="text-sm font-black text-[#0A1547]">Read-only analysis access</p>
-          <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
-            You can view analysis data available to your role. Intake, processing, cancel, and publishing actions are hidden or disabled unless your role includes analysis write permission.
-          </p>
+        <section className={`${sectionClassName} p-5`}>
+          <div className="flex items-start gap-3">
+            <IconBadge icon="lock" tone="lilac" />
+            <div>
+              <p className="text-sm font-semibold text-[#0A1547]">Read-only analysis access</p>
+              <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/58">
+                You can view analysis data available to your role. Intake, processing, cancel, and publishing actions are hidden or disabled unless your role includes analysis write permission.
+              </p>
+            </div>
+          </div>
         </section>
       )}
 
@@ -1012,9 +1104,6 @@ export default function DocumentAnalysisPage() {
   );
 }
 
-const inputClassName = "admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547] placeholder:text-[#0A1547]/38";
-const selectClassName = "admin-focus mt-2 h-[46px] w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold leading-tight text-[#0A1547]";
-
 function PhiAcknowledgmentModal({
   confirmed,
   error,
@@ -1048,39 +1137,42 @@ function PhiAcknowledgmentModal({
           event.preventDefault();
           onConfirm();
         }}
-        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl"
+        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white shadow-2xl"
       >
         <div className="flex items-start justify-between gap-4 border-b border-[#0A1547]/10 px-5 py-4">
-          <div className="min-w-0">
-            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#A380F6]">
-              {analysisProcessingTitles[kind]}
-            </p>
-            <h3 id="phi-acknowledgment-title" className="mt-1 text-lg font-black text-[#0A1547]">
-              PHI/HIPAA acknowledgment
-            </h3>
-            <p className="mt-1 max-w-xl text-sm font-medium leading-6 text-[#0A1547]/62">
-              Before processing, confirm this file has been reviewed and is approved/sanitized for AI-assisted analysis, does not contain unsanitized PHI, and is appropriate to process through Document Analysis.
-            </p>
+          <div className="flex min-w-0 items-start gap-3">
+            <IconBadge icon="alert" tone="warning" />
+            <div className="min-w-0">
+              <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#0A1547]/38">
+                {analysisProcessingTitles[kind]}
+              </p>
+              <h3 id="phi-acknowledgment-title" className="mt-1 text-lg font-black text-[#0A1547]">
+                PHI/HIPAA acknowledgment
+              </h3>
+              <p className="mt-1 max-w-xl text-sm font-medium leading-6 text-[#0A1547]/62">
+                Confirm this file has been reviewed, sanitized, and approved for AI-assisted analysis before processing.
+              </p>
+            </div>
           </div>
           <button
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="admin-focus rounded-xl border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/60 disabled:cursor-not-allowed disabled:opacity-55"
+            className="admin-focus rounded-lg border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-semibold text-[#0A1547]/82 transition hover:border-[#A380F6]/60 disabled:cursor-not-allowed disabled:opacity-55"
           >
             Back
           </button>
         </div>
 
         <div className="grid gap-5 p-5">
-          <div className="rounded-2xl border border-[#02ABE0]/20 bg-[#02ABE0]/[0.08] p-4">
+          <div className="rounded-lg border border-[#02ABE0]/20 bg-[#02ABE0]/[0.08] p-4">
             <dl className="grid gap-3 text-sm md:grid-cols-2">
               <Detail label="Analysis type" value={analysisProcessingTitles[kind]} />
               <Detail label="File" value={file?.originalFilename || null} />
             </dl>
           </div>
 
-          <label className="flex gap-3 rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+          <label className="flex gap-3 rounded-lg border border-[#F59E0B]/25 bg-[#F59E0B]/10 p-4">
             <input
               type="checkbox"
               checked={confirmed}
@@ -1094,7 +1186,7 @@ function PhiAcknowledgmentModal({
           </label>
 
           <label className="block">
-            <span className="text-sm font-semibold text-[#0A1547]">Initials</span>
+            <span className={labelClassName}>Initials</span>
             <input
               type="text"
               value={initials}
@@ -1106,7 +1198,7 @@ function PhiAcknowledgmentModal({
             />
           </label>
 
-          <p className="rounded-xl border border-[#A380F6]/20 bg-[#A380F6]/10 px-4 py-3 text-sm font-medium leading-6 text-[#0A1547]/68">
+          <p className="rounded-lg border border-[#A380F6]/20 bg-[#A380F6]/10 px-4 py-3 text-sm font-medium leading-6 text-[#0A1547]/68">
             Secure Uploads remains separate for potentially sensitive files. Do not process unsanitized secure-upload files through Document Analysis.
           </p>
 
@@ -1117,14 +1209,14 @@ function PhiAcknowledgmentModal({
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="admin-focus rounded-xl border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/60 disabled:cursor-not-allowed disabled:opacity-55"
+              className="admin-focus rounded-lg border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-semibold text-[#0A1547]/82 transition hover:border-[#A380F6]/60 disabled:cursor-not-allowed disabled:opacity-55"
             >
               Back
             </button>
             <button
               type="submit"
               disabled={!canConfirm}
-              className="admin-focus rounded-xl bg-[#0A1547] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#1A2460] disabled:cursor-not-allowed disabled:opacity-60"
+              className="admin-focus rounded-lg bg-[#0A1547] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#1A2460] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? "Running analysis..." : analysisRunLabels[kind]}
             </button>
@@ -1149,7 +1241,7 @@ function ClientFields({
       <TextField label="Office / group" value={form.officeName} onChange={(value) => onChange("officeName", value)} required />
       <TextField label="Client email" type="email" value={form.clientEmail} onChange={(value) => onChange("clientEmail", value)} required />
       <label className="block">
-        <span className="text-sm font-extrabold text-[#0A1547]">Type <span className="text-red-600">*</span></span>
+        <span className={labelClassName}>Type <span className="text-red-600">*</span></span>
         <select
           value={form.orgType}
           onChange={(event) => onChange("orgType", event.target.value)}
@@ -1181,7 +1273,7 @@ function TextField({
 }) {
   return (
     <label className="block">
-      <span className="text-sm font-extrabold text-[#0A1547]">
+      <span className={labelClassName}>
         {label} {required && <span className="text-red-600">*</span>}
       </span>
       <input
@@ -1197,17 +1289,24 @@ function TextField({
 function StepHeader({
   description,
   eyebrow,
+  icon,
+  iconTone,
   title,
 }: {
   description: string;
   eyebrow: string;
+  icon: IconName;
+  iconTone: IconTone;
   title: string;
 }) {
   return (
-    <div>
-      <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#A380F6]">{eyebrow}</p>
-      <h3 className="mt-2 text-xl font-black text-[#0A1547]">{title}</h3>
-      <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">{description}</p>
+    <div className="flex items-start gap-3">
+      <IconBadge icon={icon} tone={iconTone} />
+      <div>
+        <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#0A1547]/38">{eyebrow}</p>
+        <h3 className="mt-1 text-lg font-black text-[#0A1547]">{title}</h3>
+        <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/56">{description}</p>
+      </div>
     </div>
   );
 }
@@ -1228,14 +1327,14 @@ function AnalysisChoiceButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`admin-focus rounded-xl px-4 py-2 text-sm font-extrabold transition ${
+      className={`admin-focus rounded-lg px-4 py-2 text-sm font-semibold transition ${
         active
           ? "bg-[#0A1547] text-white"
           : "text-[#0A1547]/62 hover:bg-white hover:text-[#0A1547]"
       } disabled:text-[#0A1547]/36 disabled:hover:bg-transparent`}
     >
       {label}
-      {disabled && <span className="ml-2 text-xs font-bold">(coming later)</span>}
+      {disabled && <span className="ml-2 text-xs font-medium">(coming later)</span>}
     </button>
   );
 }
@@ -1252,16 +1351,19 @@ function AnalyzerToolCard({
   title: string;
 }) {
   return (
-    <div className={`rounded-2xl border p-4 ${active ? "border-[#02ABE0]/25 bg-[#02ABE0]/[0.08]" : "border-[#0A1547]/10 bg-[#F8F9FD]"}`}>
+    <div className={`rounded-lg border p-4 ${active ? "border-[#02ABE0]/25 bg-[#02ABE0]/[0.08]" : "border-[#0A1547]/10 bg-[#F8F9FD]"}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-base font-black text-[#0A1547]">{title}</p>
-          <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/60">{description}</p>
+        <div className="flex min-w-0 items-start gap-3">
+          <IconBadge compact icon="file" tone="file" />
+          <div className="min-w-0">
+            <p className="text-base font-semibold text-[#0A1547]">{title}</p>
+            <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/58">{description}</p>
+          </div>
         </div>
         {!active && (
-          <span className="rounded-full border border-[#0A1547]/10 bg-white px-3 py-1 text-xs font-extrabold text-[#0A1547]/58">
+          <StatusPill className="border-[#0A1547]/10 bg-white text-[#0A1547]/58">
             Coming later
-          </span>
+          </StatusPill>
         )}
       </div>
       {children && <div className="mt-4">{children}</div>}
@@ -1353,31 +1455,30 @@ function JobStatusCard({
       : onPromoteFinancial;
 
   return (
-    <section className="admin-card p-5">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#A380F6]">Step 3</p>
-          <h3 className="mt-2 text-xl font-black text-[#0A1547]">Intake job status</h3>
-          <p className="mt-1 text-sm font-semibold text-[#0A1547]/62">
-            This status tracks intake, processing, and client record links for this analysis.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${statusTone(job.status)}`}>
-            {formatNullable(job.status)}
-          </span>
-          {canCancel && (
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={canceling}
-              className="admin-focus rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-extrabold text-red-700 transition hover:bg-red-100 disabled:opacity-60"
-            >
-              {canceling ? "Canceling..." : "Cancel"}
-            </button>
-          )}
-        </div>
-      </div>
+    <section className={`${sectionClassName} p-5`}>
+      <SectionHeader
+        action={(
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusPill className={statusTone(job.status)}>
+              {formatNullable(job.status)}
+            </StatusPill>
+            {canCancel && (
+              <button
+                type="button"
+                onClick={onCancel}
+                disabled={canceling}
+                className="admin-focus rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-60"
+              >
+                {canceling ? "Canceling..." : "Cancel"}
+              </button>
+            )}
+          </div>
+        )}
+        description="Track intake, processing, and client record links for this analysis."
+        icon="clipboard"
+        iconTone="analysis"
+        title="Intake job status"
+      />
 
       <div className="mt-5 grid gap-4 md:grid-cols-4">
         <Fact label="Job ID" value={job.id} />
@@ -1391,13 +1492,13 @@ function JobStatusCard({
       )}
       {jobError && <ErrorMessage message={jobError} />}
 
-      <div className="mt-5 rounded-2xl border border-[#02ABE0]/20 bg-[#02ABE0]/[0.08] p-4">
+      <div className="mt-5 rounded-lg border border-[#02ABE0]/20 bg-[#02ABE0]/[0.08] p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-sm font-black text-[#0A1547]">
+            <p className="text-sm font-semibold text-[#0A1547]">
               {analysisKind ? analysisProcessingTitles[analysisKind] : "Analysis processing"}
             </p>
-            <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
+            <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/58">
               {supportsPdfProcessing ? "CSV, XLSX, and supported PDF files can be processed from this record. Scanned AR and Claims PDFs may work through OCR when the scan quality is readable." : "CSV and XLSX files can be processed from this record."} Processed output remains internal review material, not a final client report.
             </p>
           </div>
@@ -1406,19 +1507,20 @@ function JobStatusCard({
               type="button"
               onClick={onProcess}
               disabled={processing}
-              className="admin-focus w-full rounded-xl bg-[#0A1547] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#1A2460] disabled:opacity-60 lg:w-auto"
+              className="admin-focus inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#0A1547] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#1A2460] disabled:opacity-60 lg:w-auto"
             >
+              <Icon name="spark" size={15} />
               {processing ? "Running analysis..." : analysisRunLabels[analysisKind]}
             </button>
           )}
         </div>
         {showPdfProcessingNote && (
-          <p className="mt-3 rounded-xl border border-[#A380F6]/20 bg-white px-4 py-3 text-sm font-bold text-[#0A1547]/68">
+          <p className="mt-3 rounded-lg border border-[#A380F6]/20 bg-white px-4 py-3 text-sm font-medium text-[#0A1547]/68">
             CSV and XLSX processing are available now. PDF processing will be added later.
           </p>
         )}
         {!canWriteAnalysis && (
-          <p className="mt-3 rounded-xl border border-[#A380F6]/20 bg-white px-4 py-3 text-sm font-bold text-[#0A1547]/68">
+          <p className="mt-3 rounded-lg border border-[#A380F6]/20 bg-white px-4 py-3 text-sm font-medium text-[#0A1547]/68">
             Analysis write permission is required to process, cancel, or publish analysis records.
           </p>
         )}
@@ -1438,10 +1540,13 @@ function JobStatusCard({
 
       <div className="mt-5 grid gap-3">
         {job.files.map((file) => (
-          <article key={file.id} className="rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
-            <div>
-              <p className="text-sm font-black text-[#0A1547]">{formatNullable(file.originalFilename)}</p>
-              <p className="mt-1 text-xs font-bold text-[#0A1547]/50">{formatNullable(file.toolName)}</p>
+          <article key={file.id} className="rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+            <div className="flex min-w-0 items-start gap-3">
+              <IconBadge compact icon="file" tone="file" />
+              <div className="min-w-0">
+                <p className="break-words text-sm font-semibold text-[#0A1547]">{formatNullable(file.originalFilename)}</p>
+                <p className="mt-1 text-xs font-medium text-[#0A1547]/50">{formatNullable(file.toolName)}</p>
+              </div>
             </div>
             <dl className="mt-4 grid gap-3 text-sm md:grid-cols-3">
               <Detail label="UploadFile ID" value={file.uploadFileId} />
@@ -1479,34 +1584,38 @@ function PromotionSection({
   const hasLinkedRecord = hasRecordId(submissionId) || hasRecordId(linkedUploadId) || showPromoted;
 
   return (
-    <div className="mt-5 rounded-2xl border border-[#02D99D]/25 bg-[#02D99D]/10 p-4">
+    <div className="mt-5 rounded-lg border border-[#02D99D]/25 bg-[#02D99D]/10 p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <p className="text-sm font-black text-[#0A1547]">Client record publishing</p>
-          <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/68">
-            Publishing makes this completed analysis available in Clients and PDF Reports.
-          </p>
-          <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
-            No email, GHL update, PDF, or report delivery is triggered.
-          </p>
+        <div className="flex min-w-0 items-start gap-3">
+          <IconBadge compact icon="arrow" tone="success" />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-[#0A1547]">Client record publishing</p>
+            <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/68">
+              Publishing makes this completed analysis available in Clients and PDF Reports.
+            </p>
+            <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/62">
+              No email, GHL update, PDF, or report delivery is triggered.
+            </p>
+          </div>
         </div>
         {canPromote && (
           <button
             type="button"
             onClick={onPromote}
             disabled={promoting}
-            className="admin-focus w-full rounded-xl bg-[#0A1547] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#1A2460] disabled:opacity-60 lg:w-auto"
+            className="admin-focus inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#0A1547] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#1A2460] disabled:opacity-60 lg:w-auto"
           >
+            <Icon name="arrow" size={15} />
             {promoting ? "Publishing..." : "Publish to Client Records"}
           </button>
         )}
       </div>
 
       {hasLinkedRecord && (
-        <div className="mt-4 rounded-xl border border-[#02D99D]/25 bg-white p-4">
+        <div className="mt-4 rounded-lg border border-[#02D99D]/25 bg-white p-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <p className="text-sm font-black text-[#0A1547]">Linked client records</p>
+              <p className="text-sm font-semibold text-[#0A1547]">Linked client records</p>
               <dl className="mt-3 grid gap-3 text-sm md:grid-cols-3">
                 <Detail label="Submission ID" value={submissionId} />
                 <Detail label="Upload ID" value={linkedUploadId} />
@@ -1518,7 +1627,7 @@ function PromotionSection({
             {clientEmail && (
               <Link
                 href={clientDetailHref(clientEmail)}
-                className="admin-focus w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-2 text-center text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/50 lg:w-auto"
+                className="admin-focus w-full rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-2 text-center text-sm font-semibold text-[#0A1547]/82 transition hover:border-[#A380F6]/50 lg:w-auto"
               >
                 Open client detail
               </Link>
@@ -1532,43 +1641,19 @@ function PromotionSection({
 
 function Fact({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl bg-[#F8F9FD] p-4">
-      <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#0A1547]/42">{label}</p>
-      <p className="mt-2 break-all text-sm font-black text-[#0A1547]">{value}</p>
+    <div className="rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+      <p className={labelClassName}>{label}</p>
+      <p className="mt-2 break-all text-sm font-semibold text-[#0A1547]/82">{value}</p>
     </div>
   );
 }
 
 function Detail({ label, value }: { label: string; value: string | null }) {
   return (
-    <div>
-      <dt className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/42">{label}</dt>
-      <dd className="mt-1 break-all font-black text-[#0A1547]">{formatNullable(value)}</dd>
+    <div className="min-w-0">
+      <dt className={labelClassName}>{label}</dt>
+      <dd className="mt-1 break-all font-medium text-[#0A1547]/72">{formatNullable(value)}</dd>
     </div>
-  );
-}
-
-function WorkflowInfoPanel({
-  items,
-}: {
-  items: Array<{
-    title: string;
-    lines: string[];
-  }>;
-}) {
-  return (
-    <section className="grid gap-4 md:grid-cols-3">
-      {items.map((item) => (
-        <div key={item.title} className="rounded-2xl border border-[#0A1547]/10 bg-white p-5 shadow-sm">
-          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#A380F6]">{item.title}</p>
-          <ul className="mt-3 space-y-2 text-sm font-semibold leading-6 text-[#0A1547]/68">
-            {item.lines.map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
-        </div>
-      ))}
-    </section>
   );
 }
 
@@ -1585,20 +1670,18 @@ function ProcessedOutput({ analysisData }: { analysisData: AdminAnalysisData }) 
   const rawOutputs = analysisData.raw_analyses ? Object.entries(analysisData.raw_analyses) : [];
 
   return (
-    <div className="mt-5 rounded-2xl border border-[#A380F6]/20 bg-white p-4">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#A380F6]">
-            Processed admin job output
-          </p>
-          <p className="mt-2 text-sm font-semibold leading-6 text-[#0A1547]/62">
-            Internal processing output only. This is not the final client report, PDF, email, or delivery record.
-          </p>
-        </div>
-        <span className="w-fit rounded-full border border-[#02D99D]/25 bg-[#02D99D]/10 px-3 py-1 text-xs font-extrabold text-[#0A1547]">
-          {formatNullable(analysisData.sourceFormat || "processed")}
-        </span>
-      </div>
+    <div className="mt-5 rounded-lg border border-[#A380F6]/20 bg-white p-4">
+      <SectionHeader
+        action={(
+          <StatusPill className="border-[#02D99D]/25 bg-[#02D99D]/10 text-[#0A1547]/80">
+            {formatNullable(analysisData.sourceFormat || "processed")}
+          </StatusPill>
+        )}
+        description="Internal processing output only. This is not the final client report, PDF, email, or delivery record."
+        icon="spark"
+        iconTone="analysis"
+        title="Processed admin job output"
+      />
 
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         <Fact label="Total issues" value={formatNullable(analysisData.total_issue_count)} />
@@ -1616,7 +1699,7 @@ function ProcessedOutput({ analysisData }: { analysisData: AdminAnalysisData }) 
 
       {providerStatuses.length > 0 && (
         <div className="mt-5">
-          <p className="text-sm font-black text-[#0A1547]">Provider statuses</p>
+          <p className="text-sm font-semibold text-[#0A1547]">Provider statuses</p>
           <div className="mt-3 flex flex-wrap gap-2">
             {providerStatuses.map(([provider, status]) => (
               <ProviderStatusPill key={provider} provider={provider} status={status} />
@@ -1627,14 +1710,14 @@ function ProcessedOutput({ analysisData }: { analysisData: AdminAnalysisData }) 
 
       {issues.length > 0 && (
         <div className="mt-5">
-          <p className="text-sm font-black text-[#0A1547]">Deduplicated issues</p>
+          <p className="text-sm font-semibold text-[#0A1547]">Deduplicated issues</p>
           <div className="mt-3 grid gap-3">
             {issues.slice(0, 5).map((issue, index) => (
               <IssueCard key={`${issue.title || "issue"}-${index}`} issue={issue} />
             ))}
           </div>
           {issues.length > 5 && (
-            <p className="mt-3 text-xs font-bold text-[#0A1547]/50">
+            <p className="mt-3 text-xs font-medium text-[#0A1547]/50">
               Showing 5 of {issues.length} issues.
             </p>
           )}
@@ -1643,14 +1726,14 @@ function ProcessedOutput({ analysisData }: { analysisData: AdminAnalysisData }) 
 
       {trends.length > 0 && (
         <div className="mt-5">
-          <p className="text-sm font-black text-[#0A1547]">Trends</p>
+          <p className="text-sm font-semibold text-[#0A1547]">Trends</p>
           <ul className="mt-3 grid gap-2">
             {trends.slice(0, 6).map((trend, index) => (
               <TrendItem key={`${trend.text || "trend"}-${index}`} trend={trend} />
             ))}
           </ul>
           {trends.length > 6 && (
-            <p className="mt-3 text-xs font-bold text-[#0A1547]/50">
+            <p className="mt-3 text-xs font-medium text-[#0A1547]/50">
               Showing 6 of {trends.length} trends.
             </p>
           )}
@@ -1658,14 +1741,14 @@ function ProcessedOutput({ analysisData }: { analysisData: AdminAnalysisData }) 
       )}
 
       {rawOutputs.length > 0 && (
-        <details className="mt-5 rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
-          <summary className="cursor-pointer text-sm font-extrabold text-[#0A1547]">
+        <details className="mt-5 rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+          <summary className="cursor-pointer text-sm font-semibold text-[#0A1547]">
             Technical details
           </summary>
           <div className="mt-4 grid gap-3">
             {rawOutputs.map(([provider, output]) => (
-              <details key={provider} className="rounded-xl border border-[#0A1547]/10 bg-white p-3">
-                <summary className="cursor-pointer text-sm font-extrabold text-[#0A1547]">
+              <details key={provider} className="rounded-lg border border-[#0A1547]/10 bg-white p-3">
+                <summary className="cursor-pointer text-sm font-semibold text-[#0A1547]">
                   {provider}
                 </summary>
                 <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap rounded-lg bg-[#0A1547] p-3 text-xs font-semibold leading-5 text-white">
@@ -1717,20 +1800,18 @@ function ConsultantReviewPanel({
   const suggestedReportSections = structuredAnalysis.suggestedReportSections || [];
 
   return (
-    <section className="admin-card mt-5 p-5">
+    <section className={`${sectionClassName} mt-5 p-5`}>
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#A380F6]">
-            Consultant Review
-          </p>
-          <p className="mt-2 text-sm font-semibold leading-6 text-[#0A1547]/62">
-            Structured internal review output for consultant validation before client-facing reporting.
-          </p>
-        </div>
+        <SectionHeader
+          description="Structured internal review output for consultant validation before client-facing reporting."
+          icon="clipboard"
+          iconTone="analysis"
+          title="Consultant Review"
+        />
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <span className="w-fit rounded-full border border-[#02D99D]/25 bg-[#02D99D]/10 px-3 py-1 text-xs font-extrabold text-[#0A1547]">
+          <StatusPill className="border-[#02D99D]/25 bg-[#02D99D]/10 text-[#0A1547]/80">
             {formatStructuredLabel(structuredAnalysis.toolType)}
-          </span>
+          </StatusPill>
           <ConsultantReviewExportControls
             context={consultantReviewContextFromAnalysisData(analysisData)}
             providerStatuses={providerStatuses}
@@ -1742,7 +1823,7 @@ function ConsultantReviewPanel({
 
       {(summary.summary || summary.primaryConcern || summary.recommendedFocus) && (
         <div className="mt-5">
-          <p className="text-sm font-black text-[#0A1547]">Executive Summary</p>
+          <p className="text-sm font-semibold text-[#0A1547]">Executive Summary</p>
           <div className="mt-3 grid gap-3 lg:grid-cols-3">
             <StructuredSummaryCard label="Summary" value={summary.summary} />
             <StructuredSummaryCard label="Primary concern" value={summary.primaryConcern} />
@@ -1753,7 +1834,7 @@ function ConsultantReviewPanel({
 
       {findings.length > 0 && (
         <div className="mt-5">
-          <p className="text-sm font-black text-[#0A1547]">Ranked Findings</p>
+          <p className="text-sm font-semibold text-[#0A1547]">Ranked Findings</p>
           <div className="mt-3 grid gap-3">
             {findings.map((finding, index) => (
               <StructuredFindingCard
@@ -1774,8 +1855,8 @@ function ConsultantReviewPanel({
       </div>
 
       {providerStatuses.length > 0 && (
-        <details className="mt-5 rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
-          <summary className="cursor-pointer text-sm font-extrabold text-[#0A1547]">
+        <details className="mt-5 rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+          <summary className="cursor-pointer text-sm font-semibold text-[#0A1547]">
             Structured parsing status
           </summary>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -1801,8 +1882,8 @@ function hasFindingContent(finding: StructuredRankedFinding): boolean {
 
 function StructuredSummaryCard({ label, value }: { label: string; value: string | null | undefined }) {
   return (
-    <div className="rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
-      <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/42">{label}</p>
+    <div className="rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+      <p className={labelClassName}>{label}</p>
       <p className="mt-2 break-words text-sm font-semibold leading-6 text-[#0A1547]/72">
         {formatNullable(value)}
       </p>
@@ -1821,17 +1902,17 @@ function StructuredFindingCard({
   const rank = finding.rank || fallbackRank;
 
   return (
-    <article className="rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+    <article className="rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
-          <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#A380F6]">
+          <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#A380F6]">
             Finding {rank}
           </p>
-          <h4 className="mt-1 break-words text-base font-black text-[#0A1547]">
+          <h4 className="mt-1 break-words text-base font-semibold text-[#0A1547]">
             {formatNullable(finding.title)}
           </h4>
           {finding.category && (
-            <p className="mt-1 text-xs font-bold uppercase tracking-[0.12em] text-[#0A1547]/45">
+            <p className="mt-1 text-xs font-medium uppercase tracking-[0.12em] text-[#0A1547]/45">
               {formatStructuredLabel(finding.category)}
             </p>
           )}
@@ -1851,7 +1932,7 @@ function StructuredFindingCard({
 
       {evidence.length > 0 && (
         <div className="mt-4">
-          <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/42">Evidence</p>
+          <p className={labelClassName}>Evidence</p>
           <div className="mt-2 grid gap-2 md:grid-cols-2">
             {evidence.map((item, index) => (
               <StructuredEvidenceCard key={`${item.label || "evidence"}-${index}`} item={item} />
@@ -1868,8 +1949,8 @@ function StructuredFindingCard({
       </div>
 
       {finding.internalReviewerNotes && (
-        <div className="mt-3 rounded-xl border border-[#A380F6]/20 bg-white p-3">
-          <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#A380F6]">
+        <div className="mt-3 rounded-lg border border-[#A380F6]/20 bg-white p-3">
+          <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#A380F6]">
             Internal reviewer notes
           </p>
           <p className="mt-2 max-h-32 overflow-auto break-words text-sm font-semibold leading-6 text-[#0A1547]/72">
@@ -1899,9 +1980,9 @@ function StructuredMetricPill({
   }[tone];
 
   return (
-    <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${toneClass}`}>
+    <StatusPill className={toneClass}>
       {label}: {formatStructuredLabel(value)}
-    </span>
+    </StatusPill>
   );
 }
 
@@ -1921,20 +2002,20 @@ function structuredSeverityTone(value: string | null | undefined): "red" | "ambe
 
 function StructuredCompactFact({ label, value }: { label: string; value: string | null | undefined }) {
   return (
-    <div className="rounded-xl border border-[#0A1547]/10 bg-white px-3 py-2">
-      <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/38">{label}</p>
-      <p className="mt-1 break-words text-sm font-black text-[#0A1547]">{formatNullable(value)}</p>
+    <div className="rounded-lg border border-[#0A1547]/10 bg-white px-3 py-2">
+      <p className={labelClassName}>{label}</p>
+      <p className="mt-1 break-words text-sm font-semibold text-[#0A1547]/82">{formatNullable(value)}</p>
     </div>
   );
 }
 
 function StructuredEvidenceCard({ item }: { item: StructuredEvidenceItem }) {
   return (
-    <div className="rounded-xl border border-[#0A1547]/10 bg-white px-3 py-2">
-      <p className="break-words text-sm font-black text-[#0A1547]">{formatNullable(item.label)}</p>
-      <p className="mt-1 break-words text-sm font-semibold text-[#0A1547]/72">{formatNullable(item.value)}</p>
+    <div className="rounded-lg border border-[#0A1547]/10 bg-white px-3 py-2">
+      <p className="break-words text-sm font-semibold text-[#0A1547]">{formatNullable(item.label)}</p>
+      <p className="mt-1 break-words text-sm font-medium text-[#0A1547]/72">{formatNullable(item.value)}</p>
       {item.sourceHint && (
-        <p className="mt-1 break-words text-xs font-bold text-[#0A1547]/45">{item.sourceHint}</p>
+        <p className="mt-1 break-words text-xs font-medium text-[#0A1547]/45">{item.sourceHint}</p>
       )}
     </div>
   );
@@ -1947,8 +2028,8 @@ function StructuredTextBlock({ label, value }: { label: string; value: string | 
 
   return (
     <div>
-      <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/42">{label}</p>
-      <p className="mt-1 break-words text-sm font-semibold leading-6 text-[#0A1547]/72">{value}</p>
+      <p className={labelClassName}>{label}</p>
+      <p className="mt-1 break-words text-sm font-medium leading-6 text-[#0A1547]/72">{value}</p>
     </div>
   );
 }
@@ -1959,11 +2040,11 @@ function StructuredListSection({ title, items }: { title: string; items: string[
   }
 
   return (
-    <div className="rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
-      <p className="text-sm font-black text-[#0A1547]">{title}</p>
+    <div className="rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+      <p className="text-sm font-semibold text-[#0A1547]">{title}</p>
       <ul className="mt-3 space-y-2">
         {items.map((item, index) => (
-          <li key={`${title}-${index}`} className="break-words text-sm font-semibold leading-6 text-[#0A1547]/72">
+          <li key={`${title}-${index}`} className="break-words text-sm font-medium leading-6 text-[#0A1547]/72">
             {item}
           </li>
         ))}
@@ -1978,11 +2059,11 @@ function StructuredChecklistSection({ items }: { items: string[] }) {
   }
 
   return (
-    <div className="rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
-      <p className="text-sm font-black text-[#0A1547]">Consultant Checklist</p>
+    <div className="rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+      <p className="text-sm font-semibold text-[#0A1547]">Consultant Checklist</p>
       <ul className="mt-3 space-y-2">
         {items.map((item, index) => (
-          <li key={`checklist-${index}`} className="flex gap-2 text-sm font-semibold leading-6 text-[#0A1547]/72">
+          <li key={`checklist-${index}`} className="flex gap-2 text-sm font-medium leading-6 text-[#0A1547]/72">
             <span className="mt-1.5 h-3 w-3 shrink-0 rounded border border-[#02D99D]/55 bg-white" aria-hidden="true" />
             <span className="break-words">{item}</span>
           </li>
@@ -1998,13 +2079,13 @@ function StructuredReportSections({ items }: { items: string[] }) {
   }
 
   return (
-    <div className="rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
-      <p className="text-sm font-black text-[#0A1547]">Suggested Report Sections</p>
+    <div className="rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+      <p className="text-sm font-semibold text-[#0A1547]">Suggested Report Sections</p>
       <div className="mt-3 flex flex-wrap gap-2">
         {items.map((item, index) => (
           <span
             key={`report-section-${index}`}
-            className="max-w-full break-words rounded-full border border-[#A380F6]/25 bg-white px-3 py-1 text-xs font-extrabold text-[#0A1547]"
+            className="max-w-full break-words rounded-full border border-[#A380F6]/25 bg-white px-3 py-1 text-xs font-semibold text-[#0A1547]/82"
           >
             {item}
           </span>
@@ -2025,14 +2106,14 @@ function StructuredProviderStatusPill({
   const parsed = normalizedStatus === "parsed";
 
   return (
-    <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${
+    <StatusPill className={
       parsed
         ? "border-[#02D99D]/30 bg-[#02D99D]/10 text-[#0A1547]"
         : "border-[#A380F6]/30 bg-[#A380F6]/10 text-[#0A1547]"
-    }`}
+    }
     >
       {formatProviderName(provider)}: {formatStructuredLabel(normalizedStatus)}
-    </span>
+    </StatusPill>
   );
 }
 
@@ -2046,41 +2127,41 @@ function ProviderStatusPill({
   const ok = Boolean(status.ok);
 
   return (
-    <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${
+    <StatusPill className={
       ok
         ? "border-[#02D99D]/30 bg-[#02D99D]/10 text-[#0A1547]"
         : "border-[#A380F6]/30 bg-[#A380F6]/10 text-[#0A1547]"
-    }`}
+    }
     >
       {formatProviderName(provider)}: {ok ? "Processed" : "Unavailable"}
       {!ok && status.errorType ? ` (${status.errorType})` : ""}
-    </span>
+    </StatusPill>
   );
 }
 
 function IssueCard({ issue }: { issue: AdminAnalysisIssue }) {
   return (
-    <article className="rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+    <article className="rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
       <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-        <p className="text-sm font-black text-[#0A1547]">{formatNullable(issue.title)}</p>
+        <p className="text-sm font-semibold text-[#0A1547]">{formatNullable(issue.title)}</p>
         {issue.count !== undefined && (
-          <span className="w-fit rounded-full border border-[#02ABE0]/25 bg-[#02ABE0]/10 px-2.5 py-1 text-xs font-extrabold text-[#0A1547]">
+          <StatusPill className="border-[#02ABE0]/25 bg-[#02ABE0]/10 text-[#0A1547]/80">
             {issue.count} source{issue.count === 1 ? "" : "s"}
-          </span>
+          </StatusPill>
         )}
       </div>
       {issue.impact && (
-        <p className="mt-2 text-sm font-semibold leading-6 text-[#0A1547]/68">
-          <span className="font-black text-[#0A1547]">Impact:</span> {issue.impact}
+        <p className="mt-2 text-sm font-medium leading-6 text-[#0A1547]/68">
+          <span className="font-semibold text-[#0A1547]">Impact:</span> {issue.impact}
         </p>
       )}
       {issue.recommendation && (
-        <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/68">
-          <span className="font-black text-[#0A1547]">Recommendation:</span> {issue.recommendation}
+        <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/68">
+          <span className="font-semibold text-[#0A1547]">Recommendation:</span> {issue.recommendation}
         </p>
       )}
       {issue.sources && issue.sources.length > 0 && (
-        <p className="mt-2 text-xs font-bold text-[#0A1547]/50">
+        <p className="mt-2 text-xs font-medium text-[#0A1547]/50">
           Sources: {issue.sources.join(", ")}
         </p>
       )}
@@ -2090,10 +2171,10 @@ function IssueCard({ issue }: { issue: AdminAnalysisIssue }) {
 
 function TrendItem({ trend }: { trend: AdminAnalysisTrend }) {
   return (
-    <li className="rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3">
-      <p className="text-sm font-semibold leading-6 text-[#0A1547]/72">{formatNullable(trend.text)}</p>
+    <li className="rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3">
+      <p className="text-sm font-medium leading-6 text-[#0A1547]/72">{formatNullable(trend.text)}</p>
       {trend.source && (
-        <p className="mt-1 text-xs font-bold text-[#0A1547]/48">{trend.source}</p>
+        <p className="mt-1 text-xs font-medium text-[#0A1547]/48">{trend.source}</p>
       )}
     </li>
   );
@@ -2101,8 +2182,119 @@ function TrendItem({ trend }: { trend: AdminAnalysisTrend }) {
 
 function ErrorMessage({ message }: { message: string }) {
   return (
-    <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+    <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
       {message}
     </p>
   );
+}
+
+function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
+  return (
+    <svg
+      aria-hidden="true"
+      fill="none"
+      height={size}
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+      width={size}
+    >
+      {iconPath(name)}
+    </svg>
+  );
+}
+
+function iconPath(name: IconName): ReactNode {
+  switch (name) {
+    case "alert":
+      return (
+        <>
+          <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+          <path d="M12 9v4" />
+          <path d="M12 17h.01" />
+        </>
+      );
+    case "arrow":
+      return (
+        <>
+          <path d="M5 12h14" />
+          <path d="m13 6 6 6-6 6" />
+        </>
+      );
+    case "check":
+      return <path d="m5 12 4 4L19 6" />;
+    case "clipboard":
+      return (
+        <>
+          <rect height="16" rx="2" width="14" x="5" y="5" />
+          <path d="M9 5a3 3 0 0 1 6 0" />
+          <path d="M9 12h6" />
+          <path d="M9 16h4" />
+        </>
+      );
+    case "file":
+      return (
+        <>
+          <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" />
+          <path d="M14 3v5h5" />
+        </>
+      );
+    case "filter":
+      return (
+        <>
+          <path d="M4 6h16" />
+          <path d="M7 12h10" />
+          <path d="M10 18h4" />
+        </>
+      );
+    case "lock":
+      return (
+        <>
+          <rect height="11" rx="2" width="16" x="4" y="10" />
+          <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+        </>
+      );
+    case "refresh":
+      return (
+        <>
+          <path d="M21 12a9 9 0 0 1-15.5 6.2" />
+          <path d="M3 12A9 9 0 0 1 18.5 5.8" />
+          <path d="M3 18v-5h5" />
+          <path d="M21 6v5h-5" />
+        </>
+      );
+    case "spark":
+      return (
+        <>
+          <path d="M12 2v5" />
+          <path d="M12 17v5" />
+          <path d="m4.9 4.9 3.5 3.5" />
+          <path d="m15.6 15.6 3.5 3.5" />
+          <path d="M2 12h5" />
+          <path d="M17 12h5" />
+          <path d="m4.9 19.1 3.5-3.5" />
+          <path d="m15.6 8.4 3.5-3.5" />
+        </>
+      );
+    case "upload":
+      return (
+        <>
+          <path d="M12 21V9" />
+          <path d="m7 14 5-5 5 5" />
+          <path d="M5 21h14" />
+        </>
+      );
+    case "users":
+    default:
+      return (
+        <>
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M22 21v-2a4 4 0 0 0-3-3.9" />
+          <path d="M16 3.1a4 4 0 0 1 0 7.8" />
+        </>
+      );
+  }
 }
