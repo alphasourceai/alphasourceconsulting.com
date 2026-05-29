@@ -2,8 +2,17 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react
 import { Link } from "wouter";
 import { useAuth } from "@/auth/AuthProvider";
 import { ConsultantReviewExportControls } from "@/components/ConsultantReviewExportControls";
-import { AdminApiError, expireCheckoutSession, getClientBillingDetail, voidAdminUpload } from "@/lib/adminApi";
+import {
+  AdminApiError,
+  createAgreementDownloadUrl,
+  expireCheckoutSession,
+  getClientBillingDetail,
+  listAgreements,
+  voidAdminUpload,
+} from "@/lib/adminApi";
 import type {
+  AgreementDownloadFileType,
+  AgreementSummary,
   BillingUploadSummary,
   BillingUploadStatus,
   CheckoutSessionSummary,
@@ -57,6 +66,24 @@ function formatDate(value: string | null): string {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
+}
+
+function formatDateOnly(value: string | null): string {
+  if (!value) {
+    return "—";
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split("-").map(Number);
+    return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(year, month - 1, day));
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date);
 }
 
 function formatMountainDate(value: string | null): string {
@@ -121,6 +148,46 @@ function statusTone(status: string | null | undefined): string {
   }
 
   return "border-[#0A1547]/10 bg-white text-[#0A1547]/70";
+}
+
+function agreementStatusTone(status: string | null | undefined): string {
+  const normalized = status?.toLowerCase();
+
+  if (normalized === "signed") {
+    return "border-[#02D99D]/35 bg-[#02D99D]/12 text-[#0A1547]";
+  }
+
+  if (normalized === "sent") {
+    return "border-[#02ABE0]/35 bg-[#02ABE0]/12 text-[#0A1547]";
+  }
+
+  if (normalized === "pending_ba_signature") {
+    return "border-[#A380F6]/35 bg-[#A380F6]/12 text-[#0A1547]";
+  }
+
+  if (normalized === "voided" || normalized === "expired" || normalized === "superseded") {
+    return "border-[#0A1547]/10 bg-[#0A1547]/6 text-[#0A1547]/62";
+  }
+
+  return "border-[#A380F6]/30 bg-[#A380F6]/12 text-[#0A1547]";
+}
+
+function agreementStatusLabel(status: string | null | undefined): string {
+  const normalized = status?.toLowerCase();
+
+  if (!normalized) {
+    return "Unknown";
+  }
+
+  if (normalized === "pending_ba_signature") {
+    return "Pending BA Signature";
+  }
+
+  return normalized
+    .split(/[_\s-]+/)
+    .filter(Boolean)
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(" ");
 }
 
 function submissionStatusLabel(status: string | null): string {
@@ -260,6 +327,7 @@ export default function ClientDetailPage({ email }: ClientDetailPageProps) {
   const validEmail = email.trim();
   const canWriteBilling = permissions.canWriteBilling;
   const canWriteUploads = permissions.canWriteUploads;
+  const canReadAgreements = permissions.canReadAgreements || permissions.canWriteAgreements;
 
   const loadDetail = useCallback(async (
     signal?: AbortSignal,
@@ -403,7 +471,11 @@ export default function ClientDetailPage({ email }: ClientDetailPageProps) {
 
       {detail && !loading && !error && (
         <>
-          <ClientInformationPanel detail={detail} />
+          <ClientInformationPanel
+            canReadAgreements={canReadAgreements}
+            detail={detail}
+            token={token}
+          />
           <RecentSubmissionsPanel submissions={detail.recentSubmissions ?? []} />
 
           <BillingHandoffCard />
@@ -463,7 +535,15 @@ export default function ClientDetailPage({ email }: ClientDetailPageProps) {
   );
 }
 
-function ClientInformationPanel({ detail }: { detail: ClientBillingDetailResponse }) {
+function ClientInformationPanel({
+  canReadAgreements,
+  detail,
+  token,
+}: {
+  canReadAgreements: boolean;
+  detail: ClientBillingDetailResponse;
+  token: string;
+}) {
   const [copyStatus, setCopyStatus] = useState("");
   const profile = detail.clientProfile;
   const latestGhlCid = profile.latestGhlCid?.trim() || detail.latestGhlCid?.trim() || "";
@@ -510,6 +590,12 @@ function ClientInformationPanel({ detail }: { detail: ClientBillingDetailRespons
           value={latestGhlCid || null}
         />
       </div>
+      {canReadAgreements && (
+        <AgreementHistorySection
+          clientEmail={detail.clientEmail}
+          token={token}
+        />
+      )}
     </section>
   );
 }
@@ -536,6 +622,169 @@ function ClientInfoFact({
           )}
         </div>
         {action && <div className="shrink-0">{action}</div>}
+      </div>
+    </div>
+  );
+}
+
+function AgreementHistorySection({
+  clientEmail,
+  token,
+}: {
+  clientEmail: string;
+  token: string;
+}) {
+  const [agreements, setAgreements] = useState<AgreementSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [actionBusyKey, setActionBusyKey] = useState("");
+
+  const loadAgreementHistory = useCallback(async (signal?: AbortSignal) => {
+    if (!token || !clientEmail) {
+      setAgreements([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await listAgreements(token, {
+        clientEmail,
+        limit: 25,
+      }, signal);
+      setAgreements(response.items);
+    } catch (agreementError) {
+      if (agreementError instanceof DOMException && agreementError.name === "AbortError") {
+        return;
+      }
+
+      setError("Agreement history could not be loaded.");
+      setAgreements([]);
+    } finally {
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
+    }
+  }, [clientEmail, token]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void loadAgreementHistory(controller.signal);
+
+    return () => {
+      controller.abort();
+    };
+  }, [loadAgreementHistory]);
+
+  const handleDownload = async (agreement: AgreementSummary, fileType: AgreementDownloadFileType) => {
+    if (!token || actionBusyKey) {
+      return;
+    }
+
+    setActionBusyKey(`${agreement.id}:${fileType}`);
+    setError("");
+
+    try {
+      const response = await createAgreementDownloadUrl(token, agreement.id, fileType);
+      window.open(response.url, "_blank", "noopener,noreferrer");
+    } catch {
+      setError("Agreement PDF could not be opened.");
+    } finally {
+      setActionBusyKey("");
+    }
+  };
+
+  return (
+    <div className="mt-6 border-t border-[#0A1547]/10 pt-5">
+      <div>
+        <h4 className="text-base font-black text-[#0A1547]">Agreement history</h4>
+        <p className="mt-1 text-sm font-medium text-[#0A1547]/60">
+          BAA/Privacy Agreement records for this client.
+        </p>
+      </div>
+
+      {error && (
+        <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+          {error}
+        </p>
+      )}
+
+      <div className="mt-4 overflow-hidden rounded-2xl border border-[#0A1547]/10">
+        <div className="grid grid-cols-[1.25fr_1fr_0.7fr_0.8fr_0.8fr_1fr] gap-3 bg-[#F8F9FD] px-4 py-3 text-xs font-extrabold uppercase tracking-[0.12em] text-[#0A1547]/45 max-xl:hidden">
+          <span>Agreement</span>
+          <span>Signer</span>
+          <span>Status</span>
+          <span>Effective</span>
+          <span>Signed</span>
+          <span>Actions</span>
+        </div>
+
+        {loading ? (
+          <p className="px-4 py-5 text-sm font-bold text-[#0A1547]/58">Loading agreement history...</p>
+        ) : agreements.length ? (
+          <div className="divide-y divide-[#0A1547]/8">
+            {agreements.map((agreement) => {
+              const normalizedStatus = agreement.status.toLowerCase();
+              const showSignedPdf = normalizedStatus === "signed" && agreement.hasSignedPdf;
+              const showDraftPreview = !showSignedPdf && agreement.hasDraftPdf;
+
+              return (
+                <div key={agreement.id} className="grid gap-4 px-4 py-4 text-sm xl:grid-cols-[1.25fr_1fr_0.7fr_0.8fr_0.8fr_1fr] xl:items-center">
+                  <div>
+                    <p className="font-black text-[#0A1547]">{formatNullable(agreement.clientLegalName)}</p>
+                    <p className="mt-1 text-xs font-semibold text-[#0A1547]/45">{agreement.documentType}</p>
+                  </div>
+                  <div>
+                    <p className="font-bold text-[#0A1547]">{formatNullable(agreement.signerEmail)}</p>
+                    <p className="mt-1 text-xs font-semibold text-[#0A1547]/50">{formatNullable(agreement.signerName)}</p>
+                  </div>
+                  <div>
+                    <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-extrabold ${agreementStatusTone(agreement.status)}`}>
+                      {agreementStatusLabel(agreement.status)}
+                    </span>
+                  </div>
+                  <div className="font-bold text-[#0A1547]/70">
+                    {formatDateOnly(agreement.effectiveDate)}
+                  </div>
+                  <div className="font-bold text-[#0A1547]/70">
+                    {formatDate(agreement.signedAt || agreement.baSignedAt || agreement.clientSignedAt || agreement.sentAt)}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {showDraftPreview && (
+                      <button
+                        type="button"
+                        onClick={() => void handleDownload(agreement, "draft")}
+                        disabled={Boolean(actionBusyKey)}
+                        className="admin-focus rounded-lg border border-[#0A1547]/10 bg-white px-3 py-2 text-xs font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/50 disabled:opacity-45"
+                      >
+                        Draft Preview
+                      </button>
+                    )}
+                    {showSignedPdf && (
+                      <button
+                        type="button"
+                        onClick={() => void handleDownload(agreement, "signed")}
+                        disabled={Boolean(actionBusyKey)}
+                        className="admin-focus rounded-lg bg-[#0A1547] px-3 py-2 text-xs font-extrabold text-white transition hover:bg-[#1A2460] disabled:opacity-45"
+                      >
+                        Signed PDF
+                      </button>
+                    )}
+                    {!showDraftPreview && !showSignedPdf && (
+                      <span className="text-xs font-bold text-[#0A1547]/45">No PDF action</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="px-4 py-5 text-sm font-bold text-[#0A1547]/58">
+            No agreements found for this client.
+          </p>
+        )}
       </div>
     </div>
   );
