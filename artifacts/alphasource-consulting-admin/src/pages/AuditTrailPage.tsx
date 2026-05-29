@@ -41,12 +41,11 @@ const DEFAULT_FILTERS: AuditFilters = {
   targetType: "",
 };
 const sectionClassName = "rounded-lg border border-[#0A1547]/10 bg-white shadow-[0_12px_28px_rgba(10,21,71,0.05)]";
-const compactRowClassName = "rounded-lg border border-[#0A1547]/10 bg-white p-4";
 const inputClassName = "admin-focus mt-2 h-11 w-full rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-4 text-sm font-medium text-[#0A1547] placeholder:text-[#0A1547]/38";
 const selectClassName = "admin-focus mt-2 h-11 w-full rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-4 text-sm font-medium leading-tight text-[#0A1547]";
 const labelClassName = "text-[11px] font-medium uppercase tracking-[0.12em] text-[#0A1547]/38";
-const quietDetailsClassName = "mt-4 rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3";
-const quietSummaryClassName = "admin-focus cursor-pointer text-xs font-semibold uppercase tracking-[0.12em] text-[#0A1547]/46";
+const quietDetailsClassName = "border-t border-[#0A1547]/8 bg-[#F8F9FD] px-4 py-3";
+const quietSummaryClassName = "text-xs font-semibold uppercase tracking-[0.12em] text-[#0A1547]/46";
 
 const emptyResponse: AuditEventsResponse = {
   ok: true,
@@ -88,58 +87,6 @@ function sourceLabel(source: string | null): string {
   return source.replace(/_/g, " ");
 }
 
-function eventIcon(eventType: string | null): IconName {
-  const normalized = eventType || "";
-
-  if (normalized.includes("admin_access")) {
-    return "user";
-  }
-
-  if (normalized.includes("checkout")) {
-    return "download";
-  }
-
-  if (normalized.includes("secure_upload") || normalized.includes("upload")) {
-    return "target";
-  }
-
-  if (normalized.includes("analysis") || normalized.includes("pdf_report")) {
-    return "activity";
-  }
-
-  if (normalized.includes("client")) {
-    return "client";
-  }
-
-  return "metadata";
-}
-
-function eventTone(eventType: string | null): IconTone {
-  const normalized = eventType || "";
-
-  if (normalized.includes("admin_access")) {
-    return "lilac";
-  }
-
-  if (normalized.includes("checkout")) {
-    return "billing";
-  }
-
-  if (normalized.includes("secure_upload") || normalized.includes("upload")) {
-    return "secure";
-  }
-
-  if (normalized.includes("analysis") || normalized.includes("pdf_report")) {
-    return "analysis";
-  }
-
-  if (normalized.includes("client")) {
-    return "clients";
-  }
-
-  return "audit";
-}
-
 function displayValue(value: string | null | undefined): string {
   return value?.trim() || "-";
 }
@@ -166,11 +113,9 @@ function EventDetails({ event }: { event: AuditEvent }) {
   const json = metadataJson(event.metadata);
 
   return (
-    <details className={quietDetailsClassName}>
-      <summary className={quietSummaryClassName}>
-        Event details
-      </summary>
-      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+    <div className={quietDetailsClassName}>
+      <p className={quietSummaryClassName}>Event details</p>
+      <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <DetailTile label="Source" value={sourceLabel(event.source)} />
         <DetailTile label="Target type" value={displayValue(event.targetType)} />
         <DetailTile label="Target ID" value={displayValue(event.targetId)} breakAll />
@@ -189,7 +134,7 @@ function EventDetails({ event }: { event: AuditEvent }) {
           <p className="mt-2 text-sm font-medium text-[#0A1547]/45">No metadata recorded.</p>
         )}
       </div>
-    </details>
+    </div>
   );
 }
 
@@ -215,9 +160,39 @@ function TargetCell({ event }: { event: AuditEvent }) {
     <div className="min-w-0">
       <p className="text-sm font-semibold text-[#0A1547]/80">{displayValue(event.targetType)}</p>
       {event.targetId ? (
-        <p className="mt-1 max-w-72 break-all font-mono text-xs text-[#0A1547]/45">{event.targetId}</p>
+        <p className="mt-0.5 truncate font-mono text-xs text-[#0A1547]/45">{event.targetId}</p>
       ) : null}
     </div>
+  );
+}
+
+function AuditEventRow({ event }: { event: AuditEvent }) {
+  return (
+    <details className="group border-t border-[#0A1547]/8 first:border-t-0">
+      <summary className="admin-focus list-none cursor-pointer px-4 py-2.5 transition hover:bg-[#F8F9FD] [&::-webkit-details-marker]:hidden">
+        <div className="grid gap-2 lg:grid-cols-[8.5rem_minmax(11rem,1.1fr)_minmax(9rem,0.9fr)_minmax(9rem,0.9fr)_minmax(8rem,0.8fr)_5.5rem_4rem] lg:items-center">
+          <div className="min-w-0">
+            <p className="truncate text-xs font-semibold text-[#0A1547]/78">{displayValue(event.occurredAtMst)}</p>
+            <p className="mt-0.5 text-[11px] font-medium text-[#0A1547]/40 lg:hidden">Mountain Time</p>
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-[#0A1547]">{eventLabel(event.eventType)}</p>
+            <p className="mt-0.5 truncate text-[11px] font-medium text-[#0A1547]/42 lg:hidden">{sourceLabel(event.source)}</p>
+          </div>
+          <UserCell event={event} />
+          <p className="min-w-0 truncate text-sm font-medium text-[#0A1547]/70">{displayValue(event.clientEmail)}</p>
+          <TargetCell event={event} />
+          <div className="flex min-w-0">
+            <StatusChip>{sourceLabel(event.source)}</StatusChip>
+          </div>
+          <div className="flex lg:justify-end">
+            <span className="text-xs font-semibold text-[#A380F6] group-open:hidden">Details</span>
+            <span className="hidden text-xs font-semibold text-[#A380F6] group-open:inline">Hide</span>
+          </div>
+        </div>
+      </summary>
+      <EventDetails event={event} />
+    </details>
   );
 }
 
@@ -451,57 +426,27 @@ export default function AuditTrailPage() {
           <Alert className="m-5">{error}</Alert>
         ) : null}
 
-        <div className="space-y-3 bg-[#F8F9FD] p-4">
+        <div className="bg-white">
+          <div className="hidden grid-cols-[8.5rem_minmax(11rem,1.1fr)_minmax(9rem,0.9fr)_minmax(9rem,0.9fr)_minmax(8rem,0.8fr)_5.5rem_4rem] gap-2 border-b border-[#0A1547]/8 bg-[#F8F9FD] px-4 py-2 text-[11px] font-medium uppercase tracking-[0.12em] text-[#0A1547]/38 lg:grid">
+            <span>Timestamp</span>
+            <span>Event</span>
+            <span>Actor</span>
+            <span>Client</span>
+            <span>Target</span>
+            <span>Source</span>
+            <span className="text-right">Details</span>
+          </div>
           {loading ? (
-            <div className="rounded-lg border border-[#0A1547]/10 bg-white p-8 text-center text-sm font-medium text-[#0A1547]/58">
+            <div className="p-8 text-center text-sm font-medium text-[#0A1547]/58">
               Loading audit events...
             </div>
           ) : response.items.length === 0 ? (
-            <div className="rounded-lg border border-[#0A1547]/10 bg-white p-8 text-center text-sm font-medium text-[#0A1547]/58">
+            <div className="p-8 text-center text-sm font-medium text-[#0A1547]/58">
               No audit events match the selected filters.
             </div>
           ) : (
             response.items.map((event) => (
-              <article key={event.id} className={compactRowClassName}>
-                <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                  <div className="flex min-w-0 flex-1 gap-3">
-                    <IconBadge icon={eventIcon(event.eventType)} tone={eventTone(event.eventType)} compact />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                        <div className="min-w-0">
-                          <h3 className="text-base font-bold text-[#0A1547]">{eventLabel(event.eventType)}</h3>
-                          <div className="mt-2 flex flex-wrap items-center gap-2">
-                            <StatusChip>{sourceLabel(event.source)}</StatusChip>
-                            {event.targetType ? <StatusChip>{event.targetType}</StatusChip> : null}
-                          </div>
-                        </div>
-                        <div className="shrink-0 lg:text-right">
-                          <p className="text-sm font-semibold text-[#0A1547]/82">{displayValue(event.occurredAtMst)}</p>
-                          <p className="mt-1 text-xs font-medium text-[#0A1547]/45">Mountain Time</p>
-                        </div>
-                      </div>
-
-                      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                        <ContextTile icon="user" iconTone="clients" label="Actor">
-                          <UserCell event={event} />
-                        </ContextTile>
-                        <ContextTile icon="client" iconTone="clients" label="Client">
-                          <p className="break-words text-sm font-semibold text-[#0A1547]/78">{displayValue(event.clientEmail)}</p>
-                        </ContextTile>
-                        <ContextTile icon="target" iconTone="neutral" label="Target">
-                          <TargetCell event={event} />
-                        </ContextTile>
-                        <ContextTile icon="ip" iconTone="neutral" label="IP / device">
-                          <p className="font-mono text-xs font-medium text-[#0A1547]/68">{displayValue(event.ipAddress)}</p>
-                          <p className="mt-1 text-xs font-medium text-[#0A1547]/48">{displayValue(event.deviceSummary)}</p>
-                        </ContextTile>
-                      </div>
-
-                      <EventDetails event={event} />
-                    </div>
-                  </div>
-                </div>
-              </article>
+              <AuditEventRow key={event.id} event={event} />
             ))
           )}
         </div>
@@ -561,28 +506,6 @@ function SectionHeader({
         </div>
       </div>
       {trailing}
-    </div>
-  );
-}
-
-function ContextTile({
-  children,
-  icon,
-  iconTone,
-  label,
-}: {
-  children: ReactNode;
-  icon: IconName;
-  iconTone: IconTone;
-  label: string;
-}) {
-  return (
-    <div className="min-w-0 rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-3 py-2.5">
-      <div className="mb-2 flex items-center gap-2">
-        <IconBadge icon={icon} tone={iconTone} compact />
-        <p className={labelClassName}>{label}</p>
-      </div>
-      {children}
     </div>
   );
 }
