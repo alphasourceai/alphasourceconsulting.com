@@ -6,6 +6,7 @@ import NotFound from "@/pages/not-found";
 import HomePage from "@/pages/HomePage";
 import DentalConsultingPage from "@/pages/DentalConsultingPage";
 import AnalyzerPage from "@/pages/AnalyzerPage";
+import AgreementSignerPage from "@/pages/AgreementSignerPage";
 import AboutPage from "@/pages/AboutPage";
 import PracticeOpportunityReviewPage from "@/pages/PracticeOpportunityReviewPage";
 import { PaymentCancelPage, PaymentSuccessPage } from "@/pages/PaymentResultPage";
@@ -18,6 +19,7 @@ function Router() {
       <Route path="/" component={HomePage} />
       <Route path="/dental-consulting" component={DentalConsultingPage} />
       <Route path="/analyzer" component={AnalyzerPage} />
+      <Route path="/agreements/sign/:token" component={AgreementSignerPage} />
       <Route path="/practice-opportunity-review" component={PracticeOpportunityReviewPage} />
       <Route path="/about" component={AboutPage} />
       <Route path="/payment-success" component={PaymentSuccessPage} />

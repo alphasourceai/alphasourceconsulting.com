@@ -7,6 +7,15 @@ import type {
   AdminClientsResponse,
   AdminMeResponse,
   AdminUsersResponse,
+  AgreementDetailResponse,
+  AgreementDownloadFileType,
+  AgreementDownloadUrlResponse,
+  AgreementPreviewRequest,
+  AgreementsListQuery,
+  AgreementsListResponse,
+  AgreementSendRequest,
+  AgreementSendResponse,
+  AgreementVoidResponse,
   AuditEventsQuery,
   AuditEventsResponse,
   BillingOverviewResponse,
@@ -66,6 +75,34 @@ type BillingOverviewQuery = {
 type ClientBillingDetailQuery = {
   uploadStatus?: BillingUploadStatus;
 };
+
+function agreementParams(query: AgreementsListQuery = {}): URLSearchParams {
+  const params = new URLSearchParams();
+  params.set("limit", String(query.limit ?? 50));
+  params.set("offset", String(query.offset ?? 0));
+
+  const clientEmail = query.clientEmail?.trim();
+  if (clientEmail) {
+    params.set("clientEmail", clientEmail);
+  }
+
+  const status = query.status?.trim();
+  if (status && status !== "all") {
+    params.set("status", status);
+  }
+
+  const documentType = query.documentType?.trim();
+  if (documentType) {
+    params.set("documentType", documentType);
+  }
+
+  const search = query.search?.trim();
+  if (search) {
+    params.set("search", search);
+  }
+
+  return params;
+}
 
 function auditEventsParams(query: AuditEventsQuery = {}): URLSearchParams {
   const params = new URLSearchParams();
@@ -277,6 +314,97 @@ export function getClientOptions(
   return adminRequest<AdminClientOptionsResponse>(`/api/admin/client-options?${params.toString()}`, {
     token,
     signal,
+  });
+}
+
+export function listAgreements(
+  token: string,
+  query: AgreementsListQuery = {},
+  signal?: AbortSignal,
+): Promise<AgreementsListResponse> {
+  const params = agreementParams(query);
+  return adminRequest<AgreementsListResponse>(`/api/admin/agreements?${params.toString()}`, {
+    token,
+    signal,
+  });
+}
+
+export function getAgreement(
+  token: string,
+  agreementId: string,
+  signal?: AbortSignal,
+): Promise<AgreementDetailResponse> {
+  return adminRequest<AgreementDetailResponse>(`/api/admin/agreements/${encodeURIComponent(agreementId)}`, {
+    token,
+    signal,
+  });
+}
+
+export async function previewAgreementPdf(
+  token: string,
+  payload: AgreementPreviewRequest,
+  signal?: AbortSignal,
+): Promise<Blob> {
+  const response = await fetch(`${getAdminApiBaseUrl()}/api/admin/agreements/preview`, {
+    method: "POST",
+    headers: {
+      Accept: "application/pdf, application/json",
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+    signal,
+  });
+
+  if (!response.ok) {
+    const error = readErrorMessage(await readJson(response));
+    throw new AdminApiError(error.message, response.status, error.code);
+  }
+
+  return response.blob();
+}
+
+export function sendAgreement(
+  token: string,
+  payload: AgreementSendRequest,
+  signal?: AbortSignal,
+): Promise<AgreementSendResponse> {
+  return adminRequest<AgreementSendResponse>("/api/admin/agreements/send", {
+    token,
+    signal,
+    method: "POST",
+    body: payload,
+  });
+}
+
+export function createAgreementDownloadUrl(
+  token: string,
+  agreementId: string,
+  fileType?: AgreementDownloadFileType,
+  signal?: AbortSignal,
+): Promise<AgreementDownloadUrlResponse> {
+  return adminRequest<AgreementDownloadUrlResponse>(
+    `/api/admin/agreements/${encodeURIComponent(agreementId)}/download-url`,
+    {
+      token,
+      signal,
+      method: "POST",
+      body: fileType ? { fileType } : {},
+    },
+  );
+}
+
+export function voidAgreement(
+  token: string,
+  agreementId: string,
+  reason: string,
+  signal?: AbortSignal,
+): Promise<AgreementVoidResponse> {
+  return adminRequest<AgreementVoidResponse>(`/api/admin/agreements/${encodeURIComponent(agreementId)}/void`, {
+    token,
+    signal,
+    method: "POST",
+    body: { reason },
   });
 }
 

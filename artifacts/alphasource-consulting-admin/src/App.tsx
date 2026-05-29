@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from "@/auth/AuthProvider";
 import AdminLayout from "@/components/AdminLayout";
 import AcceptInvitePage from "@/pages/AcceptInvitePage";
 import AdminManagementPage from "@/pages/AdminManagementPage";
+import AgreementsPage from "@/pages/AgreementsPage";
 import AuditTrailPage from "@/pages/AuditTrailPage";
 import BillingPage from "@/pages/BillingPage";
 import ClientDetailPage from "@/pages/ClientDetailPage";
@@ -87,6 +88,9 @@ function AccessRestrictedScreen() {
 function firstAccessiblePath(permissions: AdminPermissions): string {
   if (permissions.canReadClients) {
     return "/clients";
+  }
+  if (permissions.canReadAgreements || permissions.canWriteAgreements) {
+    return "/agreements";
   }
   if (permissions.canReadAnalysis || permissions.canWriteAnalysis) {
     return "/analysis";
@@ -206,6 +210,18 @@ function ClientDetailRoute({ params }: RouteComponentProps<{ email: string }>) {
   );
 }
 
+function AgreementsRoute() {
+  return (
+    <ProtectedRoute
+      canAccess={(permissions) => permissions.canReadAgreements || permissions.canWriteAgreements}
+      title="Agreements"
+      description="Generate, preview, send, and retrieve BAA/Privacy Agreements for clients."
+    >
+      <AgreementsPage />
+    </ProtectedRoute>
+  );
+}
+
 function AnalysisRoute() {
   return (
     <ProtectedRoute
@@ -299,6 +315,7 @@ function AppRoutes() {
         <Route path="/accept-invite" component={AcceptInvitePage} />
         <Route path="/clients/:email" component={ClientDetailRoute} />
         <Route path="/clients" component={ClientsRoute} />
+        <Route path="/agreements" component={AgreementsRoute} />
         <Route path="/analysis" component={AnalysisRoute} />
         <Route path="/secure-uploads" component={SecureUploadsRoute} />
         <Route path="/pdf-generator" component={PdfGeneratorRoute} />

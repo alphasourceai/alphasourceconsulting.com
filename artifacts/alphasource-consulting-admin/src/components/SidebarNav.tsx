@@ -4,6 +4,7 @@ import type { AdminPermissions } from "@/lib/types";
 
 const navItems = [
   { href: "/clients", label: "Clients", canShow: (permissions: AdminPermissions) => permissions.canReadClients },
+  { href: "/agreements", label: "Agreements", canShow: (permissions: AdminPermissions) => permissions.canReadAgreements || permissions.canWriteAgreements },
   { href: "/analysis", label: "Document Analysis", canShow: (permissions: AdminPermissions) => permissions.canReadAnalysis || permissions.canWriteAnalysis },
   { href: "/secure-uploads", label: "Secure Uploads", canShow: (permissions: AdminPermissions) => permissions.canReadSecureUploads },
   { href: "/pdf-generator", label: "PDF Reports", canShow: (permissions: AdminPermissions) => permissions.canReadPdf },

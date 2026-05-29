@@ -12,6 +12,8 @@ export type AdminPermissions = {
   canGeneratePdf: boolean;
   canReadSecureUploads: boolean;
   canWriteSecureUploads: boolean;
+  canReadAgreements: boolean;
+  canWriteAgreements: boolean;
   canReadAdminManagement: boolean;
   canManageAdminAccess: boolean;
   canReadAudit: boolean;
@@ -206,6 +208,120 @@ export type AdminClientOptionsResponse = {
   items: AdminClientOption[];
   limit: number;
   count: number;
+};
+
+export type AgreementStatus = "draft" | "sent" | "signed" | "voided" | "superseded" | "expired";
+
+export type AgreementDocumentType = "baa_privacy_agreement";
+
+export type AgreementSummary = {
+  id: string;
+  clientEmail: string;
+  clientUserId: string | null;
+  clientLegalName: string;
+  officeName: string | null;
+  orgType: string | null;
+  phone: string | null;
+  state: string;
+  effectiveDate: string | null;
+  documentType: AgreementDocumentType | string;
+  status: AgreementStatus | string;
+  isCurrent: boolean;
+  templateVersion: string | null;
+  hasDraftPdf: boolean;
+  hasSignedPdf: boolean;
+  signerTokenExpiresAt: string | null;
+  sentAt: string | null;
+  openedAt: string | null;
+  signerName: string | null;
+  signerEmail: string;
+  signerTitle: string | null;
+  signerAuthorityConfirmed: boolean;
+  signerAccepted: boolean;
+  signedAt: string | null;
+  baSignerName: string | null;
+  baSignerTitle: string | null;
+  baSignerEmail: string | null;
+  baSignatureMode: string | null;
+  baSignedAt: string | null;
+  createdByAdminId: string | null;
+  createdByAdminEmail: string | null;
+  sentByAdminId: string | null;
+  sentByAdminEmail: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  voidedAt: string | null;
+  voidedByAdminEmail: string | null;
+  voidReason: string | null;
+  supersededAt: string | null;
+  supersededByAgreementId: string | null;
+};
+
+export type AgreementDetail = AgreementSummary & {
+  templateSnapshot?: Record<string, unknown>;
+};
+
+export type AgreementsListQuery = {
+  clientEmail?: string;
+  status?: AgreementStatus | "all" | string;
+  documentType?: AgreementDocumentType | string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export type AgreementsListResponse = {
+  ok: true;
+  items: AgreementSummary[];
+  count: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+};
+
+export type AgreementDetailResponse = {
+  ok: true;
+  agreement: AgreementDetail;
+};
+
+export type AgreementPreviewRequest = {
+  clientEmail: string;
+  clientUserId?: string | null;
+  clientLegalName: string;
+  officeName?: string | null;
+  orgType?: string | null;
+  phone?: string | null;
+  state: string;
+  effectiveDate: string;
+  documentType?: AgreementDocumentType;
+  signerName?: string | null;
+  signerEmail: string;
+  signerTitle?: string | null;
+  baSignerName?: string | null;
+  baSignerTitle?: string | null;
+  baSignerEmail?: string | null;
+  baSignatureMode?: string | null;
+};
+
+export type AgreementSendRequest = AgreementPreviewRequest;
+
+export type AgreementSendResponse = {
+  ok: true;
+  agreement: AgreementSummary;
+};
+
+export type AgreementDownloadFileType = "draft" | "signed";
+
+export type AgreementDownloadUrlResponse = {
+  ok: true;
+  url: string;
+  expiresInSeconds: number;
+  fileType: AgreementDownloadFileType;
+};
+
+export type AgreementVoidResponse = {
+  ok: true;
+  agreement: AgreementSummary;
 };
 
 export type AdminAnalysisError = {

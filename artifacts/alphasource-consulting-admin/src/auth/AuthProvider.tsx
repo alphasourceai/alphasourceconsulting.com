@@ -47,6 +47,8 @@ const defaultAdminPermissions: AdminPermissions = {
   canGeneratePdf: false,
   canReadSecureUploads: false,
   canWriteSecureUploads: false,
+  canReadAgreements: false,
+  canWriteAgreements: false,
   canReadAdminManagement: false,
   canManageAdminAccess: false,
   canReadAudit: false,
