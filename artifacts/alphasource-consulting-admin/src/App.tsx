@@ -14,6 +14,7 @@ import HelpFaqPage from "@/pages/HelpFaqPage";
 import LoginPage from "@/pages/LoginPage";
 import PDFGeneratorPage from "@/pages/PDFGeneratorPage";
 import SecureUploadsPage from "@/pages/SecureUploadsPage";
+import UiMockupPage from "@/pages/UiMockupPage";
 import type { AdminPermissions } from "@/lib/types";
 
 function Navigate({ to }: { to: string }) {
@@ -306,6 +307,18 @@ function HelpRoute() {
   );
 }
 
+function UiMockupRoute() {
+  return (
+    <ProtectedRoute
+      canAccess={() => true}
+      title="UI Mockup"
+      description="Static design exploration for a simplified admin dashboard direction."
+    >
+      <UiMockupPage />
+    </ProtectedRoute>
+  );
+}
+
 function AppRoutes() {
   return (
     <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
@@ -323,6 +336,7 @@ function AppRoutes() {
         <Route path="/admin-management" component={AdminManagementRoute} />
         <Route path="/audit" component={AuditTrailRoute} />
         <Route path="/help" component={HelpRoute} />
+        <Route path="/ui-mockup" component={UiMockupRoute} />
         <Route component={RootRoute} />
       </Switch>
     </WouterRouter>
