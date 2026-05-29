@@ -1147,11 +1147,6 @@ function CheckoutSessionCard({
                   {session.contractMonths} months
                 </span>
               ) : null}
-              {session.subscriptionStatus ? (
-                <span className={`rounded-full border px-2.5 py-1 text-xs font-bold ${statusTone(session.subscriptionStatus)}`}>
-                  {formatStatusLabel(session.subscriptionStatus)}
-                </span>
-              ) : null}
             </div>
           ) : null}
           <p className="mt-1 text-xs font-medium text-[#0A1547]/52">
@@ -1180,35 +1175,32 @@ function CheckoutSessionCard({
         <Detail label="Status" value={formatStatusLabel(displayStatus)} />
         <Detail label="Payment" value={formatStatusLabel(displayPaymentStatus)} />
         <Detail label="Created" value={formatDate(session.createdAt)} />
-        <Detail label={subscriptionCheckedOut ? "Auto-cancels" : "Expires"} value={subscriptionCheckedOut ? formatMountainDate(subscriptionCancelAt) : formatMountainDate(session.expiresAt)} />
+        {subscriptionCheckedOut && subscriptionCancelAt ? (
+          <Detail label="Auto-cancels" value={formatMountainDate(subscriptionCancelAt)} />
+        ) : null}
+        {!subscriptionCheckedOut ? (
+          <Detail label="Expires" value={formatMountainDate(session.expiresAt)} />
+        ) : null}
         <Detail label="Expired" value={formatMountainDate(session.expiredAt)} />
       </dl>
 
       {subscriptionCheckedOut && (
         <div className="mt-4 rounded-2xl border border-[#02D99D]/20 bg-white p-4">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-sm font-black text-[#0A1547]">{subscriptionSummaryText(session)}</p>
+          <div>
+            <p className="text-sm font-black text-[#0A1547]">{subscriptionSummaryText(session)}</p>
+            <p className="mt-1 text-sm font-medium text-[#0A1547]/58">
+              {session.contractMonths ? `Term: ${session.contractMonths} months` : "Monthly retainer"}
+            </p>
+            {subscriptionCancelAt ? (
               <p className="mt-1 text-sm font-medium text-[#0A1547]/58">
-                {session.contractMonths ? `Term: ${session.contractMonths} months` : "Monthly retainer"}
-                {subscriptionCancelAt ? ` / Auto-cancels ${formatMountainDate(subscriptionCancelAt)}` : ""}
+                Auto-cancels {formatMountainDate(subscriptionCancelAt)}
               </p>
-              {subscriptionCurrentPeriodEnd ? (
-                <p className="mt-1 text-xs font-medium text-[#0A1547]/52">
-                  Current period ends {formatMountainDate(subscriptionCurrentPeriodEnd)}
-                </p>
-              ) : null}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${statusTone(session.subscriptionStatus)}`}>
-                {formatStatusLabel(session.subscriptionStatus)}
-              </span>
-              {subscriptionPaymentStatus ? (
-                <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${statusTone(subscriptionPaymentStatus)}`}>
-                  {formatStatusLabel(subscriptionPaymentStatus)}
-                </span>
-              ) : null}
-            </div>
+            ) : null}
+            {subscriptionCurrentPeriodEnd ? (
+              <p className="mt-1 text-xs font-medium text-[#0A1547]/52">
+                Current period ends {formatMountainDate(subscriptionCurrentPeriodEnd)}
+              </p>
+            ) : null}
           </div>
         </div>
       )}
