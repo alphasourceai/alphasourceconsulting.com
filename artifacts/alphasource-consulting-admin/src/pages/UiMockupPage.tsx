@@ -431,7 +431,7 @@ function IconButton({
 
 function IconBadge({ compact = false, icon, tone }: { compact?: boolean; icon: IconName; tone: IconTone }) {
   return (
-    <span className={`flex shrink-0 items-center justify-center rounded-lg border ${compact ? "h-9 w-9" : "h-10 w-10"} ${badgeToneClassName(tone)} [&_svg]:stroke-[2.4]`}>
+    <span className={`flex shrink-0 items-center justify-center rounded-lg border border-[#0A1547]/10 bg-white ${compact ? "h-9 w-9" : "h-10 w-10"} ${iconToneClassName(tone)} [&_svg]:stroke-[2.6]`}>
       <Icon name={icon} size={compact ? 17 : 18} />
     </span>
   );
@@ -463,33 +463,33 @@ function chipToneClassName(tone: StatusTone): string {
   }
 }
 
-function badgeToneClassName(tone: IconTone): string {
+function iconToneClassName(tone: IconTone): string {
   switch (tone) {
     case "clients":
-      return "border-[#A380F6]/40 bg-[#A380F6]/18 text-[#5D35C8]";
+      return "text-[#A380F6]";
     case "agreements":
-      return "border-[#A380F6]/45 bg-[#F1EAFF] text-[#5130A8]";
+      return "text-[#7C5CF2]";
     case "billing":
-      return "border-[#02ABE0]/42 bg-[#E7F8FD] text-[#056E92]";
+      return "text-[#02ABE0]";
     case "secure":
-      return "border-amber-300/80 bg-amber-100/70 text-amber-700";
+      return "text-[#F59E0B]";
     case "analysis":
-      return "border-[#00CFC8]/45 bg-[#E5FFFC] text-[#067E79]";
+      return "text-[#00CFC8]";
     case "reports":
-      return "border-[#0A1547]/20 bg-[#EEF1F8] text-[#0A1547]";
+      return "text-[#0A1547]";
     case "success":
-      return "border-[#02D99D]/40 bg-[#E7FFF7] text-[#047A5B]";
+      return "text-[#02D99D]";
     case "info":
-      return "border-[#02ABE0]/38 bg-[#E8F8FC] text-[#056E92]";
+      return "text-[#02ABE0]";
     case "warning":
-      return "border-amber-300/80 bg-amber-100/70 text-amber-700";
+      return "text-[#F59E0B]";
     case "danger":
-      return "border-red-300/70 bg-red-100/60 text-red-700";
+      return "text-[#EF4444]";
     case "lilac":
-      return "border-[#A380F6]/40 bg-[#A380F6]/18 text-[#5D35C8]";
+      return "text-[#A380F6]";
     case "neutral":
     default:
-      return "border-[#0A1547]/16 bg-[#F1F3FA] text-[#0A1547]/76";
+      return "text-[#0A1547]/78";
   }
 }
 
