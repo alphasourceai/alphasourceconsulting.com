@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { Link } from "wouter";
 import { useAuth } from "@/auth/AuthProvider";
 import { ConsultantReviewExportControls } from "@/components/ConsultantReviewExportControls";
@@ -25,6 +25,9 @@ type ClientDetailPageProps = {
   email: string;
 };
 
+type IconName = "activity" | "archive" | "arrow" | "check" | "clock" | "copy" | "credit" | "file" | "link" | "lock" | "pen" | "users";
+type IconTone = "clients" | "agreements" | "billing" | "secure" | "analysis" | "reports" | "success" | "warning" | "danger" | "neutral" | "lilac";
+
 const UPLOAD_STATUS_FILTERS: Array<{ label: string; value: BillingUploadStatus }> = [
   { label: "Active", value: "active" },
   { label: "Voided", value: "voided" },
@@ -39,6 +42,10 @@ const checkedOutSubscriptionStatuses = new Set([
   "incomplete_expired",
   "unpaid",
 ]);
+const sectionClassName = "rounded-lg border border-[#0A1547]/10 bg-white shadow-[0_12px_28px_rgba(10,21,71,0.05)]";
+const compactRowClassName = "rounded-lg border border-[#0A1547]/10 bg-white p-4";
+const quietDetailsClassName = "mt-4 rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3";
+const quietSummaryClassName = "cursor-pointer text-xs font-semibold uppercase tracking-[0.12em] text-[#0A1547]/46";
 
 function formatNullable(value: string | number | boolean | null | undefined): string {
   if (value === null || value === undefined || value === "") {
@@ -312,6 +319,79 @@ function uploadTimeValue(upload: BillingUploadSummary): number {
   return Number.isNaN(date.getTime()) ? 0 : date.getTime();
 }
 
+function SectionHeader({
+  action,
+  description,
+  icon,
+  iconTone,
+  title,
+}: {
+  action?: ReactNode;
+  description?: string;
+  icon: IconName;
+  iconTone: IconTone;
+  title: string;
+}) {
+  return (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex min-w-0 items-start gap-3">
+        <IconBadge icon={icon} tone={iconTone} />
+        <div className="min-w-0">
+          <h3 className="text-lg font-black text-[#0A1547]">{title}</h3>
+          {description && (
+            <p className="mt-1 max-w-2xl text-sm font-medium leading-6 text-[#0A1547]/56">
+              {description}
+            </p>
+          )}
+        </div>
+      </div>
+      {action && <div className="shrink-0">{action}</div>}
+    </div>
+  );
+}
+
+function IconBadge({ compact = false, icon, tone }: { compact?: boolean; icon: IconName; tone: IconTone }) {
+  return (
+    <span className={`flex shrink-0 items-center justify-center rounded-lg border border-[#0A1547]/10 bg-white ${compact ? "h-9 w-9" : "h-10 w-10"} ${iconToneClassName(tone)} [&_svg]:stroke-[2.6]`}>
+      <Icon name={icon} size={compact ? 17 : 18} />
+    </span>
+  );
+}
+
+function iconToneClassName(tone: IconTone): string {
+  switch (tone) {
+    case "clients":
+      return "text-[#A380F6]";
+    case "agreements":
+      return "text-[#7C5CF2]";
+    case "billing":
+      return "text-[#02ABE0]";
+    case "secure":
+    case "warning":
+      return "text-[#F59E0B]";
+    case "analysis":
+      return "text-[#00CFC8]";
+    case "reports":
+    case "neutral":
+      return "text-[#0A1547]/78";
+    case "success":
+      return "text-[#02D99D]";
+    case "danger":
+      return "text-[#EF4444]";
+    case "lilac":
+    default:
+      return "text-[#A380F6]";
+  }
+}
+
+function StatusPill({ children, className }: { children: ReactNode; className: string }) {
+  return (
+    <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${className}`}>
+      {children}
+    </span>
+  );
+}
+
 export default function ClientDetailPage({ email }: ClientDetailPageProps) {
   const { permissions, session } = useAuth();
   const [detail, setDetail] = useState<ClientBillingDetailResponse | null>(null);
@@ -418,7 +498,7 @@ export default function ClientDetailPage({ email }: ClientDetailPageProps) {
 
   if (!validEmail) {
     return (
-      <div className="admin-card p-8">
+      <div className={`${sectionClassName} p-8`}>
         <h2 className="text-xl font-black text-[#0A1547]">Invalid client email</h2>
         <p className="mt-2 text-sm font-medium text-[#0A1547]/62">
           The client detail route did not include a usable email address.
@@ -429,39 +509,47 @@ export default function ClientDetailPage({ email }: ClientDetailPageProps) {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <BackLink />
-          <h2 className="mt-4 text-2xl font-black text-[#0A1547]">{detail?.clientEmail || validEmail}</h2>
-          <p className="mt-1 text-sm font-medium text-[#0A1547]/60">
-            Client billing, checkout, and upload visibility from local admin records.
-          </p>
+    <div className="space-y-5">
+      <section className={`${sectionClassName} px-5 py-4`}>
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="min-w-0">
+            <BackLink />
+            <div className="mt-4 flex min-w-0 items-start gap-3">
+              <IconBadge icon="users" tone="clients" />
+              <div className="min-w-0">
+                <h2 className="truncate text-2xl font-black text-[#0A1547]">{detail?.clientProfile.name || detail?.clientEmail || validEmail}</h2>
+                <p className="mt-1 truncate text-sm font-medium text-[#0A1547]/56">{detail?.clientEmail || validEmail}</p>
+                {detail?.clientProfile.officeName && (
+                  <p className="mt-1 truncate text-xs font-medium text-[#0A1547]/44">{detail.clientProfile.officeName}</p>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 md:min-w-72">
+            <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#0A1547]/38">
+              Stripe Customer
+            </p>
+            <p className="mt-1 max-w-xs break-all text-sm font-semibold text-[#0A1547]/82">
+              {detail?.customer?.stripeCustomerId || "Not linked"}
+            </p>
+          </div>
         </div>
-        <div className="admin-card px-5 py-4">
-          <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#0A1547]/45">
-            Stripe Customer
-          </p>
-          <p className="mt-2 max-w-xs break-all text-sm font-semibold text-[#0A1547]">
-            {detail?.customer?.stripeCustomerId || "Not linked"}
-          </p>
-        </div>
-      </div>
+      </section>
 
       {loading && (
-        <div className="admin-card p-8 text-center text-sm font-bold text-[#0A1547]/60">
+        <div className={`${sectionClassName} p-8 text-center text-sm font-medium text-[#0A1547]/56`}>
           Loading client details...
         </div>
       )}
 
       {error && !loading && (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-bold text-red-700">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-700">
           {error}
         </div>
       )}
 
       {empty && (
-        <div className="admin-card p-8 text-center">
+        <div className={`${sectionClassName} p-8 text-center`}>
           <h3 className="text-lg font-black text-[#0A1547]">No billing detail yet</h3>
           <p className="mt-2 text-sm font-medium text-[#0A1547]/60">
             This client does not have local checkout sessions or uploads yet.
@@ -483,7 +571,7 @@ export default function ClientDetailPage({ email }: ClientDetailPageProps) {
           <BillingSummaryPanel summary={detail.summary} />
 
           {checkoutActionMessage && (
-            <p className="rounded-2xl border border-[#02D99D]/25 bg-[#02D99D]/10 px-5 py-4 text-sm font-semibold text-[#0A1547]">
+            <p className="rounded-lg border border-[#02D99D]/25 bg-[#02D99D]/10 px-5 py-4 text-sm font-semibold text-[#0A1547]">
               {checkoutActionMessage}
             </p>
           )}
@@ -562,13 +650,13 @@ function ClientInformationPanel({
   };
 
   return (
-    <section className="admin-card p-5">
-      <div>
-        <h3 className="text-lg font-black text-[#0A1547]">Client information</h3>
-        <p className="mt-1 text-sm font-medium text-[#0A1547]/60">
-          Client profile details used across uploads, secure requests, billing, and reporting.
-        </p>
-      </div>
+    <section className={`${sectionClassName} p-5`}>
+      <SectionHeader
+        description="Profile details used across uploads, billing, agreements, and reporting."
+        icon="users"
+        iconTone="clients"
+        title="Client information"
+      />
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <ClientInfoFact label="Name" value={profile.name} />
         <ClientInfoFact label="Email" value={profile.email || detail.clientEmail} />
@@ -580,7 +668,7 @@ function ClientInformationPanel({
             <button
               type="button"
               onClick={() => void handleCopyGhlCid()}
-              className="admin-focus rounded-lg border border-[#A380F6]/30 bg-white px-2.5 py-1 text-xs font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/70"
+              className="admin-focus rounded-lg border border-[#0A1547]/10 bg-white px-2.5 py-1 text-xs font-semibold text-[#0A1547]/82 transition hover:border-[#A380F6]/60"
             >
               Copy
             </button>
@@ -606,17 +694,17 @@ function ClientInfoFact({
   label,
   value,
 }: {
-  action?: React.ReactNode;
+  action?: ReactNode;
   helper?: string;
   label: string;
   value: string | number | boolean | null | undefined;
 }) {
   return (
-    <div className="min-w-0 rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+    <div className="min-w-0 rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-3 py-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#0A1547]/45">{label}</p>
-          <p className="mt-2 break-words text-sm font-semibold text-[#0A1547]">{formatNullable(value)}</p>
+          <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#0A1547]/38">{label}</p>
+          <p className="mt-1 break-words text-sm font-semibold text-[#0A1547]/82">{formatNullable(value)}</p>
           {helper && (
             <p className="mt-1 text-xs font-medium text-[#0A1547]/50">{helper}</p>
           )}
@@ -698,21 +786,24 @@ function AgreementHistorySection({
 
   return (
     <div className="mt-6 border-t border-[#0A1547]/10 pt-5">
-      <div>
-        <h4 className="text-base font-black text-[#0A1547]">Agreement history</h4>
-        <p className="mt-1 text-sm font-medium text-[#0A1547]/60">
-          BAA/Privacy Agreement records for this client.
-        </p>
+      <div className="flex min-w-0 items-start gap-3">
+        <IconBadge compact icon="pen" tone="agreements" />
+        <div>
+          <h4 className="text-base font-bold text-[#0A1547]">Agreement history</h4>
+          <p className="mt-1 text-sm font-medium text-[#0A1547]/54">
+            BAA/Privacy Agreement records for this client.
+          </p>
+        </div>
       </div>
 
       {error && (
-        <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+        <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
           {error}
         </p>
       )}
 
-      <div className="mt-4 overflow-hidden rounded-2xl border border-[#0A1547]/10">
-        <div className="grid grid-cols-[1.25fr_1fr_0.7fr_0.8fr_0.8fr_1fr] gap-3 bg-[#F8F9FD] px-4 py-3 text-xs font-extrabold uppercase tracking-[0.12em] text-[#0A1547]/45 max-xl:hidden">
+      <div className="mt-4 overflow-hidden rounded-lg border border-[#0A1547]/10">
+        <div className="grid grid-cols-[1.25fr_1fr_0.7fr_0.8fr_0.8fr_1fr] gap-3 bg-[#F8F9FD] px-4 py-3 text-[11px] font-medium uppercase tracking-[0.12em] text-[#0A1547]/38 max-xl:hidden">
           <span>Agreement</span>
           <span>Signer</span>
           <span>Status</span>
@@ -722,7 +813,7 @@ function AgreementHistorySection({
         </div>
 
         {loading ? (
-          <p className="px-4 py-5 text-sm font-bold text-[#0A1547]/58">Loading agreement history...</p>
+          <p className="px-4 py-5 text-sm font-medium text-[#0A1547]/54">Loading agreement history...</p>
         ) : agreements.length ? (
           <div className="divide-y divide-[#0A1547]/8">
             {agreements.map((agreement) => {
@@ -733,22 +824,22 @@ function AgreementHistorySection({
               return (
                 <div key={agreement.id} className="grid gap-4 px-4 py-4 text-sm xl:grid-cols-[1.25fr_1fr_0.7fr_0.8fr_0.8fr_1fr] xl:items-center">
                   <div>
-                    <p className="font-black text-[#0A1547]">{formatNullable(agreement.clientLegalName)}</p>
-                    <p className="mt-1 text-xs font-semibold text-[#0A1547]/45">{agreement.documentType}</p>
+                    <p className="font-semibold text-[#0A1547]">{formatNullable(agreement.clientLegalName)}</p>
+                    <p className="mt-1 text-xs font-medium text-[#0A1547]/45">{agreement.documentType}</p>
                   </div>
                   <div>
-                    <p className="font-bold text-[#0A1547]">{formatNullable(agreement.signerEmail)}</p>
-                    <p className="mt-1 text-xs font-semibold text-[#0A1547]/50">{formatNullable(agreement.signerName)}</p>
+                    <p className="break-all font-medium text-[#0A1547]/80">{formatNullable(agreement.signerEmail)}</p>
+                    <p className="mt-1 text-xs font-medium text-[#0A1547]/50">{formatNullable(agreement.signerName)}</p>
                   </div>
                   <div>
-                    <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-extrabold ${agreementStatusTone(agreement.status)}`}>
+                    <StatusPill className={agreementStatusTone(agreement.status)}>
                       {agreementStatusLabel(agreement.status)}
-                    </span>
+                    </StatusPill>
                   </div>
-                  <div className="font-bold text-[#0A1547]/70">
+                  <div className="font-medium text-[#0A1547]/64">
                     {formatDateOnly(agreement.effectiveDate)}
                   </div>
-                  <div className="font-bold text-[#0A1547]/70">
+                  <div className="font-medium text-[#0A1547]/64">
                     {formatDate(agreement.signedAt || agreement.baSignedAt || agreement.clientSignedAt || agreement.sentAt)}
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -757,7 +848,7 @@ function AgreementHistorySection({
                         type="button"
                         onClick={() => void handleDownload(agreement, "draft")}
                         disabled={Boolean(actionBusyKey)}
-                        className="admin-focus rounded-lg border border-[#0A1547]/10 bg-white px-3 py-2 text-xs font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/50 disabled:opacity-45"
+                        className="admin-focus rounded-lg border border-[#0A1547]/10 bg-white px-3 py-2 text-xs font-semibold text-[#0A1547]/82 transition hover:border-[#A380F6]/50 disabled:opacity-45"
                       >
                         Draft Preview
                       </button>
@@ -767,13 +858,13 @@ function AgreementHistorySection({
                         type="button"
                         onClick={() => void handleDownload(agreement, "signed")}
                         disabled={Boolean(actionBusyKey)}
-                        className="admin-focus rounded-lg bg-[#0A1547] px-3 py-2 text-xs font-extrabold text-white transition hover:bg-[#1A2460] disabled:opacity-45"
+                        className="admin-focus rounded-lg bg-[#0A1547] px-3 py-2 text-xs font-bold text-white transition hover:bg-[#1A2460] disabled:opacity-45"
                       >
                         Signed PDF
                       </button>
                     )}
                     {!showDraftPreview && !showSignedPdf && (
-                      <span className="text-xs font-bold text-[#0A1547]/45">No PDF action</span>
+                      <span className="text-xs font-medium text-[#0A1547]/45">No PDF action</span>
                     )}
                   </div>
                 </div>
@@ -781,7 +872,7 @@ function AgreementHistorySection({
             })}
           </div>
         ) : (
-          <p className="px-4 py-5 text-sm font-bold text-[#0A1547]/58">
+          <p className="px-4 py-5 text-sm font-medium text-[#0A1547]/54">
             No agreements found for this client.
           </p>
         )}
@@ -800,19 +891,19 @@ function RecentSubmissionsPanel({
   const visibleSubmissions = expanded || !hasMore ? submissions : submissions.slice(0, 2);
 
   return (
-    <section className="admin-card p-5">
-      <div>
-        <h3 className="text-lg font-black text-[#0A1547]">Recent submissions</h3>
-        <p className="mt-1 text-sm font-medium text-[#0A1547]/60">
-          Public analyzer and admin submission attempts for this client.
-        </p>
-      </div>
+    <section className={`${sectionClassName} p-5`}>
+      <SectionHeader
+        description="Public analyzer and admin submission attempts."
+        icon="activity"
+        iconTone="analysis"
+        title="Recent submissions"
+      />
 
       <div className="mt-4 grid gap-3">
         {visibleSubmissions.length > 0 ? visibleSubmissions.map((submission) => (
           <RecentSubmissionCard key={submission.id || `${submission.submittedAt}-${submission.status}`} submission={submission} />
         )) : (
-          <p className="rounded-2xl bg-[#F8F9FD] p-4 text-sm font-medium text-[#0A1547]/56">
+          <p className="rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] p-4 text-sm font-medium text-[#0A1547]/54">
             No recent submissions found.
           </p>
         )}
@@ -828,7 +919,7 @@ function RecentSubmissionsPanel({
           <button
             type="button"
             onClick={() => setExpanded((current) => !current)}
-            className="admin-focus w-fit rounded-xl border border-[#0A1547]/10 bg-white px-4 py-2 text-xs font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/50 hover:bg-[#A380F6]/10"
+            className="admin-focus w-fit rounded-lg border border-[#0A1547]/10 bg-white px-4 py-2 text-xs font-semibold text-[#0A1547]/82 transition hover:border-[#A380F6]/50"
           >
             {expanded ? "Show less" : `Show all (${submissions.length})`}
           </button>
@@ -854,19 +945,22 @@ function RecentSubmissionCard({
   const upload = submission.upload;
 
   return (
-    <article className="rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+    <article className={compactRowClassName}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <p className="text-sm font-black text-[#0A1547]">
-            Submitted {formatDate(submission.submittedAt)}
-          </p>
-          <p className="mt-1 text-xs font-medium text-[#0A1547]/55">
-            {submissionSourceLabel(submission.source)}
-          </p>
+        <div className="flex min-w-0 items-start gap-3">
+          <IconBadge compact icon="activity" tone="analysis" />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-[#0A1547]">
+              Submitted {formatDate(submission.submittedAt)}
+            </p>
+            <p className="mt-1 text-xs font-medium text-[#0A1547]/52">
+              {submissionSourceLabel(submission.source)}
+            </p>
+          </div>
         </div>
-        <span className={`w-fit shrink-0 rounded-full border px-3 py-1 text-xs font-extrabold ${submissionStatusTone(status)}`}>
+        <StatusPill className={`w-fit shrink-0 ${submissionStatusTone(status)}`}>
           {submissionStatusLabel(status)}
-        </span>
+        </StatusPill>
       </div>
 
       <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
@@ -883,23 +977,23 @@ function RecentSubmissionCard({
       )}
 
       {upload && (
-        <div className="mt-3 rounded-xl border border-[#0A1547]/10 bg-white px-3 py-2">
+        <div className="mt-3 rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-3 py-2">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
-              <p className="truncate text-sm font-bold text-[#0A1547]">{formatNullable(upload.fileName)}</p>
+              <p className="truncate text-sm font-semibold text-[#0A1547]">{formatNullable(upload.fileName)}</p>
               <p className="mt-1 text-xs font-medium text-[#0A1547]/58">
                 {formatNullable(upload.toolName)} · Uploaded {formatDate(upload.uploadTime)}
               </p>
             </div>
             <div className="flex shrink-0 flex-wrap gap-2">
               {upload.voided && (
-                <span className={`rounded-full border px-2.5 py-1 text-xs font-bold ${statusTone("voided")}`}>
+                <StatusPill className={statusTone("voided")}>
                   Voided
-                </span>
+                </StatusPill>
               )}
-              <span className={`rounded-full border px-2.5 py-1 text-xs font-bold ${statusTone(upload.paid ? "paid" : "unpaid")}`}>
+              <StatusPill className={statusTone(upload.paid ? "paid" : "unpaid")}>
                 {upload.paid ? "Paid" : "Not paid"}
-              </span>
+              </StatusPill>
             </div>
           </div>
         </div>
@@ -918,13 +1012,13 @@ function ConsultantReviewArchivePanel({
   reviews: ConsultantReviewArchiveItem[];
 }) {
   return (
-    <section className="admin-card p-5">
-      <div>
-        <h3 className="text-lg font-black text-[#0A1547]">Consultant review archive</h3>
-        <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/60">
-          Previously promoted structured reviews for this client. Use these for internal review, follow-up planning, or export.
-        </p>
-      </div>
+    <section className={`${sectionClassName} p-5`}>
+      <SectionHeader
+        description="Promoted structured reviews for internal review, follow-up planning, and export."
+        icon="archive"
+        iconTone="reports"
+        title="Consultant review archive"
+      />
 
       <div className="mt-4 grid gap-3">
         {reviews.length > 0 ? reviews.map((review) => (
@@ -935,7 +1029,7 @@ function ConsultantReviewArchivePanel({
             review={review}
           />
         )) : (
-          <p className="rounded-2xl bg-[#F8F9FD] p-4 text-sm font-medium text-[#0A1547]/56">
+          <p className="rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] p-4 text-sm font-medium text-[#0A1547]/54">
             No consultant review exports are available yet. Promote a structured Document Analysis result to make it available here.
           </p>
         )}
@@ -964,22 +1058,25 @@ function ConsultantReviewArchiveCard({
   const eventTime = review.generatedAt || review.uploadTime || review.pdfGeneratedAt;
 
   return (
-    <article className="rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+    <article className={compactRowClassName}>
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0">
-          <p className="break-words text-sm font-black text-[#0A1547]">{formatNullable(review.fileName)}</p>
-          <p className="mt-1 text-xs font-bold text-[#0A1547]/52">
-            {formatNullable(review.toolName)} / {formatDate(eventTime)}
-          </p>
+        <div className="flex min-w-0 items-start gap-3">
+          <IconBadge compact icon="file" tone="reports" />
+          <div className="min-w-0">
+            <p className="break-words text-sm font-semibold text-[#0A1547]">{formatNullable(review.fileName)}</p>
+            <p className="mt-1 text-xs font-medium text-[#0A1547]/52">
+              {formatNullable(review.toolName)} / {formatDate(eventTime)}
+            </p>
+          </div>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
-          <span className={`rounded-full border px-2.5 py-1 text-xs font-bold ${statusTone(review.paid ? "paid" : "unpaid")}`}>
+          <StatusPill className={statusTone(review.paid ? "paid" : "unpaid")}>
             {review.paid ? "Paid" : "Not paid"}
-          </span>
+          </StatusPill>
           {review.voided && (
-            <span className={`rounded-full border px-2.5 py-1 text-xs font-bold ${statusTone("voided")}`}>
+            <StatusPill className={statusTone("voided")}>
               Voided
-            </span>
+            </StatusPill>
           )}
         </div>
       </div>
@@ -991,7 +1088,7 @@ function ConsultantReviewArchiveCard({
       </div>
 
       {summary.summary && (
-        <p className="mt-3 line-clamp-3 rounded-xl border border-[#0A1547]/10 bg-white px-3 py-2 text-sm font-semibold leading-6 text-[#0A1547]/70">
+        <p className="mt-3 line-clamp-3 rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-3 py-2 text-sm font-medium leading-6 text-[#0A1547]/68">
           {summary.summary}
         </p>
       )}
@@ -1000,7 +1097,7 @@ function ConsultantReviewArchiveCard({
         <button
           type="button"
           onClick={() => setExpanded((current) => !current)}
-          className="admin-focus w-fit rounded-xl border border-[#0A1547]/10 bg-white px-4 py-2 text-xs font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/50 hover:bg-[#A380F6]/10"
+          className="admin-focus w-fit rounded-lg border border-[#0A1547]/10 bg-white px-4 py-2 text-xs font-semibold text-[#0A1547]/82 transition hover:border-[#A380F6]/50"
         >
           {expanded ? "Hide details" : "View details"}
         </button>
@@ -1024,8 +1121,8 @@ function ConsultantReviewArchiveCard({
       </div>
 
       {expanded && (
-        <div className="mt-4 rounded-2xl border border-[#0A1547]/10 bg-white p-4">
-          <p className="text-sm font-black text-[#0A1547]">Review preview</p>
+        <div className="mt-4 rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+          <p className="text-sm font-semibold text-[#0A1547]">Review preview</p>
           <div className="mt-3 grid gap-3">
             {summary.summary && <ArchivePreviewBlock label="Executive summary" value={summary.summary} />}
             {findings.slice(0, 3).map((finding, index) => (
@@ -1036,7 +1133,7 @@ function ConsultantReviewArchiveCard({
               />
             ))}
             {findings.length === 0 && (
-              <p className="rounded-xl bg-[#F8F9FD] p-3 text-sm font-medium text-[#0A1547]/56">
+              <p className="rounded-lg bg-white p-3 text-sm font-medium text-[#0A1547]/54">
                 No ranked findings are available for this review.
               </p>
             )}
@@ -1054,8 +1151,8 @@ function ArchivePreviewBlock({ label, value }: { label: string; value: string | 
 
   return (
     <div>
-      <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/42">{label}</p>
-      <p className="mt-1 break-words text-sm font-semibold leading-6 text-[#0A1547]/72">{value}</p>
+      <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#0A1547]/38">{label}</p>
+      <p className="mt-1 break-words text-sm font-medium leading-6 text-[#0A1547]/68">{value}</p>
     </div>
   );
 }
@@ -1070,25 +1167,25 @@ function ArchiveFindingPreview({
   const rank = finding.rank || fallbackRank;
 
   return (
-    <div className="rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] p-3">
+    <div className="rounded-lg border border-[#0A1547]/10 bg-white p-3">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#A380F6]">Finding {rank}</p>
-          <p className="mt-1 text-sm font-black text-[#0A1547]">{formatNullable(finding.title)}</p>
-          <p className="mt-1 text-xs font-bold text-[#0A1547]/50">{formatStructuredLabel(finding.category)}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#A380F6]">Finding {rank}</p>
+          <p className="mt-1 text-sm font-semibold text-[#0A1547]">{formatNullable(finding.title)}</p>
+          <p className="mt-1 text-xs font-medium text-[#0A1547]/50">{formatStructuredLabel(finding.category)}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <span className={`rounded-full border px-2.5 py-1 text-xs font-bold ${reviewSeverityTone(finding.severity)}`}>
+          <StatusPill className={reviewSeverityTone(finding.severity)}>
             {formatStructuredLabel(finding.severity)}
-          </span>
-          <span className="rounded-full border border-[#A380F6]/25 bg-white px-2.5 py-1 text-xs font-bold text-[#0A1547]/72">
+          </StatusPill>
+          <StatusPill className="border-[#A380F6]/25 bg-white text-[#0A1547]/72">
             {formatStructuredLabel(finding.confidence)} confidence
-          </span>
+          </StatusPill>
         </div>
       </div>
       {finding.recommendedAction && (
-        <p className="mt-3 text-sm font-semibold leading-6 text-[#0A1547]/70">
-          <span className="font-black text-[#0A1547]">Recommended action:</span> {finding.recommendedAction}
+        <p className="mt-3 text-sm font-medium leading-6 text-[#0A1547]/68">
+          <span className="font-semibold text-[#0A1547]">Recommended action:</span> {finding.recommendedAction}
         </p>
       )}
     </div>
@@ -1111,17 +1208,20 @@ function reviewSeverityTone(value: string | null | undefined): string {
 
 function BillingHandoffCard() {
   return (
-    <section className="admin-card p-5">
+    <section className={`${sectionClassName} p-5`}>
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h3 className="text-lg font-black text-[#0A1547]">Create payment links in Billing</h3>
-          <p className="mt-1 max-w-2xl text-sm font-semibold leading-6 text-[#0A1547]/62">
-            Checkout links are now created from the Billing tab so client payments, upload links, and future offer links stay in one workspace.
-          </p>
+        <div className="flex min-w-0 items-start gap-3">
+          <IconBadge icon="credit" tone="billing" />
+          <div className="min-w-0">
+            <h3 className="text-lg font-black text-[#0A1547]">Create payment links in Billing</h3>
+            <p className="mt-1 max-w-2xl text-sm font-medium leading-6 text-[#0A1547]/56">
+              Checkout links now live in Billing so payments, upload links, and future offer links stay together.
+            </p>
+          </div>
         </div>
         <Link
           href="/billing"
-          className="admin-focus w-fit rounded-xl bg-[#0A1547] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#1A2460]"
+          className="admin-focus w-fit rounded-lg bg-[#0A1547] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#1A2460]"
         >
           Open Billing
         </Link>
@@ -1134,8 +1234,9 @@ function BackLink() {
   return (
     <Link
       href="/clients"
-      className="admin-focus inline-flex rounded-xl border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/50"
+      className="admin-focus inline-flex items-center gap-2 rounded-lg border border-[#0A1547]/10 bg-white px-3 py-2 text-sm font-semibold text-[#0A1547]/82 transition hover:border-[#A380F6]/50"
     >
+      <Icon name="arrow" size={15} />
       Back to clients
     </Link>
   );
@@ -1163,21 +1264,21 @@ function UploadsPanel({
   uploads: BillingUploadSummary[];
 }) {
   return (
-    <section className="admin-card p-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h3 className="text-lg font-black text-[#0A1547]">Uploads</h3>
-          <p className="mt-1 text-sm font-medium text-[#0A1547]/58">
-            Active uploads are used for normal checkout and report workflows.
-          </p>
-        </div>
+    <section className={`${sectionClassName} p-5`}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <SectionHeader
+          description="Active uploads are used for normal checkout and report workflows."
+          icon="lock"
+          iconTone="secure"
+          title="Uploads"
+        />
         <div className="flex flex-wrap items-center gap-2">
           {UPLOAD_STATUS_FILTERS.map((filter) => (
             <button
               key={filter.value}
               type="button"
               onClick={() => onStatusChange(filter.value)}
-              className={`admin-focus rounded-xl border px-3 py-2 text-xs font-extrabold transition ${
+              className={`admin-focus rounded-lg border px-3 py-2 text-xs font-semibold transition ${
                 status === filter.value
                   ? "border-[#A380F6] bg-[#A380F6] text-white"
                   : "border-[#0A1547]/10 bg-white text-[#0A1547]/65 hover:border-[#A380F6]/50"
@@ -1190,7 +1291,7 @@ function UploadsPanel({
             <button
               type="button"
               onClick={onToggle}
-              className="admin-focus rounded-xl border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/50"
+              className="admin-focus rounded-lg border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-semibold text-[#0A1547]/82 transition hover:border-[#A380F6]/50"
             >
               {expanded ? "Show fewer" : `Show all (${totalCount})`}
             </button>
@@ -1211,7 +1312,7 @@ function UploadsPanel({
             upload={upload}
           />
         )) : (
-          <p className="rounded-2xl bg-[#F8F9FD] p-4 text-sm font-medium text-[#0A1547]/56">
+          <p className="rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] p-4 text-sm font-medium text-[#0A1547]/54">
             No uploads found.
           </p>
         )}
@@ -1222,13 +1323,13 @@ function UploadsPanel({
 
 function BillingSummaryPanel({ summary }: { summary: ClientBillingDetailResponse["summary"] }) {
   return (
-    <section className="admin-card p-5">
-      <div>
-        <h3 className="text-lg font-black text-[#0A1547]">Billing summary</h3>
-        <p className="mt-1 text-sm font-medium text-[#0A1547]/60">
-          High-level checkout and override status for this client.
-        </p>
-      </div>
+    <section className={`${sectionClassName} p-5`}>
+      <SectionHeader
+        description="High-level checkout and override status."
+        icon="credit"
+        iconTone="billing"
+        title="Billing summary"
+      />
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <SummaryFact
           label="Sessions"
@@ -1277,10 +1378,10 @@ function SummaryFact({
   valueClassName: string;
 }) {
   return (
-    <div title={helpText} className="rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
-      <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#0A1547]/45">{label}</p>
-      <p className={`mt-2 break-words text-xl font-black ${valueClassName}`}>{value}</p>
-      <p className="mt-1 text-xs font-medium leading-5 text-[#0A1547]/55">{helpText}</p>
+    <div title={helpText} className="rounded-lg border border-[#0A1547]/10 bg-white p-4 shadow-[0_8px_20px_rgba(10,21,71,0.035)]">
+      <p className={`break-words text-2xl font-black leading-none ${valueClassName}`}>{value}</p>
+      <p className="mt-2 text-[11px] font-medium uppercase tracking-[0.12em] text-[#0A1547]/40">{label}</p>
+      <p className="mt-1 text-xs font-medium leading-5 text-[#0A1547]/50">{helpText}</p>
     </div>
   );
 }
@@ -1290,16 +1391,21 @@ function Panel({
   emptyText,
   title,
 }: {
-  children: React.ReactNode[];
+  children: ReactNode[];
   emptyText: string;
   title: string;
 }) {
   return (
-    <section className="admin-card p-5">
-      <h3 className="text-lg font-black text-[#0A1547]">{title}</h3>
+    <section className={`${sectionClassName} p-5`}>
+      <SectionHeader
+        description="Created checkout links and subscription checkout records."
+        icon="credit"
+        iconTone="billing"
+        title={title}
+      />
       <div className="mt-4 grid gap-3">
         {children.length > 0 ? children : (
-          <p className="rounded-2xl bg-[#F8F9FD] p-4 text-sm font-medium text-[#0A1547]/56">
+          <p className="rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] p-4 text-sm font-medium text-[#0A1547]/54">
             {emptyText}
           </p>
         )}
@@ -1379,44 +1485,47 @@ function CheckoutSessionCard({
   };
 
   return (
-    <article className="rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+    <article className={compactRowClassName}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-sm font-black text-[#0A1547]">{formatNullable(session.offerName || session.purpose)}</p>
-          <p className="mt-1 text-sm font-medium text-[#0A1547]/58">
-            {amountLabel}
-          </p>
-          {isRecurringSession ? (
-            <div className="mt-2 flex flex-wrap gap-2">
-              <span className="rounded-full border border-[#02D99D]/25 bg-white px-2.5 py-1 text-xs font-bold text-[#0A1547]/70">
-                Monthly retainer
-              </span>
-              {session.contractMonths ? (
-                <span className="rounded-full border border-[#A380F6]/25 bg-white px-2.5 py-1 text-xs font-bold text-[#0A1547]/70">
-                  {session.contractMonths} months
-                </span>
-              ) : null}
-            </div>
-          ) : null}
-          <p className="mt-1 text-xs font-medium text-[#0A1547]/52">
-            {subscriptionCheckedOut
-              ? subscriptionCancelAt
-                ? `Auto-cancels ${formatMountainDate(subscriptionCancelAt)}`
-                : session.contractMonths
-                  ? `Term: ${session.contractMonths} months`
-                  : "Monthly retainer"
-              : expired
-                ? `Expired ${formatMountainDate(session.expiredAt)}`
-                : `Expires ${formatMountainDate(session.expiresAt)}`}
-          </p>
+        <div className="flex min-w-0 items-start gap-3">
+          <IconBadge compact icon="credit" tone="billing" />
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-[#0A1547]">{formatNullable(session.offerName || session.purpose)}</p>
+            <p className="mt-1 text-sm font-medium text-[#0A1547]/58">
+              {amountLabel}
+            </p>
+            {isRecurringSession ? (
+              <div className="mt-2 flex flex-wrap gap-2">
+                <StatusPill className="border-[#02D99D]/25 bg-white text-[#0A1547]/70">
+                  Monthly retainer
+                </StatusPill>
+                {session.contractMonths ? (
+                  <StatusPill className="border-[#A380F6]/25 bg-white text-[#0A1547]/70">
+                    {session.contractMonths} months
+                  </StatusPill>
+                ) : null}
+              </div>
+            ) : null}
+            <p className="mt-1 text-xs font-medium text-[#0A1547]/52">
+              {subscriptionCheckedOut
+                ? subscriptionCancelAt
+                  ? `Auto-cancels ${formatMountainDate(subscriptionCancelAt)}`
+                  : session.contractMonths
+                    ? `Term: ${session.contractMonths} months`
+                    : "Monthly retainer"
+                : expired
+                  ? `Expired ${formatMountainDate(session.expiredAt)}`
+                  : `Expires ${formatMountainDate(session.expiresAt)}`}
+            </p>
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${statusTone(displayStatus)}`}>
+          <StatusPill className={statusTone(displayStatus)}>
             {formatStatusLabel(displayStatus)}
-          </span>
-          <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${statusTone(displayPaymentStatus)}`}>
+          </StatusPill>
+          <StatusPill className={statusTone(displayPaymentStatus)}>
             {formatStatusLabel(displayPaymentStatus)}
-          </span>
+          </StatusPill>
         </div>
       </div>
       <dl className="mt-4 grid gap-3 text-sm md:grid-cols-2">
@@ -1434,9 +1543,9 @@ function CheckoutSessionCard({
       </dl>
 
       {subscriptionCheckedOut && (
-        <div className="mt-4 rounded-2xl border border-[#02D99D]/20 bg-white p-4">
+        <div className="mt-4 rounded-lg border border-[#02D99D]/20 bg-[#F8F9FD] p-4">
           <div>
-            <p className="text-sm font-black text-[#0A1547]">{subscriptionSummaryText(session)}</p>
+            <p className="text-sm font-semibold text-[#0A1547]">{subscriptionSummaryText(session)}</p>
             <p className="mt-1 text-sm font-medium text-[#0A1547]/58">
               {session.contractMonths ? `Term: ${session.contractMonths} months` : "Monthly retainer"}
             </p>
@@ -1455,12 +1564,12 @@ function CheckoutSessionCard({
       )}
 
       {relatedUploads.length > 0 && (
-        <div className="mt-4 rounded-2xl border border-[#0A1547]/10 bg-white p-4">
-          <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#0A1547]/42">Related uploads</p>
+        <div className="mt-4 rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+          <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#0A1547]/38">Related uploads</p>
           <div className="mt-3 grid gap-2">
             {relatedUploads.map((relatedUpload) => (
-              <div key={relatedUpload.id} className="min-w-0 rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-3 py-2">
-                <p className="truncate text-sm font-bold text-[#0A1547]">
+              <div key={relatedUpload.id} className="min-w-0 rounded-lg border border-[#0A1547]/10 bg-white px-3 py-2">
+                <p className="truncate text-sm font-semibold text-[#0A1547]">
                   {formatNullable(relatedUpload.fileName)}
                 </p>
                 <p className="mt-1 truncate text-xs font-medium text-[#0A1547]/58">
@@ -1479,23 +1588,25 @@ function CheckoutSessionCard({
       )}
 
       {canUseCheckoutLink && (
-        <div className="mt-4 rounded-2xl border border-[#02ABE0]/20 bg-white p-4">
+        <div className="mt-4 rounded-lg border border-[#02ABE0]/20 bg-[#F8F9FD] p-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <p className="text-sm font-black text-[#0A1547]">Checkout link available</p>
+            <p className="text-sm font-semibold text-[#0A1547]">Checkout link available</p>
             <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
                 onClick={() => void handleCopy()}
-                className="admin-focus rounded-xl border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/50"
+                className="admin-focus inline-flex items-center gap-2 rounded-lg border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-semibold text-[#0A1547]/82 transition hover:border-[#A380F6]/50"
               >
+                <Icon name="copy" size={15} />
                 Copy Link
               </button>
               <a
                 href={checkoutUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="admin-focus rounded-xl bg-[#0A1547] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#1A2460]"
+                className="admin-focus inline-flex items-center gap-2 rounded-lg bg-[#0A1547] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#1A2460]"
               >
+                <Icon name="link" size={15} />
                 Open Link
               </a>
               {copyStatus && (
@@ -1506,18 +1617,18 @@ function CheckoutSessionCard({
                   type="button"
                   onClick={() => void handleExpire()}
                   disabled={expiring}
-                  className="admin-focus rounded-xl border border-[#A380F6]/35 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/70 disabled:cursor-not-allowed disabled:opacity-55"
+                  className="admin-focus rounded-lg border border-[#A380F6]/35 bg-white px-4 py-2 text-sm font-semibold text-[#0A1547]/82 transition hover:border-[#A380F6]/70 disabled:cursor-not-allowed disabled:opacity-55"
                 >
                   {expiring ? "Expiring..." : "Expire link"}
                 </button>
               )}
             </div>
           </div>
-          <details className="mt-3 rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3">
-            <summary className="cursor-pointer text-xs font-extrabold uppercase tracking-[0.16em] text-[#0A1547]/50">
+          <details className={quietDetailsClassName}>
+            <summary className={quietSummaryClassName}>
               Technical details
             </summary>
-            <p className="mt-3 break-all text-sm font-semibold text-[#0A1547]/68">
+            <p className="mt-3 break-all text-sm font-medium text-[#0A1547]/64">
               {checkoutUrl}
             </p>
           </details>
@@ -1531,14 +1642,14 @@ function CheckoutSessionCard({
       )}
 
       {canExpire && !canUseCheckoutLink && (
-        <div className="mt-4 rounded-2xl border border-[#A380F6]/20 bg-white p-4">
+        <div className="mt-4 rounded-lg border border-[#A380F6]/20 bg-[#F8F9FD] p-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <p className="text-sm font-medium text-[#0A1547]/62">This open checkout session can be expired manually.</p>
             <button
               type="button"
               onClick={() => void handleExpire()}
               disabled={expiring}
-              className="admin-focus rounded-xl border border-[#A380F6]/35 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/70 disabled:cursor-not-allowed disabled:opacity-55"
+              className="admin-focus rounded-lg border border-[#A380F6]/35 bg-white px-4 py-2 text-sm font-semibold text-[#0A1547]/82 transition hover:border-[#A380F6]/70 disabled:cursor-not-allowed disabled:opacity-55"
             >
               {expiring ? "Expiring..." : "Expire link"}
             </button>
@@ -1558,8 +1669,8 @@ function CheckoutSessionCard({
         </p>
       )}
 
-      <details className="mt-4 rounded-xl border border-[#0A1547]/10 bg-white px-4 py-3">
-        <summary className="cursor-pointer text-xs font-bold uppercase tracking-[0.14em] text-[#0A1547]/50">
+      <details className={quietDetailsClassName}>
+        <summary className={quietSummaryClassName}>
           Technical details
         </summary>
         <dl className="mt-3 grid gap-3 text-sm md:grid-cols-2">
@@ -1606,28 +1717,31 @@ function UploadCard({
   const canVoid = canWriteUploads && !paid && !voided;
 
   return (
-    <article className="rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+    <article className={compactRowClassName}>
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-        <div className="min-w-0">
-          <p className="line-clamp-2 break-words text-[13px] font-black leading-5 text-[#0A1547]">
-            {formatNullable(upload.fileName)}
-          </p>
-          <p className="mt-1 truncate text-sm font-medium text-[#0A1547]/58">{formatNullable(upload.toolName)}</p>
+        <div className="flex min-w-0 items-start gap-3">
+          <IconBadge compact icon="lock" tone="secure" />
+          <div className="min-w-0">
+            <p className="line-clamp-2 break-words text-[13px] font-semibold leading-5 text-[#0A1547]">
+              {formatNullable(upload.fileName)}
+            </p>
+            <p className="mt-1 truncate text-sm font-medium text-[#0A1547]/58">{formatNullable(upload.toolName)}</p>
+          </div>
         </div>
         <div className="flex shrink-0 flex-wrap items-start justify-end gap-2">
           {voided && (
-            <span className={`shrink-0 rounded-full border px-3 py-1 text-xs font-extrabold ${statusTone("voided")}`}>
+            <StatusPill className={`shrink-0 ${statusTone("voided")}`}>
               Voided
-            </span>
+            </StatusPill>
           )}
-          <span className={`shrink-0 rounded-full border px-3 py-1 text-xs font-extrabold ${statusTone(paid ? "paid" : "unpaid")}`}>
+          <StatusPill className={`shrink-0 ${statusTone(paid ? "paid" : "unpaid")}`}>
             {paid ? "Paid" : "Not paid"}
-          </span>
+          </StatusPill>
           {canVoid && (
             <button
               type="button"
               onClick={onVoid}
-              className="admin-focus rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-extrabold text-red-700 transition hover:bg-red-50"
+              className="admin-focus rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-700 transition hover:bg-red-50"
             >
               Void upload
             </button>
@@ -1635,7 +1749,7 @@ function UploadCard({
         </div>
       </div>
       {voided && (
-        <div className="mt-3 rounded-xl border border-[#A380F6]/20 bg-white px-4 py-3 text-sm text-[#0A1547]/68">
+        <div className="mt-3 rounded-lg border border-[#A380F6]/20 bg-[#F8F9FD] px-4 py-3 text-sm text-[#0A1547]/68">
           <p className="font-semibold text-[#0A1547]">Voided {formatDate(upload.voidedAt ?? null)}</p>
           {upload.voidReason && (
             <p className="mt-1 font-medium leading-6">Reason: {upload.voidReason}</p>
@@ -1649,8 +1763,8 @@ function UploadCard({
         <Detail label="Tool" value={upload.toolName} />
         <Detail label="Upload time" value={formatDate(upload.uploadTime)} />
       </dl>
-      <details className="mt-4 rounded-xl border border-[#0A1547]/10 bg-white px-4 py-3">
-        <summary className="cursor-pointer text-xs font-bold uppercase tracking-[0.14em] text-[#0A1547]/50">
+      <details className={quietDetailsClassName}>
+        <summary className={quietSummaryClassName}>
           Technical details
         </summary>
         <dl className="mt-3 grid gap-3 text-sm">
@@ -1798,11 +1912,114 @@ function voidUploadErrorMessage(error: unknown): string {
   return "Upload could not be voided.";
 }
 
+function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
+  return (
+    <svg
+      aria-hidden="true"
+      fill="none"
+      height={size}
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+      width={size}
+    >
+      {iconPath(name)}
+    </svg>
+  );
+}
+
+function iconPath(name: IconName) {
+  switch (name) {
+    case "activity":
+      return <path d="M4 12h4l2-7 4 14 2-7h4" />;
+    case "archive":
+      return (
+        <>
+          <path d="M4 7h16" />
+          <path d="M6 7v12h12V7" />
+          <path d="M9 11h6" />
+          <path d="M5 4h14v3H5z" />
+        </>
+      );
+    case "arrow":
+      return (
+        <>
+          <path d="M19 12H5" />
+          <path d="m12 19-7-7 7-7" />
+        </>
+      );
+    case "check":
+      return <path d="m5 12 4 4L19 6" />;
+    case "clock":
+      return (
+        <>
+          <circle cx="12" cy="12" r="8" />
+          <path d="M12 8v5l3 2" />
+        </>
+      );
+    case "copy":
+      return (
+        <>
+          <rect height="13" rx="2" width="13" x="8" y="8" />
+          <path d="M4 16c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2h9c1.1 0 2 .9 2 2" />
+        </>
+      );
+    case "credit":
+      return (
+        <>
+          <rect height="14" rx="2" width="18" x="3" y="5" />
+          <path d="M3 10h18" />
+          <path d="M7 15h3" />
+        </>
+      );
+    case "file":
+      return (
+        <>
+          <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" />
+          <path d="M14 3v5h5" />
+        </>
+      );
+    case "link":
+      return (
+        <>
+          <path d="M10 13a5 5 0 0 0 7.1 0l1.4-1.4a5 5 0 0 0-7.1-7.1l-.9.9" />
+          <path d="M14 11a5 5 0 0 0-7.1 0l-1.4 1.4a5 5 0 0 0 7.1 7.1l.9-.9" />
+        </>
+      );
+    case "lock":
+      return (
+        <>
+          <rect height="11" rx="2" width="16" x="4" y="10" />
+          <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+        </>
+      );
+    case "pen":
+      return (
+        <>
+          <path d="M12 20h9" />
+          <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+        </>
+      );
+    case "users":
+    default:
+      return (
+        <>
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M22 21v-2a4 4 0 0 0-3-3.9" />
+          <path d="M16 3.1a4 4 0 0 1 0 7.8" />
+        </>
+      );
+  }
+}
+
 function Detail({ label, value }: { label: string; value: string | number | boolean | null | undefined }) {
   return (
     <div className="min-w-0 max-w-full">
-      <dt className="text-xs font-bold uppercase tracking-[0.12em] text-[#0A1547]/42">{label}</dt>
-      <dd className="mt-1 max-w-full break-all font-semibold text-[#0A1547]">{formatNullable(value)}</dd>
+      <dt className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#0A1547]/38">{label}</dt>
+      <dd className="mt-1 max-w-full break-all font-medium text-[#0A1547]/72">{formatNullable(value)}</dd>
     </div>
   );
 }
