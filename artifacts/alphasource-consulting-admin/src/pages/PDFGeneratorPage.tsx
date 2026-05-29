@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useAuth } from "@/auth/AuthProvider";
 import { AdminApiError, generatePdfReport, getPdfGeneratorClient, getPdfGeneratorOptions } from "@/lib/adminApi";
 import type {
@@ -131,6 +131,14 @@ type PdfGenerationError = {
   uploadId: string;
   message: string;
 };
+type IconName = "arrow" | "check" | "download" | "file" | "layers" | "pdf" | "refresh" | "search" | "spark" | "users";
+type IconTone = "clients" | "report" | "analysis" | "success" | "warning" | "danger" | "neutral" | "lilac";
+
+const sectionClassName = "rounded-lg border border-[#0A1547]/10 bg-white shadow-[0_12px_28px_rgba(10,21,71,0.05)]";
+const inputClassName = "admin-focus mt-2 h-11 w-full rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-4 text-sm font-medium text-[#0A1547] placeholder:text-[#0A1547]/38";
+const selectClassName = "admin-focus mt-2 h-11 w-full rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-4 text-sm font-medium text-[#0A1547]";
+const textareaClassName = "admin-focus mt-2 w-full resize-y rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-medium leading-6 text-[#0A1547] placeholder:text-[#0A1547]/38";
+const labelClassName = "text-[11px] font-medium uppercase tracking-[0.12em] text-[#0A1547]/38";
 
 function createReportDraft(upload: PdfGeneratorUpload): ReportDraft {
   if (hasStructuredDraft(upload.analysis.structured)) {
@@ -396,6 +404,74 @@ function hasGeneratePdfContent(payload: Omit<GeneratePdfReportRequest, "uploadId
   );
 }
 
+function SectionHeader({
+  action,
+  description,
+  icon,
+  iconTone,
+  title,
+}: {
+  action?: ReactNode;
+  description?: string;
+  icon: IconName;
+  iconTone: IconTone;
+  title: string;
+}) {
+  return (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex min-w-0 items-start gap-3">
+        <IconBadge icon={icon} tone={iconTone} />
+        <div className="min-w-0">
+          <h3 className="text-lg font-black text-[#0A1547]">{title}</h3>
+          {description && (
+            <p className="mt-1 max-w-2xl text-sm font-medium leading-6 text-[#0A1547]/56">
+              {description}
+            </p>
+          )}
+        </div>
+      </div>
+      {action && <div className="shrink-0">{action}</div>}
+    </div>
+  );
+}
+
+function IconBadge({ compact = false, icon, tone }: { compact?: boolean; icon: IconName; tone: IconTone }) {
+  return (
+    <span className={`flex shrink-0 items-center justify-center rounded-lg border border-[#0A1547]/10 bg-white ${compact ? "h-9 w-9" : "h-10 w-10"} ${iconToneClassName(tone)} [&_svg]:stroke-[2.6]`}>
+      <Icon name={icon} size={compact ? 17 : 18} />
+    </span>
+  );
+}
+
+function iconToneClassName(tone: IconTone): string {
+  switch (tone) {
+    case "clients":
+    case "lilac":
+      return "text-[#A380F6]";
+    case "report":
+      return "text-[#0A1547]";
+    case "analysis":
+      return "text-[#00CFC8]";
+    case "success":
+      return "text-[#02D99D]";
+    case "warning":
+      return "text-[#F59E0B]";
+    case "danger":
+      return "text-[#EF4444]";
+    case "neutral":
+    default:
+      return "text-[#0A1547]/78";
+  }
+}
+
+function StatusPill({ children, className }: { children: ReactNode; className: string }) {
+  return (
+    <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${className}`}>
+      {children}
+    </span>
+  );
+}
+
 export default function PDFGeneratorPage() {
   const { permissions, session } = useAuth();
   const [options, setOptions] = useState<PdfGeneratorClientOption[]>([]);
@@ -595,24 +671,37 @@ export default function PDFGeneratorPage() {
   }, [canGeneratePdf, generatingUploadId, reportDraft, selectedEmail, selectedUpload, token]);
 
   return (
-    <div className="space-y-6">
-      <section className="admin-card p-5">
+    <div className="space-y-5">
+      <section className={`${sectionClassName} px-5 py-4`}>
+        <SectionHeader
+          action={(
+            <StatusPill className="border-[#02ABE0]/25 bg-[#02ABE0]/10 text-[#0A1547]/72">
+              Stored PDF generation
+            </StatusPill>
+          )}
+          description="Select a published analysis upload, edit client-facing report content, and generate a stored PDF."
+          icon="pdf"
+          iconTone="report"
+          title="PDF Reports"
+        />
+      </section>
+
+      <section className={`${sectionClassName} p-5`}>
         <div className="grid gap-4 lg:grid-cols-[1fr_380px] lg:items-end">
-          <div>
-            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#A380F6]">Client selection</p>
-            <h3 className="mt-2 text-lg font-black text-[#0A1547]">Search eligible clients</h3>
-            <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/60">
-              Choose a client with published analysis uploads to edit draft report content.
-            </p>
-          </div>
+          <SectionHeader
+            description="Choose a client with published analysis uploads to edit draft report content."
+            icon="users"
+            iconTone="clients"
+            title="Search eligible clients"
+          />
 
           <label>
-            <span className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#0A1547]/45">Client</span>
+            <span className={labelClassName}>Client</span>
             <select
               value={selectedEmail}
               onChange={(event) => setSelectedEmail(event.target.value)}
               disabled={loadingOptions || options.length === 0}
-              className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547]"
+              className={selectClassName}
             >
               <option value="">Select a client</option>
               {options.map((option) => (
@@ -626,7 +715,7 @@ export default function PDFGeneratorPage() {
       </section>
 
       {loadingOptions && (
-        <div className="admin-card p-8 text-center text-sm font-medium text-[#0A1547]/60">
+        <div className={`${sectionClassName} p-8 text-center text-sm font-medium text-[#0A1547]/56`}>
           Loading PDF Reports options...
         </div>
       )}
@@ -643,7 +732,7 @@ export default function PDFGeneratorPage() {
       )}
 
       {selectedEmail && (
-        <div className="space-y-6">
+        <div className="space-y-5">
           <ClientSummary
             option={options.find((option) => option.email === selectedEmail)}
             clientData={clientData}
@@ -651,7 +740,7 @@ export default function PDFGeneratorPage() {
           />
 
           {loadingClient && (
-            <div className="admin-card p-8 text-center text-sm font-medium text-[#0A1547]/60">
+            <div className={`${sectionClassName} p-8 text-center text-sm font-medium text-[#0A1547]/56`}>
               Loading client uploads...
             </div>
           )}
@@ -711,17 +800,20 @@ function ClientSummary({
   option: PdfGeneratorClientOption | undefined;
 }) {
   return (
-    <section className="admin-card p-5">
+    <section className={`${sectionClassName} p-5`}>
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#0A1547]/45">Selected client</p>
-          <h3 className="mt-2 break-all text-xl font-black text-[#0A1547]">
-            {option?.email ?? clientData?.clientEmail ?? "-"}
-          </h3>
+        <div className="flex min-w-0 items-start gap-3">
+          <IconBadge icon="users" tone="clients" />
+          <div className="min-w-0">
+            <p className={labelClassName}>Selected client</p>
+            <h3 className="mt-1 break-all text-lg font-black text-[#0A1547]">
+              {option?.email ?? clientData?.clientEmail ?? "-"}
+            </h3>
+          </div>
         </div>
-        <span className="rounded-full border border-[#02ABE0]/20 bg-[#02ABE0]/10 px-3 py-1 text-xs font-extrabold text-[#0A1547]">
+        <StatusPill className="border-[#02ABE0]/20 bg-[#02ABE0]/10 text-[#0A1547]/72">
           Admin PDF
-        </span>
+        </StatusPill>
       </div>
 
       <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
@@ -732,7 +824,7 @@ function ClientSummary({
       </dl>
 
       {loading && (
-        <p className="mt-4 rounded-xl bg-[#F8F9FD] px-4 py-3 text-sm font-medium text-[#0A1547]/58">
+        <p className="mt-4 rounded-lg bg-[#F8F9FD] px-4 py-3 text-sm font-medium text-[#0A1547]/58">
           Refreshing client records...
         </p>
       )}
@@ -757,24 +849,24 @@ function UploadList({
   const hasMoreUploads = uploads.length > 2;
 
   return (
-    <section className="admin-card p-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h3 className="text-lg font-black text-[#0A1547]">Eligible uploads</h3>
-          <p className="mt-1 text-sm font-medium text-[#0A1547]/58">
-            Choose an upload to edit draft content and generate a stored PDF.
-          </p>
-        </div>
-        <span className="rounded-full border border-[#0A1547]/10 bg-[#F8F9FD] px-3 py-1 text-xs font-extrabold text-[#0A1547]/65">
-          {uploads.length}
-        </span>
-      </div>
+    <section className={`${sectionClassName} p-5`}>
+      <SectionHeader
+        action={(
+          <StatusPill className="border-[#0A1547]/10 bg-[#F8F9FD] text-[#0A1547]/65">
+            {uploads.length}
+          </StatusPill>
+        )}
+        description="Choose an upload to edit draft content and generate a stored PDF."
+        icon="layers"
+        iconTone="analysis"
+        title="Eligible uploads"
+      />
 
       <div className="mt-4 grid gap-3">
         {visibleUploads.map((upload) => (
           <article
             key={upload.id}
-            className={`rounded-2xl border text-left transition ${
+            className={`rounded-lg border text-left transition ${
               upload.id === selectedUploadId
                 ? "border-[#A380F6]/70 bg-[#A380F6]/10"
                 : "border-[#0A1547]/10 bg-[#F8F9FD] hover:border-[#02ABE0]/40"
@@ -783,21 +875,25 @@ function UploadList({
             <button
               type="button"
               onClick={() => onSelect(upload.id)}
-              className="admin-focus grid w-full grid-cols-[minmax(0,1fr)_auto] items-start gap-3 rounded-2xl p-3 text-left"
+              className="admin-focus grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 rounded-lg p-3 text-left"
             >
+              <IconBadge compact icon="file" tone="report" />
               <div className="min-w-0 pr-1">
-                <p className="break-words text-sm font-black leading-5 text-[#0A1547]">{formatNullable(upload.fileName)}</p>
-                <p className="mt-1 truncate text-xs font-semibold uppercase tracking-[0.12em] text-[#0A1547]/45">
+                <p className="break-words text-sm font-semibold leading-5 text-[#0A1547]">{formatNullable(upload.fileName)}</p>
+                <p className="mt-1 truncate text-xs font-medium uppercase tracking-[0.12em] text-[#0A1547]/45">
                   {formatNullable(upload.toolName)}
                 </p>
+                <p className="mt-1 text-xs font-medium text-[#0A1547]/48">
+                  {formatNullable(upload.uploadTime)}
+                </p>
               </div>
-              <span className={`shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-xs font-extrabold leading-none ${upload.paid ? "border-[#02D99D]/30 bg-[#02D99D]/12 text-[#0A1547]" : "border-[#0A1547]/10 bg-white text-[#0A1547]/62"}`}>
+              <StatusPill className={upload.paid ? "border-[#02D99D]/30 bg-[#02D99D]/12 text-[#0A1547]/80" : "border-[#0A1547]/10 bg-white text-[#0A1547]/62"}>
                 {upload.paid ? "Paid" : "Unpaid"}
-              </span>
+              </StatusPill>
             </button>
 
             <details className="border-t border-[#0A1547]/10 px-3 py-2">
-              <summary className="cursor-pointer text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/45">
+              <summary className="cursor-pointer text-[11px] font-medium uppercase tracking-[0.12em] text-[#0A1547]/45">
                 Upload details
               </summary>
               <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
@@ -819,7 +915,7 @@ function UploadList({
           <button
             type="button"
             onClick={() => onExpandedChange(!expanded)}
-            className="admin-focus rounded-xl border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/60"
+            className="admin-focus rounded-lg border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-semibold text-[#0A1547]/82 transition hover:border-[#A380F6]/60"
           >
             {expanded ? "Show less" : `Show all (${uploads.length})`}
           </button>
@@ -859,21 +955,25 @@ function UploadDetail({
   }, [upload.id]);
 
   return (
-    <article className="admin-card overflow-hidden">
+    <article className={`${sectionClassName} overflow-hidden`}>
       <div className="border-b border-[#0A1547]/10 p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#A380F6]">Upload preview</p>
-            <h3 className="mt-2 break-words text-2xl font-black text-[#0A1547]">{formatNullable(upload.fileName)}</h3>
-            <p className="mt-2 text-sm font-medium text-[#0A1547]/60">{formatNullable(upload.toolName)}</p>
+          <div className="flex min-w-0 items-start gap-3">
+            <IconBadge icon="pdf" tone="report" />
+            <div className="min-w-0">
+              <p className={labelClassName}>Upload preview</p>
+              <h3 className="mt-1 break-words text-xl font-black text-[#0A1547]">{formatNullable(upload.fileName)}</h3>
+              <p className="mt-1 text-sm font-medium text-[#0A1547]/56">{formatNullable(upload.toolName)}</p>
+            </div>
           </div>
           {openUrl && (
             <a
               href={openUrl}
               target="_blank"
               rel="noreferrer"
-              className="admin-focus rounded-xl bg-[#0A1547] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#1A2460]"
+              className="admin-focus inline-flex items-center gap-2 rounded-lg bg-[#0A1547] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#1A2460]"
             >
+              <Icon name="download" size={15} />
               Open Existing PDF
             </a>
           )}
@@ -901,7 +1001,7 @@ function UploadDetail({
               <button
                 type="button"
                 onClick={() => setPreviewOpen(true)}
-                className="admin-focus rounded-xl border border-[#02ABE0]/35 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#02ABE0]"
+                className="admin-focus rounded-lg border border-[#02ABE0]/35 bg-white px-4 py-2 text-sm font-semibold text-[#0A1547]/82 transition hover:border-[#02ABE0]"
               >
                 Preview draft
               </button>
@@ -915,22 +1015,27 @@ function UploadDetail({
                 result={generationResult}
               />
             ) : (
-              <section className="rounded-2xl border border-[#A380F6]/25 bg-[#A380F6]/10 p-4">
-                <p className="text-sm font-black text-[#0A1547]">Read-only PDF access</p>
-                <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/62">
-                  You can inspect PDF Reports data and draft content. Generate actions are hidden unless your role includes PDF generation permission.
-                </p>
+              <section className="rounded-lg border border-[#A380F6]/25 bg-[#A380F6]/10 p-4">
+                <div className="flex items-start gap-3">
+                  <IconBadge compact icon="pdf" tone="lilac" />
+                  <div>
+                    <p className="text-sm font-semibold text-[#0A1547]">Read-only PDF access</p>
+                    <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/62">
+                      You can inspect PDF Reports data and draft content. Generate actions are hidden unless your role includes PDF generation permission.
+                    </p>
+                  </div>
+                </div>
               </section>
             )}
           </>
         ) : (
-          <p className="rounded-2xl bg-[#F8F9FD] p-4 text-sm font-medium text-[#0A1547]/56">
+          <p className="rounded-lg bg-[#F8F9FD] p-4 text-sm font-medium text-[#0A1547]/56">
             Preparing draft builder...
           </p>
         )}
 
-        <details className="rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3">
-          <summary className="cursor-pointer text-xs font-extrabold uppercase tracking-[0.16em] text-[#0A1547]/50">
+        <details className="rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3">
+          <summary className="cursor-pointer text-[11px] font-medium uppercase tracking-[0.12em] text-[#0A1547]/45">
             Technical details
           </summary>
           <dl className="mt-4 grid gap-3 text-sm md:grid-cols-2">
@@ -971,39 +1076,39 @@ function GeneratePdfPanel({
   const openUrl = generatedPdfLink(result);
 
   return (
-    <section className="rounded-2xl border border-[#02D99D]/25 bg-[#02D99D]/8 p-4">
+    <section className="rounded-lg border border-[#02D99D]/25 bg-[#02D99D]/8 p-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-        <div>
-          <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#02D99D]">Generate PDF</p>
-          <h4 className="mt-2 text-lg font-black text-[#0A1547]">Create stored PDF from draft</h4>
-          <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/62">
-            This updates the upload PDF metadata only. Paid status, email, GHL, and report delivery are untouched.
-          </p>
-        </div>
+        <SectionHeader
+          description="This updates the upload PDF metadata only. Paid status, email, GHL, and report delivery are untouched."
+          icon="pdf"
+          iconTone="success"
+          title="Create stored PDF from draft"
+        />
         <button
           type="button"
           onClick={onGenerate}
           disabled={!canGenerate || generating}
-          className="admin-focus rounded-xl bg-[#0A1547] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#1A2460] disabled:cursor-not-allowed disabled:opacity-55"
+          className="admin-focus inline-flex items-center gap-2 rounded-lg bg-[#0A1547] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#1A2460] disabled:cursor-not-allowed disabled:opacity-55"
         >
+          <Icon name="pdf" size={15} />
           {generating ? "Generating PDF…" : "Generate PDF"}
         </button>
       </div>
 
       {!canGenerate && (
-        <p className="mt-4 rounded-xl bg-white px-4 py-3 text-sm font-medium text-[#0A1547]/58">
+        <p className="mt-4 rounded-lg bg-white px-4 py-3 text-sm font-medium text-[#0A1547]/58">
           Select at least one report section or add notes to generate a PDF.
         </p>
       )}
 
       {error && (
-        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+        <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
           {error}
         </div>
       )}
 
       {result && (
-        <div className="mt-4 rounded-2xl border border-[#02D99D]/25 bg-white p-4">
+        <div className="mt-4 rounded-lg border border-[#02D99D]/25 bg-white p-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
               <p className="text-sm font-semibold text-[#0A1547]">
@@ -1019,8 +1124,9 @@ function GeneratePdfPanel({
                 href={openUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="admin-focus rounded-xl bg-[#02ABE0] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#0096C9]"
+                className="admin-focus inline-flex items-center gap-2 rounded-lg bg-[#02ABE0] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#0096C9]"
               >
+                <Icon name="download" size={15} />
                 Open PDF
               </a>
             )}
@@ -1086,19 +1192,18 @@ function DraftBuilder({
   };
 
   return (
-    <section className="rounded-2xl border border-[#A380F6]/20 bg-[#A380F6]/8 p-4">
+    <section className="rounded-lg border border-[#A380F6]/20 bg-[#A380F6]/8 p-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-        <div>
-          <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#A380F6]">Draft builder only</p>
-          <h4 className="mt-2 text-lg font-black text-[#0A1547]">Edit report draft content</h4>
-          <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/62">
-            These edits are used for this PDF generation request only and are not saved back to the analysis data.
-          </p>
-        </div>
+        <SectionHeader
+          description="These edits are used for this PDF generation request only and are not saved back to the analysis data."
+          icon="layers"
+          iconTone="lilac"
+          title="Edit report draft content"
+        />
         <button
           type="button"
           onClick={onReset}
-          className="admin-focus rounded-xl border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/60"
+          className="admin-focus rounded-lg border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-semibold text-[#0A1547]/82 transition hover:border-[#A380F6]/60"
         >
           Reset
         </button>
@@ -1123,13 +1228,13 @@ function DraftBuilder({
           onChange={(id, patch) => updateTextItem("trends", id, patch)}
         />
         <label className="block">
-          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0A1547]/45">Additional notes</span>
+          <span className={labelClassName}>Additional notes</span>
           <textarea
             value={draft.additionalNotes}
             onChange={(event) => onChange({ ...draft, additionalNotes: event.target.value })}
             rows={4}
             placeholder="Add optional notes for this PDF report."
-            className="admin-focus mt-2 w-full resize-y rounded-xl border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-medium leading-6 text-[#0A1547] placeholder:text-[#0A1547]/38"
+            className={textareaClassName}
           />
         </label>
       </div>
@@ -1238,25 +1343,23 @@ function StructuredDraftBuilder({
   };
 
   return (
-    <section className="rounded-2xl border border-[#A380F6]/20 bg-[#A380F6]/8 p-4">
+    <section className="rounded-lg border border-[#A380F6]/20 bg-[#A380F6]/8 p-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-        <div>
-          <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#A380F6]">Structured report draft</p>
-          <h4 className="mt-2 text-lg font-black text-[#0A1547]">Edit client-facing report sections</h4>
-          <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/62">
-            This draft was initialized from structured consultant-review output. Review and edit all client-facing language before generating the PDF.
-          </p>
-          <p className="mt-1 text-xs font-bold leading-5 text-[#0A1547]/48">
-            Internal notes, raw AI outputs, provider statuses, and technical metadata are not included.
-          </p>
-          <div className="mt-3 inline-flex rounded-full border border-[#02D99D]/25 bg-[#02D99D]/10 px-3 py-1 text-xs font-extrabold text-[#0A1547]">
-            Structured draft available
-          </div>
-        </div>
+        <SectionHeader
+          action={(
+            <StatusPill className="border-[#02D99D]/25 bg-[#02D99D]/10 text-[#0A1547]/80">
+              Structured draft available
+            </StatusPill>
+          )}
+          description="Review and edit all client-facing language before generating the PDF. Internal notes, raw AI outputs, provider statuses, and technical metadata are not included."
+          icon="layers"
+          iconTone="lilac"
+          title="Edit client-facing report sections"
+        />
         <button
           type="button"
           onClick={onReset}
-          className="admin-focus rounded-xl border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/60"
+          className="admin-focus rounded-lg border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-semibold text-[#0A1547]/82 transition hover:border-[#A380F6]/60"
         >
           Reset
         </button>
@@ -1301,13 +1404,13 @@ function StructuredDraftBuilder({
           onChange={(id, patch) => updateStructuredTextItem("dataNotes", id, patch)}
         />
         <label className="block">
-          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0A1547]/45">Additional notes</span>
+          <span className={labelClassName}>Additional notes</span>
           <textarea
             value={draft.additionalNotes}
             onChange={(event) => onChange({ ...draft, additionalNotes: event.target.value })}
             rows={4}
             placeholder="Add optional client-facing notes for this PDF report."
-            className="admin-focus mt-2 w-full resize-y rounded-xl border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-medium leading-6 text-[#0A1547] placeholder:text-[#0A1547]/38"
+            className={textareaClassName}
           />
         </label>
       </div>
@@ -1331,8 +1434,8 @@ function StructuredExecutiveSummaryEditor({
 
   return (
     <section>
-      <h5 className="text-sm font-black text-[#0A1547]">Executive Summary</h5>
-      <article className="mt-3 rounded-2xl border border-[#0A1547]/10 bg-white p-4">
+      <h5 className="text-sm font-semibold text-[#0A1547]">Executive Summary</h5>
+      <article className="mt-3 rounded-lg border border-[#0A1547]/10 bg-white p-4">
         <label className="inline-flex items-center gap-2 text-sm font-semibold text-[#0A1547]">
           <input
             type="checkbox"
@@ -1379,15 +1482,15 @@ function StructuredRankedFindingsEditor({
 }) {
   return (
     <section>
-      <h5 className="text-sm font-black text-[#0A1547]">Ranked Findings</h5>
+      <h5 className="text-sm font-semibold text-[#0A1547]">Ranked Findings</h5>
       {items.length === 0 ? (
-        <p className="mt-3 rounded-2xl bg-white p-4 text-sm font-medium text-[#0A1547]/56">
+        <p className="mt-3 rounded-lg bg-white p-4 text-sm font-medium text-[#0A1547]/56">
           No ranked findings were returned for this upload.
         </p>
       ) : (
         <div className="mt-3 grid gap-3">
           {items.map((item, index) => (
-            <article key={item.id} className="rounded-2xl border border-[#0A1547]/10 bg-white p-3">
+            <article key={item.id} className="rounded-lg border border-[#0A1547]/10 bg-white p-3">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
                   <label className="inline-flex items-center gap-2 text-sm font-semibold text-[#0A1547]">
@@ -1465,10 +1568,10 @@ function StructuredRankedFindingsEditor({
                   />
                   {item.evidence.length > 0 && (
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0A1547]/45">Evidence</p>
+                      <p className={labelClassName}>Evidence</p>
                       <div className="mt-2 grid gap-2">
                         {item.evidence.map((evidence, evidenceIndex) => (
-                          <div key={`${item.id}-evidence-${evidenceIndex}`} className="grid gap-2 rounded-xl bg-[#F8F9FD] p-3 md:grid-cols-3">
+                          <div key={`${item.id}-evidence-${evidenceIndex}`} className="grid gap-2 rounded-lg bg-[#F8F9FD] p-3 md:grid-cols-3">
                             <DraftInput
                               label="Label"
                               value={evidence.label}
@@ -1511,9 +1614,9 @@ function DraftBadge({ label, tone, value }: { label: string; tone?: string; valu
       : "border-[#A380F6]/25 bg-[#A380F6]/10 text-[#0A1547]";
 
   return (
-    <span className={`rounded-full border px-2.5 py-1 text-xs font-extrabold capitalize ${className}`}>
+    <StatusPill className={`capitalize ${className}`}>
       {label}: {warningLabel(value)}
-    </span>
+    </StatusPill>
   );
 }
 
@@ -1530,15 +1633,15 @@ function DraftOpportunityEditor({
 }) {
   return (
     <section>
-      <h5 className="text-sm font-black text-[#0A1547]">{label}</h5>
+      <h5 className="text-sm font-semibold text-[#0A1547]">{label}</h5>
       {items.length === 0 ? (
-        <p className="mt-3 rounded-2xl bg-white p-4 text-sm font-medium text-[#0A1547]/56">
+        <p className="mt-3 rounded-lg bg-white p-4 text-sm font-medium text-[#0A1547]/56">
           No opportunities were returned for this upload.
         </p>
       ) : (
         <div className="mt-3 grid gap-3">
           {items.map((item, index) => (
-            <article key={item.id} className="rounded-2xl border border-[#0A1547]/10 bg-white p-3">
+            <article key={item.id} className="rounded-lg border border-[#0A1547]/10 bg-white p-3">
               {item.selected ? (
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <label className="inline-flex items-center gap-2 text-sm font-semibold text-[#0A1547]">
@@ -1559,7 +1662,7 @@ function DraftOpportunityEditor({
                 </div>
               ) : (
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-                  <p className="break-words text-sm font-black leading-5 text-[#0A1547]">
+                  <p className="break-words text-sm font-semibold leading-5 text-[#0A1547]">
                     {formatNullable(item.title)}
                   </p>
                   <div className="flex flex-col items-end gap-2">
@@ -1626,7 +1729,7 @@ function OpportunityMoveControls({
         type="button"
         onClick={onMoveUp}
         disabled={disabledUp}
-        className="admin-focus rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-2.5 py-1 text-xs font-extrabold text-[#0A1547]/70 transition hover:border-[#A380F6]/50 disabled:cursor-not-allowed disabled:opacity-40"
+        className="admin-focus rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-2.5 py-1 text-xs font-semibold text-[#0A1547]/70 transition hover:border-[#A380F6]/50 disabled:cursor-not-allowed disabled:opacity-40"
       >
         Move up
       </button>
@@ -1634,7 +1737,7 @@ function OpportunityMoveControls({
         type="button"
         onClick={onMoveDown}
         disabled={disabledDown}
-        className="admin-focus rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-2.5 py-1 text-xs font-extrabold text-[#0A1547]/70 transition hover:border-[#A380F6]/50 disabled:cursor-not-allowed disabled:opacity-40"
+        className="admin-focus rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-2.5 py-1 text-xs font-semibold text-[#0A1547]/70 transition hover:border-[#A380F6]/50 disabled:cursor-not-allowed disabled:opacity-40"
       >
         Move down
       </button>
@@ -1657,15 +1760,15 @@ function DraftTextEditor({
 }) {
   return (
     <section>
-      <h5 className="text-sm font-black text-[#0A1547]">{label}</h5>
+      <h5 className="text-sm font-semibold text-[#0A1547]">{label}</h5>
       {items.length === 0 ? (
-        <p className="mt-3 rounded-2xl bg-white p-4 text-sm font-medium text-[#0A1547]/56">
+        <p className="mt-3 rounded-lg bg-white p-4 text-sm font-medium text-[#0A1547]/56">
           {emptyText}
         </p>
       ) : (
         <div className="mt-3 grid gap-3">
           {items.map((item) => (
-            <article key={item.id} className="rounded-2xl border border-[#0A1547]/10 bg-white p-4">
+            <article key={item.id} className="rounded-lg border border-[#0A1547]/10 bg-white p-4">
               <label className="inline-flex items-center gap-2 text-sm font-semibold text-[#0A1547]">
                 <input
                   type="checkbox"
@@ -1703,19 +1806,22 @@ function DraftPreviewModal({
         aria-labelledby="draft-preview-title"
         aria-modal="true"
         role="dialog"
-        className="max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-2xl"
+        className="max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-lg bg-white shadow-2xl"
       >
         <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-[#0A1547]/10 bg-white px-5 py-4">
-          <div className="min-w-0">
-            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#02ABE0]">Draft preview</p>
-            <h4 id="draft-preview-title" className="mt-1 break-words text-lg font-black text-[#0A1547]">
-              {formatNullable(upload.fileName)}
-            </h4>
+          <div className="flex min-w-0 items-start gap-3">
+            <IconBadge icon="pdf" tone="report" />
+            <div className="min-w-0">
+              <p className={labelClassName}>Draft preview</p>
+              <h4 id="draft-preview-title" className="mt-1 break-words text-lg font-black text-[#0A1547]">
+                {formatNullable(upload.fileName)}
+              </h4>
+            </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="admin-focus rounded-xl border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/60"
+            className="admin-focus rounded-lg border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-semibold text-[#0A1547]/82 transition hover:border-[#A380F6]/60"
           >
             Close
           </button>
@@ -1739,7 +1845,7 @@ function DraftPreview({ draft }: { draft: ReportDraft }) {
   const notes = draft.additionalNotes.trim();
 
   return (
-    <section className="rounded-2xl border border-[#02ABE0]/20 bg-[#02ABE0]/8 p-4">
+    <section className="rounded-lg border border-[#02ABE0]/20 bg-[#02ABE0]/8 p-4">
       <h4 className="mt-2 text-lg font-black text-[#0A1547]">Selected report content</h4>
       <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/62">
         Only selected content will be used for the generated PDF. No email, GHL update, or report delivery is triggered.
@@ -1751,8 +1857,8 @@ function DraftPreview({ draft }: { draft: ReportDraft }) {
 
       {notes && (
         <section className="mt-5">
-          <h5 className="text-sm font-black text-[#0A1547]">Additional notes</h5>
-          <p className="mt-3 rounded-2xl border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-medium leading-6 text-[#0A1547]/75">
+          <h5 className="text-sm font-semibold text-[#0A1547]">Additional notes</h5>
+          <p className="mt-3 rounded-lg border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-medium leading-6 text-[#0A1547]/75">
             {notes}
           </p>
         </section>
@@ -1772,7 +1878,7 @@ function StructuredDraftPreview({ draft }: { draft: ReportDraft }) {
   const notes = draft.additionalNotes.trim();
 
   return (
-    <section className="rounded-2xl border border-[#02ABE0]/20 bg-[#02ABE0]/8 p-4">
+    <section className="rounded-lg border border-[#02ABE0]/20 bg-[#02ABE0]/8 p-4">
       <h4 className="mt-2 text-lg font-black text-[#0A1547]">Selected report content</h4>
       <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/62">
         Structured sections below will be sent to the client-facing PDF renderer. No raw AI output, internal notes, email, GHL update, or report delivery is triggered.
@@ -1780,8 +1886,8 @@ function StructuredDraftPreview({ draft }: { draft: ReportDraft }) {
 
       {selectedSummary && (
         <section className="mt-5">
-          <h5 className="text-sm font-black text-[#0A1547]">Executive Summary</h5>
-          <dl className="mt-3 grid gap-3 rounded-2xl border border-[#0A1547]/10 bg-white p-4 text-sm">
+          <h5 className="text-sm font-semibold text-[#0A1547]">Executive Summary</h5>
+          <dl className="mt-3 grid gap-3 rounded-lg border border-[#0A1547]/10 bg-white p-4 text-sm">
             <Detail label="Summary" value={selectedSummary.summary} />
             <Detail label="Primary concern" value={selectedSummary.primaryConcern} />
             <Detail label="Recommended focus" value={selectedSummary.recommendedFocus} />
@@ -1797,8 +1903,8 @@ function StructuredDraftPreview({ draft }: { draft: ReportDraft }) {
 
       {notes && (
         <section className="mt-5">
-          <h5 className="text-sm font-black text-[#0A1547]">Additional notes</h5>
-          <p className="mt-3 rounded-2xl border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-medium leading-6 text-[#0A1547]/75">
+          <h5 className="text-sm font-semibold text-[#0A1547]">Additional notes</h5>
+          <p className="mt-3 rounded-lg border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-medium leading-6 text-[#0A1547]/75">
             {notes}
           </p>
         </section>
@@ -1810,16 +1916,16 @@ function StructuredDraftPreview({ draft }: { draft: ReportDraft }) {
 function PreviewRankedFindings({ items }: { items: DraftRankedFinding[] }) {
   return (
     <section className="mt-5">
-      <h5 className="text-sm font-black text-[#0A1547]">Ranked Findings</h5>
+      <h5 className="text-sm font-semibold text-[#0A1547]">Ranked Findings</h5>
       {items.length === 0 ? (
-        <p className="mt-3 rounded-2xl bg-white p-4 text-sm font-medium text-[#0A1547]/56">
+        <p className="mt-3 rounded-lg bg-white p-4 text-sm font-medium text-[#0A1547]/56">
           No ranked findings selected.
         </p>
       ) : (
         <div className="mt-3 grid gap-3">
           {items.map((item, index) => (
-            <article key={item.id} className="rounded-2xl border border-[#0A1547]/10 bg-white p-4">
-              <h6 className="text-sm font-black text-[#0A1547]">{index + 1}. {formatNullable(item.title)}</h6>
+            <article key={item.id} className="rounded-lg border border-[#0A1547]/10 bg-white p-4">
+              <h6 className="text-sm font-semibold text-[#0A1547]">{index + 1}. {formatNullable(item.title)}</h6>
               <div className="mt-2 flex flex-wrap gap-2">
                 <DraftBadge label="Category" value={item.category} />
                 <DraftBadge label="Severity" value={item.severity} tone={item.severity} />
@@ -1843,16 +1949,16 @@ function PreviewRankedFindings({ items }: { items: DraftRankedFinding[] }) {
 function PreviewOpportunities({ items, title = "Opportunities" }: { items: DraftOpportunity[]; title?: string }) {
   return (
     <section className="mt-5">
-      <h5 className="text-sm font-black text-[#0A1547]">{title}</h5>
+      <h5 className="text-sm font-semibold text-[#0A1547]">{title}</h5>
       {items.length === 0 ? (
-        <p className="mt-3 rounded-2xl bg-white p-4 text-sm font-medium text-[#0A1547]/56">
+        <p className="mt-3 rounded-lg bg-white p-4 text-sm font-medium text-[#0A1547]/56">
           No {title.toLowerCase()} selected.
         </p>
       ) : (
         <div className="mt-3 grid gap-3">
           {items.map((item) => (
-            <article key={item.id} className="rounded-2xl border border-[#0A1547]/10 bg-white p-4">
-              <h6 className="text-sm font-black text-[#0A1547]">{formatNullable(item.title)}</h6>
+            <article key={item.id} className="rounded-lg border border-[#0A1547]/10 bg-white p-4">
+              <h6 className="text-sm font-semibold text-[#0A1547]">{formatNullable(item.title)}</h6>
               <dl className="mt-3 grid gap-3 text-sm">
                 <Detail label="Impact" value={item.impact} />
                 <Detail label="Recommendation" value={item.recommendation} />
@@ -1868,15 +1974,15 @@ function PreviewOpportunities({ items, title = "Opportunities" }: { items: Draft
 function PreviewTextList({ items, title }: { items: string[]; title: string }) {
   return (
     <section className="mt-5">
-      <h5 className="text-sm font-black text-[#0A1547]">{title}</h5>
+      <h5 className="text-sm font-semibold text-[#0A1547]">{title}</h5>
       {items.length === 0 ? (
-        <p className="mt-3 rounded-2xl bg-white p-4 text-sm font-medium text-[#0A1547]/56">
+        <p className="mt-3 rounded-lg bg-white p-4 text-sm font-medium text-[#0A1547]/56">
           No {title.toLowerCase()} selected.
         </p>
       ) : (
         <ul className="mt-3 grid gap-3">
           {items.map((item, index) => (
-            <li key={`${item}-${index}`} className="rounded-2xl border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-medium leading-6 text-[#0A1547]/75">
+            <li key={`${item}-${index}`} className="rounded-lg border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-medium leading-6 text-[#0A1547]/75">
               {item}
             </li>
           ))}
@@ -1889,12 +1995,12 @@ function PreviewTextList({ items, title }: { items: string[]; title: string }) {
 function DraftInput({ label, onChange, value }: { label: string; onChange: (value: string) => void; value: string }) {
   return (
     <label className="block">
-      <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0A1547]/45">{label}</span>
+      <span className={labelClassName}>{label}</span>
       <input
         type="text"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-medium text-[#0A1547]"
+        className={inputClassName}
       />
     </label>
   );
@@ -1903,12 +2009,12 @@ function DraftInput({ label, onChange, value }: { label: string; onChange: (valu
 function DraftTextarea({ label, onChange, value }: { label: string; onChange: (value: string) => void; value: string }) {
   return (
     <label className="block">
-      <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0A1547]/45">{label}</span>
+      <span className={labelClassName}>{label}</span>
       <textarea
         value={value}
         onChange={(event) => onChange(event.target.value)}
         rows={3}
-        className="admin-focus mt-2 w-full resize-y rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-medium leading-6 text-[#0A1547]"
+        className={textareaClassName}
       />
     </label>
   );
@@ -1932,16 +2038,16 @@ function WarningList({ warnings }: { warnings: string[] }) {
 
 function Detail({ label, value }: { label: string; value: string | number | boolean | null | undefined }) {
   return (
-    <div>
-      <dt className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/40">{label}</dt>
-      <dd className="mt-1 break-words font-medium text-[#0A1547]">{formatNullable(value)}</dd>
+    <div className="min-w-0">
+      <dt className={labelClassName}>{label}</dt>
+      <dd className="mt-1 break-words font-medium text-[#0A1547]/72">{formatNullable(value)}</dd>
     </div>
   );
 }
 
 function ErrorState({ message }: { message: string }) {
   return (
-    <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-bold text-red-700">
+    <div className="rounded-lg border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-700">
       {message}
     </div>
   );
@@ -1949,9 +2055,117 @@ function ErrorState({ message }: { message: string }) {
 
 function EmptyState({ description, title }: { description: string; title: string }) {
   return (
-    <div className="admin-card p-8 text-center">
+    <div className={`${sectionClassName} p-8 text-center`}>
+      <div className="mx-auto mb-3 flex justify-center">
+        <IconBadge icon="pdf" tone="neutral" />
+      </div>
       <h3 className="text-lg font-black text-[#0A1547]">{title}</h3>
       <p className="mt-2 text-sm font-medium text-[#0A1547]/60">{description}</p>
     </div>
   );
+}
+
+function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
+  return (
+    <svg
+      aria-hidden="true"
+      fill="none"
+      height={size}
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+      width={size}
+    >
+      {iconPath(name)}
+    </svg>
+  );
+}
+
+function iconPath(name: IconName): ReactNode {
+  switch (name) {
+    case "arrow":
+      return (
+        <>
+          <path d="M5 12h14" />
+          <path d="m13 6 6 6-6 6" />
+        </>
+      );
+    case "check":
+      return <path d="m5 12 4 4L19 6" />;
+    case "download":
+      return (
+        <>
+          <path d="M12 3v12" />
+          <path d="m7 10 5 5 5-5" />
+          <path d="M5 21h14" />
+        </>
+      );
+    case "file":
+      return (
+        <>
+          <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" />
+          <path d="M14 3v5h5" />
+        </>
+      );
+    case "layers":
+      return (
+        <>
+          <path d="m12 2 9 5-9 5-9-5 9-5Z" />
+          <path d="m3 12 9 5 9-5" />
+          <path d="m3 17 9 5 9-5" />
+        </>
+      );
+    case "pdf":
+      return (
+        <>
+          <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" />
+          <path d="M14 3v5h5" />
+          <path d="M8 13h1.5a1.5 1.5 0 0 1 0 3H8v-3Z" />
+          <path d="M13 16v-3h1a1.5 1.5 0 0 1 0 3h-1Z" />
+          <path d="M17 13h2" />
+          <path d="M17 16v-3" />
+        </>
+      );
+    case "refresh":
+      return (
+        <>
+          <path d="M21 12a9 9 0 0 1-15.5 6.2" />
+          <path d="M3 12A9 9 0 0 1 18.5 5.8" />
+          <path d="M3 18v-5h5" />
+          <path d="M21 6v5h-5" />
+        </>
+      );
+    case "search":
+      return (
+        <>
+          <circle cx="11" cy="11" r="7" />
+          <path d="m16 16 4 4" />
+        </>
+      );
+    case "spark":
+      return (
+        <>
+          <path d="M12 2v5" />
+          <path d="M12 17v5" />
+          <path d="M2 12h5" />
+          <path d="M17 12h5" />
+          <path d="m4.9 4.9 3.5 3.5" />
+          <path d="m15.6 15.6 3.5 3.5" />
+          <path d="m4.9 19.1 3.5-3.5" />
+          <path d="m15.6 8.4 3.5-3.5" />
+        </>
+      );
+    case "users":
+    default:
+      return (
+        <>
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M22 21v-2a4 4 0 0 0-3-3.9" />
+          <path d="M16 3.1a4 4 0 0 1 0 7.8" />
+        </>
+      );
+  }
 }
