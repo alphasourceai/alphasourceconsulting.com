@@ -354,6 +354,13 @@ export default function AgreementsPage() {
       return;
     }
 
+    if (!selectedClientEmail) {
+      setAgreements([]);
+      setHistoryLoading(false);
+      setHistoryError("");
+      return;
+    }
+
     setHistoryLoading(true);
     setHistoryError("");
 
@@ -421,6 +428,41 @@ export default function AgreementsPage() {
 
   const updateForm = (field: keyof AgreementFormState, value: string) => {
     setForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const resetSelectedClient = () => {
+    setSelectedClient(null);
+    setClientSearch("");
+    setAgreements([]);
+    setHistoryLoading(false);
+    setHistoryError("");
+    setFormError("");
+    setSuccessMessage("");
+    setPreviewOpen(false);
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl("");
+    }
+    setForm((current) => ({
+      ...current,
+      clientLegalName: "",
+      state: "",
+      effectiveDate: todayIsoDate(),
+      signerName: "",
+      signerEmail: "",
+      signerTitle: "",
+      baSignerName: current.baSignerName,
+      baSignerTitle: current.baSignerTitle,
+      baSignerEmail: current.baSignerEmail,
+    }));
+  };
+
+  const handleClientSearchChange = (value: string) => {
+    setClientSearch(value);
+    if (selectedClient && value.trim() !== selectedClient.email) {
+      resetSelectedClient();
+      setClientSearch(value);
+    }
   };
 
   const selectClient = (client: AdminClientOption) => {
@@ -633,7 +675,7 @@ export default function AgreementsPage() {
             <input
               type="search"
               value={clientSearch}
-              onChange={(event) => setClientSearch(event.target.value)}
+              onChange={(event) => handleClientSearchChange(event.target.value)}
               placeholder="Search email, name, office, phone"
               className={`${inputClassName} pl-10`}
             />
@@ -683,9 +725,18 @@ export default function AgreementsPage() {
 
           {selectedClient && (
             <div className="mt-5 rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
-              <div className="flex items-center gap-3">
-                <IconBadge compact icon="users" tone="clients" />
-                <p className="text-sm font-semibold text-[#0A1547]">Selected client</p>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <IconBadge compact icon="users" tone="clients" />
+                  <p className="text-sm font-semibold text-[#0A1547]">Selected client</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={resetSelectedClient}
+                  className="admin-focus rounded-lg border border-[#0A1547]/10 bg-white px-3 py-2 text-xs font-semibold text-[#0A1547]/72 transition hover:border-[#A380F6]/50 hover:text-[#0A1547]"
+                >
+                  Clear client
+                </button>
               </div>
               <div className="mt-3 grid gap-3 text-sm">
                 {selectedClientDetails.map(([label, value]) => (
@@ -858,7 +909,7 @@ export default function AgreementsPage() {
       <section className={`${sectionClassName} p-5`}>
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <SectionHeader
-            description={selectedClient ? `Showing agreements for ${selectedClient.email}.` : "Showing the most recent agreements."}
+            description={selectedClient ? `Showing agreements for ${selectedClient.email}.` : "Select a client to view agreement history."}
             icon="archive"
             iconTone="agreements"
             title="Agreement history"
@@ -866,10 +917,10 @@ export default function AgreementsPage() {
           {selectedClient && (
             <button
               type="button"
-              onClick={() => setSelectedClient(null)}
+              onClick={resetSelectedClient}
               className="admin-focus rounded-lg border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-semibold text-[#0A1547]/82 transition hover:border-[#A380F6]/50"
             >
-              Show all recent
+              Clear selected client
             </button>
           )}
         </div>
@@ -964,7 +1015,7 @@ export default function AgreementsPage() {
             </div>
           ) : (
             <p className="px-4 py-6 text-sm font-medium text-[#0A1547]/54">
-              No agreements found.
+              {selectedClient ? "No agreements found." : "Select a client to load agreement history."}
             </p>
           )}
         </div>
