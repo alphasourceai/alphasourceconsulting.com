@@ -265,6 +265,7 @@ export default function AgreementSignerPage({ params }: RouteComponentProps<{ to
     }
 
     setSubmitError("");
+    const isBaSigner = agreement?.signerRole === "ba";
 
     if (!token) {
       setSubmitError("This agreement link is unavailable or has expired.");
@@ -282,7 +283,7 @@ export default function AgreementSignerPage({ params }: RouteComponentProps<{ to
     }
 
     if (!authorityConfirmed) {
-      setSubmitError("Confirm that you are authorized to sign for the Covered Entity.");
+      setSubmitError(isBaSigner ? "Confirm that you are authorized to countersign for alphaSource Consulting." : "Confirm that you are authorized to sign for the Covered Entity.");
       return;
     }
 
@@ -354,7 +355,7 @@ export default function AgreementSignerPage({ params }: RouteComponentProps<{ to
               <div className="border-b border-[#0A1547]/10 px-5 py-4">
                 <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#A380F6]">BAA/Privacy Agreement</p>
                 <h1 className="mt-2 text-2xl font-black text-[#0A1547] md:text-3xl">
-                  Review Agreement
+                  {agreement.signerRole === "ba" ? "Countersign the BAA/Privacy Agreement" : "Review and sign the BAA/Privacy Agreement"}
                 </h1>
                 <div className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
                   <Detail label="Covered Entity" value={agreement.clientLegalName} />
@@ -378,9 +379,11 @@ export default function AgreementSignerPage({ params }: RouteComponentProps<{ to
             </section>
 
             <aside className="rounded-3xl border border-[#0A1547]/10 bg-white p-5 shadow-lg shadow-[#0A1547]/6">
-              <h2 className="text-xl font-black text-[#0A1547]">Sign Agreement</h2>
+              <h2 className="text-xl font-black text-[#0A1547]">{agreement.signerRole === "ba" ? "Countersign Agreement" : "Sign Agreement"}</h2>
               <p className="mt-2 text-sm font-medium leading-6 text-[#0A1547]/62">
-                Enter your signer details, confirm authority and acceptance, then draw your signature.
+                {agreement.signerRole === "ba"
+                  ? "Enter your alphaSource signer details, confirm authority and acceptance, then draw your countersignature."
+                  : "Enter your signer details, confirm authority and acceptance, then draw your signature."}
               </p>
 
               <div className="mt-5 space-y-4">
@@ -402,7 +405,7 @@ export default function AgreementSignerPage({ params }: RouteComponentProps<{ to
                     value={title}
                     onChange={(event) => setTitle(event.target.value)}
                     className="mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547] outline-none focus-visible:ring-4 focus-visible:ring-[#A380F6]/25"
-                    placeholder="Owner, administrator, or authorized title"
+                    placeholder={agreement.signerRole === "ba" ? "alphaSource signer title" : "Owner, administrator, or authorized title"}
                   />
                 </label>
 
@@ -414,7 +417,9 @@ export default function AgreementSignerPage({ params }: RouteComponentProps<{ to
                     className="mt-1 h-4 w-4 accent-[#A380F6]"
                   />
                   <span className="text-sm font-semibold leading-6 text-[#0A1547]/72">
-                    I confirm I am authorized to sign this agreement on behalf of the Covered Entity.
+                    {agreement.signerRole === "ba"
+                      ? "I confirm I am authorized to countersign this agreement for alphaSource Consulting."
+                      : "I confirm I am authorized to sign this agreement on behalf of the Covered Entity."}
                   </span>
                 </label>
 
@@ -426,7 +431,9 @@ export default function AgreementSignerPage({ params }: RouteComponentProps<{ to
                     className="mt-1 h-4 w-4 accent-[#A380F6]"
                   />
                   <span className="text-sm font-semibold leading-6 text-[#0A1547]/72">
-                    I have reviewed and accept the BAA/Privacy Agreement.
+                    {agreement.signerRole === "ba"
+                      ? "I have reviewed and accept the BAA/Privacy Agreement for countersignature."
+                      : "I have reviewed and accept the BAA/Privacy Agreement."}
                   </span>
                 </label>
 
@@ -468,7 +475,7 @@ export default function AgreementSignerPage({ params }: RouteComponentProps<{ to
                   disabled={submitting}
                   className="w-full rounded-xl bg-[#A380F6] px-5 py-4 text-sm font-extrabold text-white transition hover:bg-[#906cf2] disabled:opacity-45"
                 >
-                  {submitting ? "Submitting..." : "Submit Signature"}
+                  {submitting ? "Submitting..." : agreement.signerRole === "ba" ? "Submit Countersignature" : "Submit Signature"}
                 </button>
               </div>
             </aside>
@@ -501,19 +508,26 @@ function StateCard({ title, copy }: { title: string; copy: string }) {
 }
 
 function CompletionCard({ response }: { response: PublicAgreementSignResponse }) {
+  const pendingBaSignature = response.agreement.status === "pending_ba_signature" || response.agreement.signerRole === "client";
+  const signedLabel = pendingBaSignature ? response.agreement.clientSignedAt : response.agreement.signedAt;
+
   return (
     <section className="mx-auto max-w-2xl rounded-3xl border border-[#0A1547]/10 bg-white p-8 text-center shadow-lg shadow-[#0A1547]/6">
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#02D99D]/15 text-2xl font-black text-[#0A1547]">
         OK
       </div>
-      <h1 className="mt-5 text-3xl font-black text-[#0A1547]">Agreement signed successfully.</h1>
+      <h1 className="mt-5 text-3xl font-black text-[#0A1547]">
+        {pendingBaSignature ? "Client signature recorded." : "Agreement signed successfully."}
+      </h1>
       <p className="mt-3 text-sm font-semibold leading-6 text-[#0A1547]/62">
-        A signed copy has been saved securely. alphaSource Consulting and the signer will receive access according to the agreement delivery settings.
+        {pendingBaSignature
+          ? "alphaSource Consulting will countersign next. Final signed copies are sent after the BA signature is complete."
+          : "A signed copy has been saved securely. alphaSource Consulting and the signer will receive access according to the agreement delivery settings."}
       </p>
       <p className="mt-4 text-xs font-bold uppercase tracking-[0.16em] text-[#0A1547]/42">
-        Signed {formatDateTime(response.agreement.signedAt)}
+        {pendingBaSignature ? "Client signed" : "Signed"} {formatDateTime(signedLabel)}
       </p>
-      {response.signedPdfUrl && (
+      {!pendingBaSignature && response.signedPdfUrl && (
         <a
           href={response.signedPdfUrl}
           target="_blank"

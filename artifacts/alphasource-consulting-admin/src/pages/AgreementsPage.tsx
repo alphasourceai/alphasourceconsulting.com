@@ -95,6 +95,8 @@ function statusPillClassName(status: string): string {
       return "border-[#02D99D]/35 bg-[#02D99D]/12 text-[#0A1547]";
     case "sent":
       return "border-[#02ABE0]/35 bg-[#02ABE0]/12 text-[#0A1547]";
+    case "pending_ba_signature":
+      return "border-[#A380F6]/35 bg-[#A380F6]/12 text-[#0A1547]";
     case "voided":
       return "border-red-200 bg-red-50 text-red-700";
     case "superseded":
@@ -105,6 +107,10 @@ function statusPillClassName(status: string): string {
 }
 
 function agreementStatusLabel(status: string): string {
+  if (status.toLowerCase() === "pending_ba_signature") {
+    return "Pending BA Signature";
+  }
+
   return status
     .replace(/[_-]+/g, " ")
     .replace(/\s+/g, " ")
@@ -272,14 +278,14 @@ export default function AgreementsPage() {
       signerName: form.signerName.trim() || null,
       signerEmail: form.signerEmail.trim(),
       signerTitle: form.signerTitle.trim() || null,
-      baSignerName: form.baSignerName.trim() || null,
-      baSignerTitle: form.baSignerTitle.trim() || null,
-      baSignerEmail: form.baSignerEmail.trim() || null,
-      baSignatureMode: form.baSignerName.trim() ? "admin_entered" : null,
+      baSignerName: form.baSignerName.trim(),
+      baSignerTitle: form.baSignerTitle.trim(),
+      baSignerEmail: form.baSignerEmail.trim(),
+      baSignatureMode: "tokenized_link",
     };
 
-    if (!payload.clientLegalName || !payload.state || !payload.effectiveDate || !payload.signerEmail) {
-      setFormError("Client legal name, state, effective date, and signer email are required.");
+    if (!payload.clientLegalName || !payload.state || !payload.effectiveDate || !payload.signerEmail || !payload.baSignerName || !payload.baSignerTitle || !payload.baSignerEmail) {
+      setFormError("Client legal name, state, effective date, signer email, and BA signer fields are required.");
       return null;
     }
 
@@ -288,8 +294,8 @@ export default function AgreementsPage() {
       return null;
     }
 
-    if (payload.baSignerEmail && !payload.baSignerEmail.includes("@")) {
-      setFormError("Enter a valid BA signer email or leave it blank.");
+    if (!payload.baSignerEmail.includes("@")) {
+      setFormError("Enter a valid BA signer email.");
       return null;
     }
 
@@ -346,7 +352,7 @@ export default function AgreementsPage() {
 
     try {
       const response = await sendAgreement(token, payload);
-      setSuccessMessage(`BAA/Privacy Agreement sent to ${response.agreement.signerEmail}.`);
+      setSuccessMessage(`BAA/Privacy Agreement sent to ${response.agreement.signerEmail}. The BA signer receives a countersign link after the client signs.`);
       setPreviewOpen(false);
       await loadAgreementHistory();
     } catch (error) {
@@ -618,7 +624,7 @@ export default function AgreementsPage() {
                 type="email"
                 value={form.baSignerEmail}
                 onChange={(event) => updateForm("baSignerEmail", event.target.value)}
-                placeholder="admin@alphasourceconsulting.com"
+                placeholder="ba-signer@alphasourceconsulting.com"
                 disabled={formDisabled}
                 className={inputClassName}
               />
@@ -692,7 +698,10 @@ export default function AgreementsPage() {
           ) : agreements.length ? (
             <div className="divide-y divide-[#0A1547]/8">
               {agreements.map((agreement) => {
-                const canVoid = canWriteAgreements && !["voided", "superseded"].includes(agreement.status.toLowerCase());
+                const normalizedStatus = agreement.status.toLowerCase();
+                const canVoid = canWriteAgreements && !["voided", "superseded"].includes(normalizedStatus);
+                const showSignedPdf = normalizedStatus === "signed" && agreement.hasSignedPdf;
+                const showDraftPreview = !showSignedPdf && agreement.hasDraftPdf;
                 return (
                   <div key={agreement.id} className="grid gap-4 px-4 py-4 text-sm xl:grid-cols-[1.4fr_1fr_0.7fr_0.9fr_0.9fr_1.2fr] xl:items-center">
                     <div>
@@ -713,20 +722,20 @@ export default function AgreementsPage() {
                       {formatDate(agreement.effectiveDate)}
                     </div>
                     <div className="font-bold text-[#0A1547]/70">
-                      {formatDateTime(agreement.signedAt || agreement.sentAt)}
+                      {formatDateTime(agreement.signedAt || agreement.baSignedAt || agreement.clientSignedAt || agreement.sentAt)}
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {agreement.hasDraftPdf && (
+                      {showDraftPreview && (
                         <button
                           type="button"
                           onClick={() => void handleDownload(agreement, "draft")}
                           disabled={Boolean(actionBusyKey)}
                           className="admin-focus rounded-lg border border-[#0A1547]/10 bg-white px-3 py-2 text-xs font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/50 disabled:opacity-45"
                         >
-                          Draft PDF
+                          Draft Preview
                         </button>
                       )}
-                      {agreement.hasSignedPdf && (
+                      {showSignedPdf && (
                         <button
                           type="button"
                           onClick={() => void handleDownload(agreement, "signed")}

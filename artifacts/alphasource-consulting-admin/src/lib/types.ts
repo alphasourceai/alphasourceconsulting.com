@@ -210,7 +210,7 @@ export type AdminClientOptionsResponse = {
   count: number;
 };
 
-export type AgreementStatus = "draft" | "sent" | "signed" | "voided" | "superseded" | "expired";
+export type AgreementStatus = "draft" | "sent" | "pending_ba_signature" | "signed" | "voided" | "superseded" | "expired";
 
 export type AgreementDocumentType = "baa_privacy_agreement";
 
@@ -231,19 +231,26 @@ export type AgreementSummary = {
   hasDraftPdf: boolean;
   hasSignedPdf: boolean;
   signerTokenExpiresAt: string | null;
+  baSignerTokenExpiresAt: string | null;
   sentAt: string | null;
   openedAt: string | null;
+  baOpenedAt: string | null;
   signerName: string | null;
   signerEmail: string;
   signerTitle: string | null;
   signerAuthorityConfirmed: boolean;
   signerAccepted: boolean;
+  clientSignedAt: string | null;
+  hasClientSignature: boolean;
   signedAt: string | null;
   baSignerName: string | null;
   baSignerTitle: string | null;
   baSignerEmail: string | null;
   baSignatureMode: string | null;
+  baSignerAuthorityConfirmed: boolean;
+  baSignerAccepted: boolean;
   baSignedAt: string | null;
+  hasBaSignature: boolean;
   createdByAdminId: string | null;
   createdByAdminEmail: string | null;
   sentByAdminId: string | null;

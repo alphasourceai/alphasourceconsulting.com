@@ -2,6 +2,7 @@ export type PublicAgreementSession = {
   id: string;
   documentType: string;
   status: string;
+  signerRole: "client" | "ba" | string;
   clientLegalName: string;
   effectiveDate: string | null;
   signerName: string | null;
@@ -34,7 +35,10 @@ export type PublicAgreementSignResponse = {
   agreement: {
     id: string;
     status: string;
+    signerRole: "client" | "ba" | string;
     signedAt: string | null;
+    clientSignedAt?: string | null;
+    baSignedAt?: string | null;
     signerName: string | null;
     signerTitle: string | null;
   };
