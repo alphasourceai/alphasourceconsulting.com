@@ -455,7 +455,6 @@ export default function ClientDetailPage({ email }: ClientDetailPageProps) {
     setUploadsExpanded(false);
   }, [uploadStatus, validEmail]);
 
-  const summary = detail?.summary;
   const sortedUploads = useMemo(() => {
     return [...(detail?.uploads ?? [])].sort((left, right) => uploadTimeValue(right) - uploadTimeValue(left));
   }, [detail?.uploads]);
@@ -565,10 +564,6 @@ export default function ClientDetailPage({ email }: ClientDetailPageProps) {
             token={token}
           />
           <RecentSubmissionsPanel submissions={detail.recentSubmissions ?? []} />
-
-          <BillingHandoffCard />
-
-          <BillingSummaryPanel summary={detail.summary} />
 
           {checkoutActionMessage && (
             <p className="rounded-lg border border-[#02D99D]/25 bg-[#02D99D]/10 px-5 py-4 text-sm font-semibold text-[#0A1547]">
@@ -1206,30 +1201,6 @@ function reviewSeverityTone(value: string | null | undefined): string {
   return "border-[#0A1547]/10 bg-white text-[#0A1547]/70";
 }
 
-function BillingHandoffCard() {
-  return (
-    <section className={`${sectionClassName} p-5`}>
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="flex min-w-0 items-start gap-3">
-          <IconBadge icon="credit" tone="billing" />
-          <div className="min-w-0">
-            <h3 className="text-lg font-black text-[#0A1547]">Create payment links in Billing</h3>
-            <p className="mt-1 max-w-2xl text-sm font-medium leading-6 text-[#0A1547]/56">
-              Checkout links now live in Billing so payments, upload links, and future offer links stay together.
-            </p>
-          </div>
-        </div>
-        <Link
-          href="/billing"
-          className="admin-focus w-fit rounded-lg bg-[#0A1547] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#1A2460]"
-        >
-          Open Billing
-        </Link>
-      </div>
-    </section>
-  );
-}
-
 function BackLink() {
   return (
     <Link
@@ -1318,71 +1289,6 @@ function UploadsPanel({
         )}
       </div>
     </section>
-  );
-}
-
-function BillingSummaryPanel({ summary }: { summary: ClientBillingDetailResponse["summary"] }) {
-  return (
-    <section className={`${sectionClassName} p-5`}>
-      <SectionHeader
-        description="High-level checkout and override status."
-        icon="credit"
-        iconTone="billing"
-        title="Billing summary"
-      />
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <SummaryFact
-          label="Sessions"
-          value={summary.checkoutSessionCount}
-          helpText="Number of checkout sessions created for this client."
-          valueClassName="text-[#A380F6]"
-        />
-        <SummaryFact
-          label="Paid"
-          value={summary.paidCheckoutSessionCount}
-          helpText="Checkout sessions marked paid."
-          valueClassName="text-[#02D99D]"
-        />
-        <SummaryFact
-          label="Open"
-          value={summary.openCheckoutSessionCount}
-          helpText="Unpaid or open checkout sessions."
-          valueClassName="text-[#02ABE0]"
-        />
-        <SummaryFact
-          label="Overrides"
-          value={summary.manualOverrideCount}
-          helpText="Manual billing status overrides."
-          valueClassName="text-[#A380F6]"
-        />
-        <SummaryFact
-          label="Latest"
-          value={formatNullable(summary.latestPaymentStatus)}
-          helpText="Latest known payment status."
-          valueClassName="text-[#0A1547]"
-        />
-      </div>
-    </section>
-  );
-}
-
-function SummaryFact({
-  helpText,
-  label,
-  value,
-  valueClassName,
-}: {
-  helpText: string;
-  label: string;
-  value: string | number;
-  valueClassName: string;
-}) {
-  return (
-    <div title={helpText} className="rounded-lg border border-[#0A1547]/10 bg-white p-4 shadow-[0_8px_20px_rgba(10,21,71,0.035)]">
-      <p className={`break-words text-2xl font-black leading-none ${valueClassName}`}>{value}</p>
-      <p className="mt-2 text-[11px] font-medium uppercase tracking-[0.12em] text-[#0A1547]/40">{label}</p>
-      <p className="mt-1 text-xs font-medium leading-5 text-[#0A1547]/50">{helpText}</p>
-    </div>
   );
 }
 
