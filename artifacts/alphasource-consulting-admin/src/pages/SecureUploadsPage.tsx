@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useAuth } from "@/auth/AuthProvider";
 import { AdminApiError, createSecureUploadDownloadUrl, createSecureUploadRequest, getSecureUploadFiles } from "@/lib/adminApi";
 import type {
@@ -14,6 +14,8 @@ type SecureUploadFilters = {
   startDate: string;
   endDate: string;
 };
+type IconName = "cloud" | "download" | "file" | "filter" | "lock" | "mail" | "refresh" | "upload";
+type IconTone = "secure" | "analysis" | "neutral" | "lilac";
 
 const DEFAULT_LIMIT = 50;
 const DEFAULT_FILTERS: SecureUploadFilters = {
@@ -22,6 +24,9 @@ const DEFAULT_FILTERS: SecureUploadFilters = {
   startDate: "",
   endDate: "",
 };
+const sectionClassName = "rounded-lg border border-[#0A1547]/10 bg-white shadow-[0_12px_28px_rgba(10,21,71,0.05)]";
+const inputClassName = "admin-focus mt-2 h-11 w-full rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-4 text-sm font-medium text-[#0A1547] placeholder:text-[#0A1547]/38";
+const labelClassName = "text-[11px] font-medium uppercase tracking-[0.12em] text-[#0A1547]/38";
 
 function formatNullable(value: string | number | null | undefined): string {
   if (value === null || value === undefined || value === "") {
@@ -74,27 +79,70 @@ function responseFallback(): SecureUploadFilesResponse {
   };
 }
 
-function WorkflowInfoPanel({
-  items,
+function statusTone(file: SecureUploadFile): string {
+  return file.completedAt
+    ? "border-[#02D99D]/30 bg-[#02D99D]/12 text-[#0A1547]/80"
+    : "border-amber-200 bg-amber-50 text-amber-700/90";
+}
+
+function SectionHeader({
+  action,
+  description,
+  icon,
+  iconTone,
+  title,
 }: {
-  items: Array<{
-    title: string;
-    lines: string[];
-  }>;
+  action?: ReactNode;
+  description?: string;
+  icon: IconName;
+  iconTone: IconTone;
+  title: string;
 }) {
   return (
-    <section className="grid gap-4 md:grid-cols-3">
-      {items.map((item) => (
-        <div key={item.title} className="rounded-2xl border border-[#0A1547]/10 bg-white p-5 shadow-sm">
-          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#A380F6]">{item.title}</p>
-          <ul className="mt-3 space-y-2 text-sm font-semibold leading-6 text-[#0A1547]/68">
-            {item.lines.map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex min-w-0 items-start gap-3">
+        <IconBadge icon={icon} tone={iconTone} />
+        <div className="min-w-0">
+          <h3 className="text-lg font-black text-[#0A1547]">{title}</h3>
+          {description && (
+            <p className="mt-1 max-w-2xl text-sm font-medium leading-6 text-[#0A1547]/56">
+              {description}
+            </p>
+          )}
         </div>
-      ))}
-    </section>
+      </div>
+      {action && <div className="shrink-0">{action}</div>}
+    </div>
+  );
+}
+
+function IconBadge({ compact = false, icon, tone }: { compact?: boolean; icon: IconName; tone: IconTone }) {
+  return (
+    <span className={`flex shrink-0 items-center justify-center rounded-lg border border-[#0A1547]/10 bg-white ${compact ? "h-9 w-9" : "h-10 w-10"} ${iconToneClassName(tone)} [&_svg]:stroke-[2.6]`}>
+      <Icon name={icon} size={compact ? 17 : 18} />
+    </span>
+  );
+}
+
+function iconToneClassName(tone: IconTone): string {
+  switch (tone) {
+    case "secure":
+      return "text-[#F59E0B]";
+    case "analysis":
+      return "text-[#00CFC8]";
+    case "lilac":
+      return "text-[#A380F6]";
+    case "neutral":
+    default:
+      return "text-[#0A1547]/78";
+  }
+}
+
+function StatusPill({ children, className }: { children: ReactNode; className: string }) {
+  return (
+    <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${className}`}>
+      {children}
+    </span>
   );
 }
 
@@ -231,41 +279,33 @@ export default function SecureUploadsPage() {
   const canGoNext = response.hasMore;
 
   return (
-    <div className="space-y-6">
-      <WorkflowInfoPanel
-        items={[
-          {
-            title: "Purpose",
-            lines: ["Secure intake and review for files submitted through the secure upload portal."],
-          },
-          {
-            title: "Boundary",
-            lines: [
-              "Files may contain sensitive or PHI-related information.",
-              "Files are not sent to AI analysis or imported into Document Analysis from this page.",
-            ],
-          },
-          {
-            title: "Actions",
-            lines: [
-              "Super/admin-approved users can send upload request emails.",
-              "Authorized users can review inbox records and storage metadata.",
-            ],
-          },
-        ]}
-      />
+    <div className="space-y-5">
+      <section className={`${sectionClassName} px-5 py-4`}>
+        <SectionHeader
+          action={(
+            <StatusPill className="border-[#F59E0B]/25 bg-[#F59E0B]/10 text-[#0A1547]/72">
+              Private Google Cloud storage
+            </StatusPill>
+          )}
+          description="Review sensitive client files submitted through the secure upload portal. Files are not sent to Document Analysis from this page."
+          icon="lock"
+          iconTone="secure"
+          title="Secure Uploads"
+        />
+      </section>
 
       {canWriteSecureUploads ? (
-        <section className="admin-card p-5">
-          <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
+        <section className={`${sectionClassName} p-5`}>
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
             <div>
-              <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#A380F6]">Send secure upload request</p>
-              <h3 className="mt-2 text-xl font-black text-[#0A1547]">Email an existing client user</h3>
-              <p className="mt-2 text-sm font-semibold leading-6 text-[#0A1547]/62">
-                This sends the existing secure upload portal email. It only works for an email that already belongs to an existing client.
-              </p>
-              <label className="mt-4 block">
-                <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/45">Client email</span>
+              <SectionHeader
+                description="Send the existing portal email to a client record already in the system."
+                icon="mail"
+                iconTone="secure"
+                title="Send upload request"
+              />
+              <label className="mt-5 block max-w-2xl">
+                <span className={labelClassName}>Client email</span>
                 <input
                   type="email"
                   value={requestEmail}
@@ -281,7 +321,7 @@ export default function SecureUploadsPage() {
                     }
                   }}
                   placeholder="client@example.com"
-                  className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-bold text-[#0A1547] placeholder:text-[#0A1547]/35"
+                  className={inputClassName}
                 />
               </label>
             </div>
@@ -290,60 +330,71 @@ export default function SecureUploadsPage() {
               type="button"
               onClick={() => void handleSendRequest()}
               disabled={requestSending || !requestEmail.trim()}
-              className="admin-focus rounded-xl bg-[#0A1547] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#1A2460] disabled:cursor-not-allowed disabled:opacity-55"
+              className="admin-focus inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[#0A1547] px-5 text-sm font-bold text-white transition hover:bg-[#1A2460] disabled:cursor-not-allowed disabled:opacity-55"
             >
+              <Icon name="mail" size={15} />
               {requestSending ? "Sending..." : "Send request"}
             </button>
           </div>
 
           {requestSuccess && (
-            <div className="mt-4 rounded-2xl border border-[#02D99D]/25 bg-[#02D99D]/10 p-4 text-sm font-bold text-[#0A1547]">
+            <div className="mt-4 rounded-lg border border-[#02D99D]/25 bg-[#02D99D]/10 px-4 py-3 text-sm font-semibold text-[#0A1547]">
               Secure upload request emailed to {requestSuccess.clientEmail}. Link expires {formatDate(requestSuccess.expiresAt)} ({requestSuccess.expiresInMinutes} minutes).
             </div>
           )}
 
           {requestError && (
-            <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
+            <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
               {requestError}
             </div>
           )}
         </section>
       ) : (
-        <section className="rounded-2xl border border-[#A380F6]/25 bg-[#A380F6]/10 p-5">
-          <p className="text-sm font-black text-[#0A1547]">Read-only secure uploads access</p>
-          <p className="mt-1 text-sm font-semibold leading-6 text-[#0A1547]/62">
-            You can inspect secure upload files. Request-email actions are hidden unless your role includes secure uploads write permission.
-          </p>
+        <section className={`${sectionClassName} p-5`}>
+          <div className="flex items-start gap-3">
+            <IconBadge icon="lock" tone="lilac" />
+            <div>
+              <p className="text-sm font-semibold text-[#0A1547]">Read-only secure uploads access</p>
+              <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/58">
+                You can inspect secure upload files. Request-email actions are hidden unless your role includes secure uploads write permission.
+              </p>
+            </div>
+          </div>
         </section>
       )}
 
-      <section className="admin-card p-5">
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm font-medium text-[#0A1547]/58">
-            Change filters, then click Apply filters.
-          </p>
-          <button
-            type="button"
-            onClick={handleRefresh}
-            disabled={loading}
-            className="admin-focus w-fit rounded-xl border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/60 disabled:cursor-not-allowed disabled:opacity-55"
-          >
-            {loading ? "Refreshing..." : "Refresh results"}
-          </button>
-        </div>
-        <div className="grid gap-4 lg:grid-cols-[180px_1fr_180px_180px_auto_auto] lg:items-end">
-          <label className="flex items-center gap-3 rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3">
+      <section className={`${sectionClassName} p-5`}>
+        <SectionHeader
+          action={(
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={loading}
+              className="admin-focus inline-flex h-10 w-fit items-center gap-2 rounded-lg border border-[#0A1547]/10 bg-white px-4 text-sm font-semibold text-[#0A1547]/82 transition hover:border-[#A380F6]/60 disabled:cursor-not-allowed disabled:opacity-55"
+            >
+              <Icon name="refresh" size={15} />
+              {loading ? "Refreshing..." : "Refresh"}
+            </button>
+          )}
+          description="Change filters, then apply them to the private upload inbox."
+          icon="filter"
+          iconTone="analysis"
+          title="Upload filters"
+        />
+
+        <div className="mt-5 grid gap-4 lg:grid-cols-[180px_1fr_180px_180px_auto_auto] lg:items-end">
+          <label className="flex h-11 items-center gap-3 rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-4">
             <input
               type="checkbox"
               checked={filters.completedOnly}
               onChange={(event) => setFilters((current) => ({ ...current, completedOnly: event.target.checked }))}
               className="h-4 w-4 accent-[#A380F6]"
             />
-            <span className="text-sm font-extrabold text-[#0A1547]">Completed only</span>
+            <span className="text-sm font-semibold text-[#0A1547]/82">Completed only</span>
           </label>
 
           <label>
-            <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/45">Email contains</span>
+            <span className={labelClassName}>Email contains</span>
             <input
               type="search"
               value={filters.email}
@@ -355,27 +406,27 @@ export default function SecureUploadsPage() {
                 }
               }}
               placeholder="name@example.com"
-              className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-bold text-[#0A1547] placeholder:text-[#0A1547]/35"
+              className={inputClassName}
             />
           </label>
 
           <label>
-            <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/45">Start date</span>
+            <span className={labelClassName}>Start date</span>
             <input
               type="date"
               value={filters.startDate}
               onChange={(event) => setFilters((current) => ({ ...current, startDate: event.target.value }))}
-              className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-bold text-[#0A1547]"
+              className={inputClassName}
             />
           </label>
 
           <label>
-            <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/45">End date</span>
+            <span className={labelClassName}>End date</span>
             <input
               type="date"
               value={filters.endDate}
               onChange={(event) => setFilters((current) => ({ ...current, endDate: event.target.value }))}
-              className="admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-bold text-[#0A1547]"
+              className={inputClassName}
             />
           </label>
 
@@ -383,7 +434,7 @@ export default function SecureUploadsPage() {
             type="button"
             onClick={() => applyFilters()}
             disabled={loading}
-            className="admin-focus rounded-xl bg-[#0A1547] px-4 py-3 text-sm font-extrabold text-white transition hover:bg-[#1A2460] disabled:cursor-not-allowed disabled:opacity-55"
+            className="admin-focus inline-flex h-11 items-center justify-center rounded-lg bg-[#0A1547] px-4 text-sm font-bold text-white transition hover:bg-[#1A2460] disabled:cursor-not-allowed disabled:opacity-55"
           >
             Apply filters
           </button>
@@ -392,7 +443,7 @@ export default function SecureUploadsPage() {
             type="button"
             onClick={clearFilters}
             disabled={loading}
-            className="admin-focus rounded-xl border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/60 disabled:cursor-not-allowed disabled:opacity-55"
+            className="admin-focus inline-flex h-11 items-center justify-center rounded-lg border border-[#0A1547]/10 bg-white px-4 text-sm font-semibold text-[#0A1547]/82 transition hover:border-[#A380F6]/60 disabled:cursor-not-allowed disabled:opacity-55"
           >
             Clear filters
           </button>
@@ -400,7 +451,7 @@ export default function SecureUploadsPage() {
       </section>
 
       {loading && (
-        <div className="admin-card p-8 text-center text-sm font-bold text-[#0A1547]/60">
+        <div className={`${sectionClassName} p-8 text-center text-sm font-medium text-[#0A1547]/56`}>
           Loading secure uploads...
         </div>
       )}
@@ -417,10 +468,13 @@ export default function SecureUploadsPage() {
       )}
 
       {!loading && !error && response.items.length > 0 && (
-        <section className="grid gap-4">
-          <p className="rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-medium leading-6 text-[#0A1547]/62">
-            Secure upload files are stored in a private Google Cloud Storage bucket. Public object URLs are intentionally blocked; use Download file for a short-lived admin download link or Open in Google Cloud for internal object details.
-          </p>
+        <section className="grid gap-3">
+          <div className="flex items-start gap-3 rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-medium leading-6 text-[#0A1547]/58">
+            <IconBadge compact icon="cloud" tone="secure" />
+            <p>
+              Files stay in private Google Cloud Storage. Use Download file for a short-lived admin link or Open in Google Cloud for internal object details.
+            </p>
+          </div>
           {response.items.map((file) => (
             <SecureUploadCard
               key={file.id}
@@ -435,8 +489,8 @@ export default function SecureUploadsPage() {
       )}
 
       {!error && (
-        <section className="admin-card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm font-bold text-[#0A1547]/58">
+        <section className={`${sectionClassName} flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between`}>
+          <p className="text-sm font-medium text-[#0A1547]/58">
             Showing {response.count} files from offset {response.offset}. {response.hasMore ? "More results are available." : "End of current result set."}
           </p>
           <div className="flex gap-2">
@@ -444,7 +498,7 @@ export default function SecureUploadsPage() {
               type="button"
               onClick={() => setOffset(Math.max(0, offset - DEFAULT_LIMIT))}
               disabled={loading || !canGoBack}
-              className="admin-focus rounded-xl border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/60 disabled:cursor-not-allowed disabled:opacity-55"
+              className="admin-focus rounded-lg border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-semibold text-[#0A1547]/82 transition hover:border-[#A380F6]/60 disabled:cursor-not-allowed disabled:opacity-55"
             >
               Previous
             </button>
@@ -452,7 +506,7 @@ export default function SecureUploadsPage() {
               type="button"
               onClick={() => setOffset(offset + DEFAULT_LIMIT)}
               disabled={loading || !canGoNext}
-              className="admin-focus rounded-xl bg-[#0A1547] px-4 py-2 text-sm font-extrabold text-white transition hover:bg-[#1A2460] disabled:cursor-not-allowed disabled:opacity-55"
+              className="admin-focus rounded-lg bg-[#0A1547] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#1A2460] disabled:cursor-not-allowed disabled:opacity-55"
             >
               Next
             </button>
@@ -480,32 +534,37 @@ function SecureUploadCard({
   const isCompleted = status === "Completed";
 
   return (
-    <article className="admin-card p-4">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0 lg:flex-1 lg:pr-4">
-          <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#A380F6]">Secure upload file</p>
-          <h3 className="mt-1 break-words text-lg font-black text-[#0A1547]">
-            {formatNullable(file.originalFilename)}
-          </h3>
-          <p className="mt-1 break-all text-sm font-medium text-[#0A1547]/62">
-            {formatNullable(file.userEmail)}
-          </p>
-          <p className="mt-1 text-xs font-medium text-[#0A1547]/52">
-            Created {formatDate(file.createdAt)} / Completed {formatDate(file.completedAt)}
-          </p>
+    <article className={`${sectionClassName} p-4`}>
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <IconBadge compact icon="upload" tone="secure" />
+          <div className="min-w-0">
+            <h3 className="break-words text-base font-semibold leading-6 text-[#0A1547]">
+              {formatNullable(file.originalFilename)}
+            </h3>
+            <p className="mt-1 break-all text-sm font-medium text-[#0A1547]/56">
+              {formatNullable(file.userEmail)}
+            </p>
+            <div className="mt-3 grid gap-2 text-xs font-medium text-[#0A1547]/52 sm:grid-cols-2 lg:grid-cols-3">
+              <span>Created {formatDate(file.createdAt)}</span>
+              <span>Completed {formatDate(file.completedAt)}</span>
+              <span>{formatBytes(file.byteSize)}</span>
+            </div>
+          </div>
         </div>
-        <div className="shrink-0 lg:ml-4">
-          <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap lg:justify-end">
-            <span className={`rounded-full border px-3 py-1 text-xs font-extrabold ${status === "Completed" ? "border-[#02D99D]/30 bg-[#02D99D]/12 text-[#0A1547]" : "border-amber-200 bg-amber-50 text-amber-700"}`}>
+        <div className="shrink-0 xl:ml-4">
+          <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap xl:justify-end">
+            <StatusPill className={statusTone(file)}>
               {status}
-            </span>
+            </StatusPill>
             {isCompleted && (
               <button
                 type="button"
                 onClick={() => onDownload(file)}
                 disabled={downloading || downloadDisabled}
-                className="admin-focus whitespace-nowrap rounded-lg bg-[#0A1547] px-3 py-1.5 text-xs font-extrabold text-white transition hover:bg-[#1A2460] disabled:cursor-not-allowed disabled:opacity-55"
+                className="admin-focus inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#0A1547] px-3 text-xs font-bold text-white transition hover:bg-[#1A2460] disabled:cursor-not-allowed disabled:opacity-55"
               >
+                <Icon name="download" size={14} />
                 {downloading ? "Preparing..." : "Download file"}
               </button>
             )}
@@ -514,14 +573,15 @@ function SecureUploadCard({
                 href={file.consoleUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="admin-focus whitespace-nowrap rounded-lg bg-[#02ABE0] px-3 py-1.5 text-xs font-extrabold text-white transition hover:bg-[#0096C9]"
+                className="admin-focus inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border border-[#02ABE0]/25 bg-white px-3 text-xs font-semibold text-[#02ABE0] transition hover:border-[#02ABE0]/55"
               >
+                <Icon name="cloud" size={14} />
                 Open in Google Cloud
               </a>
             )}
           </div>
           {downloadError && (
-            <p className="mt-2 text-xs font-bold text-red-700 lg:text-right">
+            <p className="mt-2 text-xs font-semibold text-red-700 xl:text-right">
               {downloadError}
             </p>
           )}
@@ -529,8 +589,8 @@ function SecureUploadCard({
       </div>
 
       <div className="mt-3">
-        <details className="rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3">
-          <summary className="cursor-pointer text-xs font-extrabold uppercase tracking-[0.16em] text-[#0A1547]/50">
+        <details className="rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3">
+          <summary className="cursor-pointer text-[11px] font-medium uppercase tracking-[0.12em] text-[#0A1547]/45">
             Technical and storage details
           </summary>
           <dl className="mt-3 grid gap-3 text-sm md:grid-cols-2">
@@ -552,16 +612,16 @@ function SecureUploadCard({
 
 function Detail({ label, value }: { label: string; value: string | number | null | undefined }) {
   return (
-    <div>
-      <dt className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0A1547]/40">{label}</dt>
-      <dd className="mt-1 break-words font-semibold text-[#0A1547]">{formatNullable(value)}</dd>
+    <div className="min-w-0">
+      <dt className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#0A1547]/38">{label}</dt>
+      <dd className="mt-1 break-words font-medium text-[#0A1547]/72">{formatNullable(value)}</dd>
     </div>
   );
 }
 
 function ErrorState({ message }: { message: string }) {
   return (
-    <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-bold text-red-700">
+    <div className="rounded-lg border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-700">
       {message}
     </div>
   );
@@ -569,9 +629,98 @@ function ErrorState({ message }: { message: string }) {
 
 function EmptyState({ description, title }: { description: string; title: string }) {
   return (
-    <div className="admin-card p-8 text-center">
+    <div className={`${sectionClassName} p-8 text-center`}>
+      <div className="mx-auto mb-3 flex justify-center">
+        <IconBadge icon="file" tone="neutral" />
+      </div>
       <h3 className="text-lg font-black text-[#0A1547]">{title}</h3>
       <p className="mt-2 text-sm font-medium text-[#0A1547]/60">{description}</p>
     </div>
   );
+}
+
+function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
+  return (
+    <svg
+      aria-hidden="true"
+      fill="none"
+      height={size}
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+      width={size}
+    >
+      {iconPath(name)}
+    </svg>
+  );
+}
+
+function iconPath(name: IconName): ReactNode {
+  switch (name) {
+    case "cloud":
+      return (
+        <>
+          <path d="M17.5 19H7a5 5 0 1 1 1.2-9.85A7 7 0 0 1 21 12a4 4 0 0 1-3.5 7Z" />
+        </>
+      );
+    case "download":
+      return (
+        <>
+          <path d="M12 3v12" />
+          <path d="m7 10 5 5 5-5" />
+          <path d="M5 21h14" />
+        </>
+      );
+    case "file":
+      return (
+        <>
+          <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" />
+          <path d="M14 3v5h5" />
+        </>
+      );
+    case "filter":
+      return (
+        <>
+          <path d="M4 6h16" />
+          <path d="M7 12h10" />
+          <path d="M10 18h4" />
+        </>
+      );
+    case "lock":
+      return (
+        <>
+          <rect height="11" rx="2" width="16" x="4" y="10" />
+          <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+        </>
+      );
+    case "mail":
+      return (
+        <>
+          <rect height="14" rx="2" width="18" x="3" y="5" />
+          <path d="m3 7 9 6 9-6" />
+        </>
+      );
+    case "refresh":
+      return (
+        <>
+          <path d="M21 12a9 9 0 0 1-15.5 6.2" />
+          <path d="M3 12A9 9 0 0 1 18.5 5.8" />
+          <path d="M3 18v-5h5" />
+          <path d="M21 6v5h-5" />
+        </>
+      );
+    case "upload":
+    default:
+      return (
+        <>
+          <path d="M12 21V9" />
+          <path d="m7 14 5-5 5 5" />
+          <path d="M5 21h14" />
+          <path d="M19 5v4" />
+          <path d="M5 5v4" />
+        </>
+      );
+  }
 }
