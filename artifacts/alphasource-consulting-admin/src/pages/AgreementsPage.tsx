@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useAuth } from "@/auth/AuthProvider";
 import {
   AdminApiError,
@@ -27,6 +27,8 @@ type AgreementFormState = {
   baSignerTitle: string;
   baSignerEmail: string;
 };
+type IconName = "archive" | "check" | "download" | "file" | "pen" | "search" | "send" | "shield" | "users";
+type IconTone = "clients" | "agreements" | "success" | "warning" | "danger" | "neutral" | "lilac";
 
 const defaultBaSigner = {
   name: "Jason Gardner",
@@ -46,8 +48,9 @@ const emptyForm: AgreementFormState = {
   baSignerEmail: defaultBaSigner.email,
 };
 
-const inputClassName = "admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547] placeholder:text-[#0A1547]/38";
-const labelClassName = "text-xs font-extrabold uppercase tracking-[0.16em] text-[#0A1547]/50";
+const sectionClassName = "rounded-lg border border-[#0A1547]/10 bg-white shadow-[0_12px_28px_rgba(10,21,71,0.05)]";
+const inputClassName = "admin-focus mt-2 h-11 w-full rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-4 text-sm font-medium text-[#0A1547] placeholder:text-[#0A1547]/38";
+const labelClassName = "text-[11px] font-medium uppercase tracking-[0.12em] text-[#0A1547]/38";
 
 function todayIsoDate(): string {
   return new Date().toISOString().slice(0, 10);
@@ -121,6 +124,176 @@ function agreementStatusLabel(status: string): string {
     .replace(/[_-]+/g, " ")
     .replace(/\s+/g, " ")
     .replace(/\b\w/g, (match) => match.toUpperCase());
+}
+
+function SectionHeader({
+  action,
+  description,
+  icon,
+  iconTone,
+  title,
+}: {
+  action?: ReactNode;
+  description?: string;
+  icon: IconName;
+  iconTone: IconTone;
+  title: string;
+}) {
+  return (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex min-w-0 items-start gap-3">
+        <IconBadge icon={icon} tone={iconTone} />
+        <div className="min-w-0">
+          <h3 className="text-lg font-black text-[#0A1547]">{title}</h3>
+          {description && (
+            <p className="mt-1 max-w-2xl text-sm font-medium leading-6 text-[#0A1547]/56">
+              {description}
+            </p>
+          )}
+        </div>
+      </div>
+      {action && <div className="shrink-0">{action}</div>}
+    </div>
+  );
+}
+
+function FormGroup({
+  children,
+  icon,
+  title,
+}: {
+  children: ReactNode;
+  icon: IconName;
+  title: string;
+}) {
+  return (
+    <section className="rounded-lg border border-[#0A1547]/10 bg-white p-4">
+      <div className="flex items-center gap-3">
+        <IconBadge compact icon={icon} tone="agreements" />
+        <h4 className="text-sm font-semibold text-[#0A1547]">{title}</h4>
+      </div>
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function IconBadge({ compact = false, icon, tone }: { compact?: boolean; icon: IconName; tone: IconTone }) {
+  return (
+    <span className={`flex shrink-0 items-center justify-center rounded-lg border border-[#0A1547]/10 bg-white ${compact ? "h-9 w-9" : "h-10 w-10"} ${iconToneClassName(tone)} [&_svg]:stroke-[2.6]`}>
+      <Icon name={icon} size={compact ? 17 : 18} />
+    </span>
+  );
+}
+
+function iconToneClassName(tone: IconTone): string {
+  switch (tone) {
+    case "clients":
+      return "text-[#A380F6]";
+    case "agreements":
+    case "lilac":
+      return "text-[#7C5CF2]";
+    case "success":
+      return "text-[#02D99D]";
+    case "warning":
+      return "text-[#F59E0B]";
+    case "danger":
+      return "text-[#EF4444]";
+    case "neutral":
+    default:
+      return "text-[#0A1547]/78";
+  }
+}
+
+function StatusPill({ children, className }: { children: ReactNode; className: string }) {
+  return (
+    <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${className}`}>
+      {children}
+    </span>
+  );
+}
+
+function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
+  return (
+    <svg
+      aria-hidden="true"
+      fill="none"
+      height={size}
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+      width={size}
+    >
+      {iconPath(name)}
+    </svg>
+  );
+}
+
+function iconPath(name: IconName): ReactNode {
+  switch (name) {
+    case "archive":
+      return (
+        <>
+          <path d="M4 7h16" />
+          <path d="M6 7v12h12V7" />
+          <path d="M9 11h6" />
+          <path d="M5 4h14v3H5z" />
+        </>
+      );
+    case "check":
+      return <path d="m5 12 4 4L19 6" />;
+    case "download":
+      return (
+        <>
+          <path d="M12 3v12" />
+          <path d="m7 10 5 5 5-5" />
+          <path d="M5 21h14" />
+        </>
+      );
+    case "file":
+      return (
+        <>
+          <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" />
+          <path d="M14 3v5h5" />
+        </>
+      );
+    case "pen":
+      return (
+        <>
+          <path d="M12 20h9" />
+          <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+        </>
+      );
+    case "search":
+      return (
+        <>
+          <circle cx="11" cy="11" r="7" />
+          <path d="m16 16 4 4" />
+        </>
+      );
+    case "send":
+      return (
+        <>
+          <path d="m22 2-7 20-4-9-9-4Z" />
+          <path d="M22 2 11 13" />
+        </>
+      );
+    case "shield":
+      return <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />;
+    case "users":
+    default:
+      return (
+        <>
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M22 21v-2a4 4 0 0 0-3-3.9" />
+          <path d="M16 3.1a4 4 0 0 1 0 7.8" />
+        </>
+      );
+  }
 }
 
 export default function AgreementsPage() {
@@ -420,58 +593,61 @@ export default function AgreementsPage() {
   const formDisabled = !canWriteAgreements || previewBusy || sendBusy;
 
   return (
-    <div className="space-y-6">
-      <section className="admin-card p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <h2 className="text-xl font-black text-[#0A1547]">Create BAA/Privacy Agreement</h2>
-            <p className="mt-1 max-w-3xl text-sm font-medium leading-6 text-[#0A1547]/62">
-              Generate, preview, send, and retrieve BAA/Privacy Agreements for clients.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-[#A380F6]/20 bg-[#A380F6]/10 px-4 py-3 text-xs font-bold leading-5 text-[#0A1547]/70">
-            Agreement documents stay private and are opened through time-limited backend URLs.
-          </div>
-        </div>
+    <div className="space-y-5">
+      <section className={`${sectionClassName} px-5 py-4`}>
+        <SectionHeader
+          action={(
+            <StatusPill className="border-[#A380F6]/25 bg-[#A380F6]/10 text-[#0A1547]/72">
+              Agreement documents stay private and are opened through time-limited backend URLs.
+            </StatusPill>
+          )}
+          description="Generate, preview, send, and retrieve BAA/Privacy Agreements for clients."
+          icon="shield"
+          iconTone="agreements"
+          title="Agreements"
+        />
       </section>
 
       {!canWriteAgreements && (
-        <section className="admin-card p-5">
-          <p className="text-sm font-bold text-[#0A1547]/70">
+        <section className={`${sectionClassName} p-5`}>
+          <p className="text-sm font-medium text-[#0A1547]/70">
             Your role can review agreement history. Preview, send, and void actions require Agreements write permission.
           </p>
         </section>
       )}
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-        <div className="admin-card p-5">
-          <div>
-            <h3 className="text-lg font-black text-[#0A1547]">Select Client</h3>
-            <p className="mt-1 text-sm font-medium text-[#0A1547]/58">
-              Search existing client records, then confirm the legal name and state before previewing.
-            </p>
-          </div>
+      <section className="grid gap-5 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <div className={`${sectionClassName} p-5`}>
+          <SectionHeader
+            description="Search existing records, then confirm legal details before previewing."
+            icon="users"
+            iconTone="clients"
+            title="Select client"
+          />
 
-          <label className="mt-5 block">
+          <label className="relative mt-5 block">
             <span className={labelClassName}>Client search</span>
+            <span className="pointer-events-none absolute left-3 top-[2.45rem] text-[#02ABE0]">
+              <Icon name="search" size={17} />
+            </span>
             <input
               type="search"
               value={clientSearch}
               onChange={(event) => setClientSearch(event.target.value)}
               placeholder="Search email, name, office, phone"
-              className={inputClassName}
+              className={`${inputClassName} pl-10`}
             />
           </label>
 
           {clientError && (
-            <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+            <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
               {clientError}
             </p>
           )}
 
           <div className="mt-4 max-h-80 space-y-2 overflow-y-auto pr-1">
             {clientLoading ? (
-              <p className="rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-bold text-[#0A1547]/58">
+              <p className="rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-medium text-[#0A1547]/54">
                 Loading clients...
               </p>
             ) : clientOptions.length ? (
@@ -482,32 +658,40 @@ export default function AgreementsPage() {
                     key={client.email}
                     type="button"
                     onClick={() => selectClient(client)}
-                    className={`admin-focus w-full rounded-xl border px-4 py-3 text-left transition ${
+                    className={`admin-focus w-full rounded-lg border px-4 py-3 text-left transition ${
                       selected
                         ? "border-[#A380F6] bg-[#A380F6]/12"
                         : "border-[#0A1547]/10 bg-white hover:border-[#A380F6]/45 hover:bg-[#F8F9FD]"
                     }`}
                   >
-                    <span className="block text-sm font-black text-[#0A1547]">{clientDisplayName(client)}</span>
-                    <span className="mt-1 block text-xs font-bold text-[#0A1547]/55">{client.email}</span>
+                    <span className="flex min-w-0 items-start gap-3">
+                      <IconBadge compact icon="users" tone="clients" />
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-semibold text-[#0A1547]">{clientDisplayName(client)}</span>
+                        <span className="mt-1 block break-all text-xs font-medium text-[#0A1547]/52">{client.email}</span>
+                      </span>
+                    </span>
                   </button>
                 );
               })
             ) : (
-              <p className="rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-bold text-[#0A1547]/58">
+              <p className="rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-medium text-[#0A1547]/54">
                 No clients match that search.
               </p>
             )}
           </div>
 
           {selectedClient && (
-            <div className="mt-5 rounded-2xl border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
-              <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#A380F6]">Selected client</p>
+            <div className="mt-5 rounded-lg border border-[#0A1547]/10 bg-[#F8F9FD] p-4">
+              <div className="flex items-center gap-3">
+                <IconBadge compact icon="users" tone="clients" />
+                <p className="text-sm font-semibold text-[#0A1547]">Selected client</p>
+              </div>
               <div className="mt-3 grid gap-3 text-sm">
                 {selectedClientDetails.map(([label, value]) => (
                   <div key={label} className="flex items-start justify-between gap-4 border-b border-[#0A1547]/8 pb-2 last:border-b-0 last:pb-0">
-                    <span className="font-bold text-[#0A1547]/50">{label}</span>
-                    <span className="text-right font-extrabold text-[#0A1547]">{displayText(value)}</span>
+                    <span className="font-medium text-[#0A1547]/50">{label}</span>
+                    <span className="break-words text-right font-semibold text-[#0A1547]/82">{displayText(value)}</span>
                   </div>
                 ))}
               </div>
@@ -515,20 +699,21 @@ export default function AgreementsPage() {
           )}
         </div>
 
-        <form onSubmit={handlePreview} className="admin-card p-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h3 className="text-lg font-black text-[#0A1547]">Agreement Fields</h3>
-              <p className="mt-1 text-sm font-medium text-[#0A1547]/58">
-                The approved BAA template is rendered by the backend. Legal name and state must be confirmed here.
-              </p>
-            </div>
-            <span className="inline-flex w-fit rounded-full border border-[#02D99D]/30 bg-[#02D99D]/12 px-3 py-1 text-xs font-extrabold text-[#0A1547]">
-              BAA/Privacy
-            </span>
-          </div>
+        <form onSubmit={handlePreview} className={`${sectionClassName} p-5`}>
+          <SectionHeader
+            action={(
+              <StatusPill className="border-[#02D99D]/30 bg-[#02D99D]/12 text-[#0A1547]">
+                BAA/Privacy
+              </StatusPill>
+            )}
+            description="The backend renders the approved template. Confirm legal name and state here."
+            icon="pen"
+            iconTone="agreements"
+            title="Agreement fields"
+          />
 
-          <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <div className="mt-5 grid gap-4">
+            <FormGroup icon="file" title="Client / legal details">
             <label className="block md:col-span-2">
               <span className={labelClassName}>Client legal name</span>
               <input
@@ -563,7 +748,9 @@ export default function AgreementsPage() {
                 className={inputClassName}
               />
             </label>
+            </FormGroup>
 
+            <FormGroup icon="users" title="Client signer">
             <label className="block">
               <span className={labelClassName}>Signer name</span>
               <input
@@ -599,7 +786,9 @@ export default function AgreementsPage() {
                 className={inputClassName}
               />
             </label>
+            </FormGroup>
 
+            <FormGroup icon="shield" title="BA signer">
             <label className="block">
               <span className={labelClassName}>BA signer name</span>
               <input
@@ -635,48 +824,50 @@ export default function AgreementsPage() {
                 className={inputClassName}
               />
             </label>
+            </FormGroup>
           </div>
 
           {formError && (
-            <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+            <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
               {formError}
             </p>
           )}
 
           {successMessage && (
-            <p className="mt-4 rounded-xl border border-[#02D99D]/35 bg-[#02D99D]/12 px-4 py-3 text-sm font-bold text-[#0A1547]">
+            <p className="mt-4 rounded-lg border border-[#02D99D]/35 bg-[#02D99D]/12 px-4 py-3 text-sm font-semibold text-[#0A1547]">
               {successMessage}
             </p>
           )}
 
           <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs font-semibold leading-5 text-[#0A1547]/50">
+            <p className="text-xs font-medium leading-5 text-[#0A1547]/50">
               Preview before sending. The signing email is only sent by the Send for Signature action.
             </p>
             <button
               type="submit"
               disabled={formDisabled || !selectedClient}
-              className="admin-focus rounded-xl bg-[#A380F6] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#906cf2] disabled:opacity-45"
+              className="admin-focus inline-flex items-center gap-2 rounded-lg bg-[#A380F6] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#906cf2] disabled:opacity-45"
             >
+              <Icon name="file" size={15} />
               {previewBusy ? "Generating..." : "Generate Preview"}
             </button>
           </div>
         </form>
       </section>
 
-      <section className="admin-card p-5">
+      <section className={`${sectionClassName} p-5`}>
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-          <div>
-            <h3 className="text-lg font-black text-[#0A1547]">Agreement History</h3>
-            <p className="mt-1 text-sm font-medium text-[#0A1547]/58">
-              {selectedClient ? `Showing agreements for ${selectedClient.email}.` : "Showing the most recent agreements."}
-            </p>
-          </div>
+          <SectionHeader
+            description={selectedClient ? `Showing agreements for ${selectedClient.email}.` : "Showing the most recent agreements."}
+            icon="archive"
+            iconTone="agreements"
+            title="Agreement history"
+          />
           {selectedClient && (
             <button
               type="button"
               onClick={() => setSelectedClient(null)}
-              className="admin-focus rounded-xl border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/50"
+              className="admin-focus rounded-lg border border-[#0A1547]/10 bg-white px-4 py-2 text-sm font-semibold text-[#0A1547]/82 transition hover:border-[#A380F6]/50"
             >
               Show all recent
             </button>
@@ -684,13 +875,13 @@ export default function AgreementsPage() {
         </div>
 
         {historyError && (
-          <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+          <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
             {historyError}
           </p>
         )}
 
-        <div className="mt-5 overflow-hidden rounded-2xl border border-[#0A1547]/10">
-          <div className="grid grid-cols-[1.4fr_1fr_0.7fr_0.9fr_0.9fr_1.2fr] gap-3 bg-[#F8F9FD] px-4 py-3 text-xs font-extrabold uppercase tracking-[0.12em] text-[#0A1547]/45 max-xl:hidden">
+        <div className="mt-5 overflow-hidden rounded-lg border border-[#0A1547]/10">
+          <div className="grid grid-cols-[1.4fr_1fr_0.7fr_0.9fr_0.9fr_1.2fr] gap-3 bg-[#F8F9FD] px-4 py-3 text-[11px] font-medium uppercase tracking-[0.12em] text-[#0A1547]/38 max-xl:hidden">
             <span>Client</span>
             <span>Signer</span>
             <span>Status</span>
@@ -700,7 +891,7 @@ export default function AgreementsPage() {
           </div>
 
           {historyLoading ? (
-            <p className="px-4 py-6 text-sm font-bold text-[#0A1547]/58">Loading agreement history...</p>
+            <p className="px-4 py-6 text-sm font-medium text-[#0A1547]/54">Loading agreement history...</p>
           ) : agreements.length ? (
             <div className="divide-y divide-[#0A1547]/8">
               {agreements.map((agreement) => {
@@ -710,24 +901,27 @@ export default function AgreementsPage() {
                 const showDraftPreview = !showSignedPdf && agreement.hasDraftPdf;
                 return (
                   <div key={agreement.id} className="grid gap-4 px-4 py-4 text-sm xl:grid-cols-[1.4fr_1fr_0.7fr_0.9fr_0.9fr_1.2fr] xl:items-center">
-                    <div>
-                      <p className="font-black text-[#0A1547]">{displayText(agreement.clientLegalName)}</p>
-                      <p className="mt-1 text-xs font-bold text-[#0A1547]/50">{agreement.clientEmail}</p>
-                      <p className="mt-1 text-xs font-semibold text-[#0A1547]/45">{agreement.documentType}</p>
+                    <div className="flex min-w-0 items-start gap-3">
+                      <IconBadge compact icon="shield" tone="agreements" />
+                      <div className="min-w-0">
+                        <p className="font-semibold text-[#0A1547]">{displayText(agreement.clientLegalName)}</p>
+                        <p className="mt-1 break-all text-xs font-medium text-[#0A1547]/50">{agreement.clientEmail}</p>
+                        <p className="mt-1 text-xs font-medium text-[#0A1547]/45">{agreement.documentType}</p>
+                      </div>
                     </div>
                     <div>
-                      <p className="font-bold text-[#0A1547]">{displayText(agreement.signerEmail)}</p>
-                      <p className="mt-1 text-xs font-semibold text-[#0A1547]/50">{displayText(agreement.signerName)}</p>
+                      <p className="break-all font-medium text-[#0A1547]/80">{displayText(agreement.signerEmail)}</p>
+                      <p className="mt-1 text-xs font-medium text-[#0A1547]/50">{displayText(agreement.signerName)}</p>
                     </div>
                     <div>
-                      <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-extrabold ${statusPillClassName(agreement.status)}`}>
+                      <StatusPill className={statusPillClassName(agreement.status)}>
                         {agreementStatusLabel(agreement.status)}
-                      </span>
+                      </StatusPill>
                     </div>
-                    <div className="font-bold text-[#0A1547]/70">
+                    <div className="font-medium text-[#0A1547]/64">
                       {formatDate(agreement.effectiveDate)}
                     </div>
-                    <div className="font-bold text-[#0A1547]/70">
+                    <div className="font-medium text-[#0A1547]/64">
                       {formatDateTime(agreement.signedAt || agreement.baSignedAt || agreement.clientSignedAt || agreement.sentAt)}
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -736,8 +930,9 @@ export default function AgreementsPage() {
                           type="button"
                           onClick={() => void handleDownload(agreement, "draft")}
                           disabled={Boolean(actionBusyKey)}
-                          className="admin-focus rounded-lg border border-[#0A1547]/10 bg-white px-3 py-2 text-xs font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/50 disabled:opacity-45"
+                          className="admin-focus inline-flex items-center gap-1.5 rounded-lg border border-[#0A1547]/10 bg-white px-3 py-2 text-xs font-semibold text-[#0A1547]/82 transition hover:border-[#A380F6]/50 disabled:opacity-45"
                         >
+                          <Icon name="download" size={14} />
                           Draft Preview
                         </button>
                       )}
@@ -746,8 +941,9 @@ export default function AgreementsPage() {
                           type="button"
                           onClick={() => void handleDownload(agreement, "signed")}
                           disabled={Boolean(actionBusyKey)}
-                          className="admin-focus rounded-lg bg-[#0A1547] px-3 py-2 text-xs font-extrabold text-white transition hover:bg-[#1A2460] disabled:opacity-45"
+                          className="admin-focus inline-flex items-center gap-1.5 rounded-lg bg-[#0A1547] px-3 py-2 text-xs font-bold text-white transition hover:bg-[#1A2460] disabled:opacity-45"
                         >
+                          <Icon name="download" size={14} />
                           Signed PDF
                         </button>
                       )}
@@ -756,7 +952,7 @@ export default function AgreementsPage() {
                           type="button"
                           onClick={() => void handleVoid(agreement)}
                           disabled={Boolean(actionBusyKey)}
-                          className="admin-focus rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-extrabold text-red-700 transition hover:bg-red-100 disabled:opacity-45"
+                          className="admin-focus rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-45"
                         >
                           Void
                         </button>
@@ -767,7 +963,7 @@ export default function AgreementsPage() {
               })}
             </div>
           ) : (
-            <p className="px-4 py-6 text-sm font-bold text-[#0A1547]/58">
+            <p className="px-4 py-6 text-sm font-medium text-[#0A1547]/54">
               No agreements found.
             </p>
           )}
@@ -781,18 +977,21 @@ export default function AgreementsPage() {
           aria-modal="true"
           aria-label="Agreement preview"
         >
-          <div className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
+          <div className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-lg bg-white shadow-2xl">
             <div className="flex flex-col gap-3 border-b border-[#0A1547]/10 px-5 py-4 md:flex-row md:items-center md:justify-between">
-              <div>
-                <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#A380F6]">Preview</p>
-                <h3 className="mt-1 text-xl font-black text-[#0A1547]">BAA/Privacy Agreement</h3>
+              <div className="flex min-w-0 items-start gap-3">
+                <IconBadge icon="file" tone="agreements" />
+                <div>
+                  <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#0A1547]/38">Preview</p>
+                  <h3 className="mt-1 text-xl font-black text-[#0A1547]">BAA/Privacy Agreement</h3>
+                </div>
               </div>
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={closePreview}
                   disabled={sendBusy}
-                  className="admin-focus rounded-xl border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-extrabold text-[#0A1547] transition hover:border-[#A380F6]/50 disabled:opacity-45"
+                  className="admin-focus rounded-lg border border-[#0A1547]/10 bg-white px-4 py-3 text-sm font-semibold text-[#0A1547]/82 transition hover:border-[#A380F6]/50 disabled:opacity-45"
                 >
                   Close
                 </button>
@@ -800,8 +999,9 @@ export default function AgreementsPage() {
                   type="button"
                   onClick={() => void handleSend()}
                   disabled={!canWriteAgreements || sendBusy}
-                  className="admin-focus rounded-xl bg-[#A380F6] px-4 py-3 text-sm font-extrabold text-white transition hover:bg-[#906cf2] disabled:opacity-45"
+                  className="admin-focus inline-flex items-center gap-2 rounded-lg bg-[#A380F6] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#906cf2] disabled:opacity-45"
                 >
+                  <Icon name="send" size={15} />
                   {sendBusy ? "Sending..." : "Send for Signature"}
                 </button>
               </div>
@@ -811,10 +1011,10 @@ export default function AgreementsPage() {
                 <iframe
                   title="BAA/Privacy Agreement preview"
                   src={previewUrl}
-                  className="h-[72vh] w-full rounded-2xl border border-[#0A1547]/10 bg-white"
+                  className="h-[72vh] w-full rounded-lg border border-[#0A1547]/10 bg-white"
                 />
               ) : (
-                <p className="rounded-2xl border border-[#0A1547]/10 bg-white p-6 text-sm font-bold text-[#0A1547]/58">
+                <p className="rounded-lg border border-[#0A1547]/10 bg-white p-6 text-sm font-medium text-[#0A1547]/54">
                   Preview is not available.
                 </p>
               )}
