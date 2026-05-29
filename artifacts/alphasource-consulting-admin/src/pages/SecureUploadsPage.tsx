@@ -280,25 +280,16 @@ export default function SecureUploadsPage() {
 
   return (
     <div className="space-y-5">
-      <section className={`${sectionClassName} px-5 py-4`}>
-        <SectionHeader
-          action={(
-            <StatusPill className="border-[#F59E0B]/25 bg-[#F59E0B]/10 text-[#0A1547]/72">
-              Private Google Cloud storage
-            </StatusPill>
-          )}
-          description="Review sensitive client files submitted through the secure upload portal. Files are not sent to Document Analysis from this page."
-          icon="lock"
-          iconTone="secure"
-          title="Secure Uploads"
-        />
-      </section>
-
       {canWriteSecureUploads ? (
         <section className={`${sectionClassName} p-5`}>
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
             <div>
               <SectionHeader
+                action={(
+                  <StatusPill className="border-[#F59E0B]/25 bg-[#F59E0B]/10 text-[#0A1547]/72">
+                    Private Google Cloud storage
+                  </StatusPill>
+                )}
                 description="Send the existing portal email to a client record already in the system."
                 icon="mail"
                 iconTone="secure"
