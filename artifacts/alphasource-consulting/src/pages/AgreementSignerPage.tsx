@@ -67,6 +67,22 @@ function friendlyError(error: unknown, fallback: string): string {
       return "This agreement link is unavailable or has expired.";
     }
 
+    if (error.code === "ba_signer_required") {
+      return "This agreement needs BA countersign setup before it can be signed. Please contact alphaSource Consulting.";
+    }
+
+    if (error.code === "agreement_email_not_configured") {
+      return "Agreement email delivery is not configured. Please contact alphaSource Consulting.";
+    }
+
+    if (error.code === "agreement_ba_email_send_failed") {
+      return "Your signature could not be routed for countersignature. Please contact alphaSource Consulting.";
+    }
+
+    if (error.code === "agreement_storage_upload_failed") {
+      return "Agreement signature could not be saved. Please contact alphaSource Consulting.";
+    }
+
     if (error.status === 0 || error.status >= 500) {
       return "Agreement signing is temporarily unavailable. Please contact alphaSource Consulting.";
     }

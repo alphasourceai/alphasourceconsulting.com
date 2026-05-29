@@ -28,6 +28,12 @@ type AgreementFormState = {
   baSignerEmail: string;
 };
 
+const defaultBaSigner = {
+  name: "Jason Gardner",
+  title: "Founder",
+  email: "jason@alphasourceai.com",
+};
+
 const emptyForm: AgreementFormState = {
   clientLegalName: "",
   state: "",
@@ -35,9 +41,9 @@ const emptyForm: AgreementFormState = {
   signerName: "",
   signerEmail: "",
   signerTitle: "",
-  baSignerName: "",
-  baSignerTitle: "",
-  baSignerEmail: "",
+  baSignerName: defaultBaSigner.name,
+  baSignerTitle: defaultBaSigner.title,
+  baSignerEmail: defaultBaSigner.email,
 };
 
 const inputClassName = "admin-focus mt-2 w-full rounded-xl border border-[#0A1547]/10 bg-[#F8F9FD] px-4 py-3 text-sm font-semibold text-[#0A1547] placeholder:text-[#0A1547]/38";
