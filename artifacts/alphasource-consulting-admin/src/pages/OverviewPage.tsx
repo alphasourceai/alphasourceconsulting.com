@@ -368,15 +368,6 @@ export default function OverviewPage() {
 
   return (
     <div className="space-y-5">
-      <section className={`${sectionClassName} px-5 py-4`}>
-        <SectionHeader
-          description="Quick view of client activity, billing, agreements, and operational follow-up."
-          icon="activity"
-          iconTone="lilac"
-          title="Overview"
-        />
-      </section>
-
       {loading ? (
         <section className={`${sectionClassName} p-6 text-sm font-medium text-[#0A1547]/58`}>
           Loading overview...
