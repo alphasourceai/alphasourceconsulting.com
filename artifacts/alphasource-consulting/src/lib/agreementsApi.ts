@@ -63,8 +63,15 @@ export class AgreementApiError extends Error {
   }
 }
 
+function normalizeApiBaseUrl(value: unknown): string {
+  return String(value || "").trim().replace(/\/$/, "");
+}
+
 function getAgreementsApiBaseUrl(): string {
-  return import.meta.env.VITE_ANALYZER_API_BASE_URL?.trim().replace(/\/$/, "") || "";
+  return (
+    normalizeApiBaseUrl(import.meta.env.VITE_AGREEMENTS_API_BASE_URL) ||
+    normalizeApiBaseUrl(import.meta.env.VITE_ADMIN_API_BASE_URL)
+  );
 }
 
 async function readJson(response: Response): Promise<unknown> {
@@ -95,7 +102,7 @@ async function agreementRequest<T>(
   const apiBaseUrl = getAgreementsApiBaseUrl();
   if (!apiBaseUrl) {
     throw new AgreementApiError(
-      "Agreement signing is temporarily unavailable. Please contact alphaSource Consulting.",
+      "Agreement signing is not configured. Please contact alphaSource Consulting.",
       0,
       "missing_api_base_url",
     );

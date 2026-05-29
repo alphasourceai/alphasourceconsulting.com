@@ -59,6 +59,10 @@ function formatDateTime(value: string | null | undefined): string {
 
 function friendlyError(error: unknown, fallback: string): string {
   if (error instanceof AgreementApiError) {
+    if (error.code === "missing_api_base_url") {
+      return error.message;
+    }
+
     if (error.status === 404 || error.code === "signing_link_unavailable") {
       return "This agreement link is unavailable or has expired.";
     }
