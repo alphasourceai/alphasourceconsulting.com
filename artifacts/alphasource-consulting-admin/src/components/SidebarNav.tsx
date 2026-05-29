@@ -3,6 +3,7 @@ import { useAuth } from "@/auth/AuthProvider";
 import type { AdminPermissions } from "@/lib/types";
 
 const navItems = [
+  { href: "/overview", label: "Overview", canShow: () => true },
   { href: "/clients", label: "Clients", canShow: (permissions: AdminPermissions) => permissions.canReadClients },
   { href: "/agreements", label: "Agreements", canShow: (permissions: AdminPermissions) => permissions.canReadAgreements || permissions.canWriteAgreements },
   { href: "/analysis", label: "Document Analysis", canShow: (permissions: AdminPermissions) => permissions.canReadAnalysis || permissions.canWriteAnalysis },

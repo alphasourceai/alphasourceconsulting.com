@@ -12,6 +12,7 @@ import ClientsPage from "@/pages/ClientsPage";
 import DocumentAnalysisPage from "@/pages/DocumentAnalysisPage";
 import HelpFaqPage from "@/pages/HelpFaqPage";
 import LoginPage from "@/pages/LoginPage";
+import OverviewPage from "@/pages/OverviewPage";
 import PDFGeneratorPage from "@/pages/PDFGeneratorPage";
 import SecureUploadsPage from "@/pages/SecureUploadsPage";
 import UiMockupPage from "@/pages/UiMockupPage";
@@ -86,32 +87,8 @@ function AccessRestrictedScreen() {
   );
 }
 
-function firstAccessiblePath(permissions: AdminPermissions): string {
-  if (permissions.canReadClients) {
-    return "/clients";
-  }
-  if (permissions.canReadAgreements || permissions.canWriteAgreements) {
-    return "/agreements";
-  }
-  if (permissions.canReadAnalysis || permissions.canWriteAnalysis) {
-    return "/analysis";
-  }
-  if (permissions.canReadSecureUploads) {
-    return "/secure-uploads";
-  }
-  if (permissions.canReadPdf) {
-    return "/pdf-generator";
-  }
-  if (permissions.canReadBilling) {
-    return "/billing";
-  }
-  if (permissions.canReadAdminManagement) {
-    return "/admin-management";
-  }
-  if (permissions.canReadAudit) {
-    return "/audit";
-  }
-  return "/help";
+function firstAccessiblePath(_permissions: AdminPermissions): string {
+  return "/overview";
 }
 
 function ProtectedRoute({
@@ -175,6 +152,18 @@ function RootRoute() {
   }
 
   return <Navigate to="/login" />;
+}
+
+function OverviewRoute() {
+  return (
+    <ProtectedRoute
+      canAccess={() => true}
+      title="Overview"
+      description="Quick view of client activity, billing, agreements, and operational follow-up."
+    >
+      <OverviewPage />
+    </ProtectedRoute>
+  );
 }
 
 function ClientsRoute() {
@@ -326,6 +315,7 @@ function AppRoutes() {
         <Route path="/" component={RootRoute} />
         <Route path="/login" component={LoginPage} />
         <Route path="/accept-invite" component={AcceptInvitePage} />
+        <Route path="/overview" component={OverviewRoute} />
         <Route path="/clients/:email" component={ClientDetailRoute} />
         <Route path="/clients" component={ClientsRoute} />
         <Route path="/agreements" component={AgreementsRoute} />
