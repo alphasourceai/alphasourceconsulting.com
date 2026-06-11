@@ -86,7 +86,7 @@ const activeJobStatuses = new Set(["queued", "processing", "intake_pending"]);
 const manualProcessingStatuses = new Set(["queued", "processing"]);
 const terminalJobStatuses = new Set(["completed", "error", "canceled", "cancelled"]);
 const allowedFinancialExtensions = [".csv", ".xlsx", ".pdf"];
-const processableFinancialExtensions = new Set([".csv", ".xlsx"]);
+const processableFinancialExtensions = new Set(allowedFinancialExtensions);
 const allowedArExtensions = [".csv", ".xlsx", ".pdf"];
 const processableArExtensions = new Set(allowedArExtensions);
 const allowedClaimsExtensions = [".csv", ".xlsx", ".pdf"];
@@ -955,7 +955,7 @@ export default function DocumentAnalysisPage() {
             {analysisKind === "financial" && (
               <AnalyzerToolCard
                 active
-                description="Accepts .csv, .xlsx, and .pdf financial files. CSV and XLSX processing can be run manually; Financial PDF processing remains limited in this phase."
+                description="Accepts .csv, .xlsx, and .pdf financial files. PDFs can include scanned files when OCR can read them."
                 title="Financial Analyzer"
               >
                 <label className="block">
@@ -1414,7 +1414,6 @@ function JobStatusCard({
   const analysisKind = getJobAnalysisKind(job);
   const analysisFile = getJobAnalysisFile(job);
   const canProcess = canWriteAnalysis && isJobEligibleForManualProcessing(job);
-  const fileExtension = fileExtensionFromNullable(analysisFile?.originalFilename || null);
   const jobCompleted = (job.status || "").toLowerCase() === "completed";
   const hasSubmissionLink = hasRecordId(job.submissionId);
   const hasUploadLink = hasRecordId(analysisFile?.uploadId);
@@ -1429,10 +1428,7 @@ function JobStatusCard({
     && !hasCompleteLinkedClientRecords,
   );
   const showLinkedRecords = Boolean(promotionMetadata || hasAnyLinkedClientRecord);
-  const showPdfProcessingNote = Boolean(
-    analysisKind === "financial" && analysisFile && fileExtension === ".pdf",
-  );
-  const supportsPdfProcessing = analysisKind === "ar" || analysisKind === "claims";
+  const supportsPdfProcessing = Boolean(analysisKind);
   const processing = analysisKind === "ar"
     ? processingAr
     : analysisKind === "claims"
@@ -1499,7 +1495,7 @@ function JobStatusCard({
               {analysisKind ? analysisProcessingTitles[analysisKind] : "Analysis processing"}
             </p>
             <p className="mt-1 text-sm font-medium leading-6 text-[#0A1547]/58">
-              {supportsPdfProcessing ? "CSV, XLSX, and supported PDF files can be processed from this record. Scanned AR and Claims PDFs may work through OCR when the scan quality is readable." : "CSV and XLSX files can be processed from this record."} Processed output remains internal review material, not a final client report.
+              {supportsPdfProcessing ? "CSV, XLSX, and supported PDF files can be processed from this record. Scanned PDFs may work through OCR when the scan quality is readable." : "CSV, XLSX, and supported PDF files can be processed from this record."} Processed output remains internal review material, not a final client report.
             </p>
           </div>
           {analysisKind && canProcess && (
@@ -1514,11 +1510,6 @@ function JobStatusCard({
             </button>
           )}
         </div>
-        {showPdfProcessingNote && (
-          <p className="mt-3 rounded-lg border border-[#A380F6]/20 bg-white px-4 py-3 text-sm font-medium text-[#0A1547]/68">
-            CSV and XLSX processing are available now. PDF processing will be added later.
-          </p>
-        )}
         {!canWriteAnalysis && (
           <p className="mt-3 rounded-lg border border-[#A380F6]/20 bg-white px-4 py-3 text-sm font-medium text-[#0A1547]/68">
             Analysis write permission is required to process, cancel, or publish analysis records.
