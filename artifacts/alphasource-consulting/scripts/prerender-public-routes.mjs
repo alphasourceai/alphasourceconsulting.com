@@ -397,7 +397,6 @@ function writeRoutingFile() {
     ...manifest.publicRedirects.map(formatRule),
     ...manifest.publicRewrites.map(formatRule),
     ...manifest.dynamicSpaRewrites.map(formatRule),
-    formatRule(manifest.catchAll),
     "",
   ];
   fs.writeFileSync(path.join(distRoot, "_redirects"), rules.join("\n"));

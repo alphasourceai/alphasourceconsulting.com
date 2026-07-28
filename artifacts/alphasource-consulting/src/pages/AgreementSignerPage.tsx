@@ -350,6 +350,9 @@ export default function AgreementSignerPage({ params }: RouteComponentProps<{ to
           <img
             src={`${import.meta.env.BASE_URL}logo-dark-text.png`}
             alt="alphaSource Consulting"
+            width="3163"
+            height="752"
+            decoding="async"
             className="h-auto w-48 max-w-full object-contain sm:w-60"
           />
           <span className="rounded-full border border-[#A380F6]/25 bg-[#A380F6]/10 px-3 py-1 text-xs font-extrabold text-[#0A1547]">

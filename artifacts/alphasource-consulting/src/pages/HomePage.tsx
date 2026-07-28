@@ -77,6 +77,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-white font-sans">
       <Navbar />
+      <main>
 
       {/* Hero */}
       <section className="relative min-h-screen flex items-center overflow-hidden gradient-hero-dark pt-16">
@@ -137,10 +138,10 @@ export default function HomePage() {
               </div>
               <div className="mt-6 pt-6 border-t border-white/10 flex items-center gap-3">
                 <div className="flex -space-x-2">
-                  <img src={`${import.meta.env.BASE_URL}headshot-jason.jpg`} className="w-8 h-8 rounded-full border-2 border-white/20 object-cover" alt="Jason" />
-                  <img src={`${import.meta.env.BASE_URL}headshot-brent.jpg`} className="w-8 h-8 rounded-full border-2 border-white/20 object-cover" alt="Brent" />
-                  <img src={`${import.meta.env.BASE_URL}headshot-destinee.jpg`} className="w-8 h-8 rounded-full border-2 border-white/20 object-cover" alt="Destinee" />
-                  <img src={`${import.meta.env.BASE_URL}headshot-ashley.jpg`} className="w-8 h-8 rounded-full border-2 border-white/20 object-cover object-[center_18%]" alt="Ashley" />
+                  <img src={`${import.meta.env.BASE_URL}headshot-jason.webp`} width="32" height="32" decoding="async" className="w-8 h-8 rounded-full border-2 border-white/20 object-cover" alt="Jason" />
+                  <img src={`${import.meta.env.BASE_URL}headshot-brent.webp`} width="32" height="32" decoding="async" className="w-8 h-8 rounded-full border-2 border-white/20 object-cover" alt="Brent" />
+                  <img src={`${import.meta.env.BASE_URL}headshot-destinee.webp`} width="32" height="32" decoding="async" className="w-8 h-8 rounded-full border-2 border-white/20 object-cover" alt="Destinee" />
+                  <img src={`${import.meta.env.BASE_URL}headshot-ashley.webp`} width="32" height="32" decoding="async" className="w-8 h-8 rounded-full border-2 border-white/20 object-cover object-[center_18%]" alt="Ashley" />
                 </div>
                 <p className="text-xs text-white/60">Trusted by dental practices nationwide</p>
               </div>
@@ -159,7 +160,7 @@ export default function HomePage() {
       <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="text-center mb-16">
-            <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#A380F6] mb-3">Our Approach</span>
+            <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#6F4FE4] mb-3">Our Approach</span>
             <h2 className="text-4xl font-black text-[#0A1547]">Built for People, Powered by AI</h2>
           </div>
           <div className="space-y-8">
@@ -189,7 +190,7 @@ export default function HomePage() {
       <section className="py-24 bg-[#F8F9FD]">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="max-w-3xl mb-12">
-            <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#A380F6] mb-3">From Signal to Action</span>
+            <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#6F4FE4] mb-3">From Signal to Action</span>
             <h2 className="text-4xl font-black text-[#0A1547] mb-5">Turn practice files into operational priorities.</h2>
             <p className="text-lg text-[#0A1547]/65 leading-relaxed">
               The analyzer gives an initial view. The Practice Opportunity Review turns that signal into a consultant-reviewed action plan.
@@ -202,7 +203,7 @@ export default function HomePage() {
                 <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#F8F9FD] text-lg font-black text-[#0A1547]">
                   {index + 1}
                 </div>
-                <p className="mb-3 text-xs font-bold uppercase tracking-widest text-[#A380F6]">{offer.eyebrow}</p>
+                <p className="mb-3 text-xs font-bold uppercase tracking-widest text-[#6F4FE4]">{offer.eyebrow}</p>
                 <h3 className="mb-4 text-2xl font-black text-[#0A1547] md:min-h-[4rem]">{offer.title}</h3>
                 <p className="mb-7 text-sm leading-6 text-[#0A1547]/65">{offer.body}</p>
                 <a
@@ -231,7 +232,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="grid md:grid-cols-2 gap-16 items-center">
             <div>
-              <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#A380F6] mb-3">Who We Are</span>
+              <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#6F4FE4] mb-3">Who We Are</span>
               <h2 className="text-4xl font-black text-[#0A1547] mb-6">
                 A Team That Knows Dentistry Inside and Out
               </h2>
@@ -250,11 +251,11 @@ export default function HomePage() {
             </div>
             <div className="flex gap-4">
               <div className="flex flex-col gap-4 mt-8">
-                <img src={`${import.meta.env.BASE_URL}headshot-jason.jpg`} alt="Jason Gardner" className="w-40 h-48 object-cover rounded-3xl shadow-lg" />
-                <img src={`${import.meta.env.BASE_URL}headshot-destinee.jpg`} alt="Destinee Konecny" className="w-40 h-40 object-cover rounded-3xl shadow-lg" />
+                <img src={`${import.meta.env.BASE_URL}headshot-jason.webp`} alt="Jason Gardner" width="160" height="192" loading="lazy" decoding="async" className="w-40 h-48 object-cover rounded-3xl shadow-lg" />
+                <img src={`${import.meta.env.BASE_URL}headshot-destinee.webp`} alt="Destinee Konecny" width="160" height="160" loading="lazy" decoding="async" className="w-40 h-40 object-cover rounded-3xl shadow-lg" />
               </div>
               <div className="flex flex-col gap-4">
-                <img src={`${import.meta.env.BASE_URL}headshot-brent.jpg`} alt="Brent Ford" className="w-40 h-40 object-cover rounded-3xl shadow-lg" />
+                <img src={`${import.meta.env.BASE_URL}headshot-brent.webp`} alt="Brent Ford" width="160" height="160" loading="lazy" decoding="async" className="w-40 h-40 object-cover rounded-3xl shadow-lg" />
                 <div className="w-40 h-48 rounded-3xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #0A1547 0%, #1A2460 100%)" }}>
                   <div className="text-center px-4">
                     <div className="text-3xl font-black text-white mb-1">25+</div>
@@ -263,7 +264,7 @@ export default function HomePage() {
                 </div>
               </div>
               <div className="hidden lg:flex flex-col gap-4 mt-8">
-                <img src={`${import.meta.env.BASE_URL}headshot-ashley.jpg`} alt="Ashley Stephens" className="w-40 h-48 object-cover object-[center_18%] rounded-3xl shadow-lg" />
+                <img src={`${import.meta.env.BASE_URL}headshot-ashley.webp`} alt="Ashley Stephens" width="160" height="192" loading="lazy" decoding="async" className="w-40 h-48 object-cover object-[center_18%] rounded-3xl shadow-lg" />
               </div>
             </div>
         </div>
@@ -274,15 +275,16 @@ export default function HomePage() {
       <section id="contact" className="py-24 bg-[#F8F9FD]">
         <div className="max-w-2xl mx-auto px-6 lg:px-8">
           <div className="text-center mb-12">
-            <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#A380F6] mb-3">Get In Touch</span>
+            <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#6F4FE4] mb-3">Get In Touch</span>
             <h2 className="text-4xl font-black text-[#0A1547]">Request a Demo</h2>
-            <p className="text-[#0A1547]/55 mt-4">
+            <p className="text-[#0A1547]/70 mt-4">
               Fill out the form below and one of our consultants will reach out within 24 hours.
             </p>
           </div>
           <ContactForm />
         </div>
       </section>
+      </main>
 
       <Footer />
     </div>

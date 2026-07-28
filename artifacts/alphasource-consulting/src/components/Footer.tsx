@@ -11,8 +11,12 @@ export default function Footer() {
           <div className="md:col-span-2">
             <div className="mb-4">
               <img
-                src={`${import.meta.env.BASE_URL}logo-color-no-bg.png`}
+                src={`${import.meta.env.BASE_URL}logo-color-no-bg.webp`}
                 alt="alphaSource Consulting"
+                width="600"
+                height="116"
+                loading="lazy"
+                decoding="async"
                 className="h-auto w-[240px] object-contain sm:w-[300px]"
               />
             </div>
@@ -35,7 +39,7 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="text-sm font-bold text-white mb-4 uppercase tracking-wider">Company</h4>
+            <h2 className="text-sm font-bold text-white mb-4 uppercase tracking-wider">Company</h2>
             <ul className="space-y-3">
               {[
                 { label: "Home", href: "/" },
@@ -54,7 +58,7 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="text-sm font-bold text-white mb-4 uppercase tracking-wider">Resources</h4>
+            <h2 className="text-sm font-bold text-white mb-4 uppercase tracking-wider">Resources</h2>
             <ul className="space-y-3">
               {[
                 { label: "Practice Opportunity Review", href: "/practice-opportunity-review" },
@@ -73,7 +77,7 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="text-sm font-bold text-white mb-4 uppercase tracking-wider">Get in Touch</h4>
+            <h2 className="text-sm font-bold text-white mb-4 uppercase tracking-wider">Get in Touch</h2>
             <ul className="space-y-3">
               <li>
                 <a href="mailto:hello@alphasourceconsulting.com" className="text-sm text-white/60 hover:text-[#A380F6] transition-colors">
@@ -90,17 +94,17 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-white/10 mt-12 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p className="text-white/40 text-sm">
+          <p className="text-white/65 text-sm">
             &copy; {new Date().getFullYear()} alphaSource Consulting. All rights reserved.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-            <Link href="/terms" className="text-white/40 text-sm hover:text-white/70 transition-colors">
+            <Link href="/terms" className="text-white/65 text-sm hover:text-white transition-colors">
               Terms &amp; Conditions
             </Link>
-            <Link href="/privacy" className="text-white/40 text-sm hover:text-white/70 transition-colors">
+            <Link href="/privacy" className="text-white/65 text-sm hover:text-white transition-colors">
               Privacy Policy
             </Link>
-            <button type="button" onClick={openPreferences} className="text-white/40 text-sm hover:text-white/70 transition-colors">
+            <button type="button" onClick={openPreferences} className="text-white/65 text-sm hover:text-white transition-colors">
               Privacy Choices
             </button>
           </div>

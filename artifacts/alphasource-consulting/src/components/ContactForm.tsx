@@ -247,7 +247,7 @@ export default function ContactForm() {
         <Field label="Phone Number"><input type="tel" maxLength={MAX_LENGTHS.phone} value={form.phone} onChange={(event) => updateField("phone", event.target.value)} onBlur={() => trackFieldBlur("phone")} placeholder="(602) 555-0100" className={inputClass} /></Field>
       </div>
       <Field label="Message"><textarea rows={4} maxLength={MAX_LENGTHS.message} value={form.message} onChange={(event) => updateField("message", event.target.value)} onBlur={() => trackFieldBlur("message")} placeholder="Tell us about your practice and your biggest operational challenges..." className={`${inputClass} resize-none`} /></Field>
-      <p className="text-xs leading-5 text-[#0A1547]/52">By submitting, you agree that alphaSource Consulting may use the contact details you provide to respond to your request. See our <Link href="/privacy" className="font-semibold text-[#6F4FE4] underline">Privacy Policy</Link>.</p>
+      <p className="text-xs leading-5 text-[#0A1547]/70">By submitting, you agree that alphaSource Consulting may use the contact details you provide to respond to your request. See our <Link href="/privacy" className="font-semibold text-[#6F4FE4] underline">Privacy Policy</Link>.</p>
       {error && <p className="text-sm font-semibold text-red-600" role="alert">{error}</p>}
       <button type="submit" disabled={submitting} className="w-full py-3.5 text-sm font-bold text-white rounded-full transition-all hover:opacity-90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70" style={{ background: "linear-gradient(135deg, #A380F6 0%, #8b63f0 100%)" }} data-analytics-cta="Submit Request" data-analytics-placement={`${formId}-form`}>
         {submitting ? "Sending..." : "Submit Request"}

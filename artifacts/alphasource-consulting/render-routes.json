@@ -16,21 +16,8 @@
     "/terms"
   ],
   "publicRedirects": [
-    { "source": "/dental-consulting/", "destination": "/dental-consulting", "status": 301 },
-    { "source": "/how-it-works/", "destination": "/how-it-works", "status": 301 },
-    { "source": "/for-dental-groups/", "destination": "/for-dental-groups", "status": 301 },
-    { "source": "/practice-opportunity-review/", "destination": "/practice-opportunity-review", "status": 301 },
-    { "source": "/faq/", "destination": "/faq", "status": 301 },
-    { "source": "/security/", "destination": "/security", "status": 301 },
-    { "source": "/support/", "destination": "/support", "status": 301 },
-    { "source": "/analyzer/", "destination": "/analyzer", "status": 301 },
-    { "source": "/about/", "destination": "/about", "status": 301 },
-    { "source": "/privacy/", "destination": "/privacy", "status": 301 },
     { "source": "/privacy-policy", "destination": "/privacy", "status": 301 },
-    { "source": "/privacy-policy/", "destination": "/privacy", "status": 301 },
-    { "source": "/terms/", "destination": "/terms", "status": 301 },
-    { "source": "/terms-and-conditions", "destination": "/terms", "status": 301 },
-    { "source": "/terms-and-conditions/", "destination": "/terms", "status": 301 }
+    { "source": "/terms-and-conditions", "destination": "/terms", "status": 301 }
   ],
   "publicRewrites": [
     { "source": "/dental-consulting", "destination": "/dental-consulting/index.html", "status": 200 },
@@ -49,6 +36,5 @@
     { "source": "/agreements/*", "destination": "/spa-shell.html", "status": 200 },
     { "source": "/payment-success", "destination": "/spa-shell.html", "status": 200 },
     { "source": "/payment-cancel", "destination": "/spa-shell.html", "status": 200 }
-  ],
-  "catchAll": { "source": "/*", "destination": "/spa-shell.html", "status": 200 }
+  ]
 }

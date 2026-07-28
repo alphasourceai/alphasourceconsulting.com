@@ -28,8 +28,11 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="flex shrink-0 items-center">
             <img
-              src={`${import.meta.env.BASE_URL}logo-color-no-bg.png`}
+              src={`${import.meta.env.BASE_URL}logo-color-no-bg.webp`}
               alt="alphaSource Consulting"
+              width="600"
+              height="116"
+              decoding="async"
               className="h-auto w-[170px] object-contain sm:w-[190px] lg:w-[220px]"
             />
           </Link>

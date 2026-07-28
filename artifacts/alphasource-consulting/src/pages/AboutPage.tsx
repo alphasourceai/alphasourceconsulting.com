@@ -6,25 +6,25 @@ const team = [
   {
     name: "Jason Gardner",
     role: "Co-Founder & CEO",
-    photo: "headshot-jason.jpg",
+    photo: "headshot-jason.webp",
     bio: "Jason brings over 15 years of dental industry experience, having served in operational leadership roles at multi-site DSOs and private practices. He founded alphaSource to bridge the gap between enterprise-grade analytics and the independent practice.",
   },
   {
     name: "Brent Ford",
     role: "Co-Founder & CRO",
-    photo: "headshot-brent.jpg",
+    photo: "headshot-brent.webp",
     bio: "Brent brings deep experience in digital marketing, growth strategy, and new-patient acquisition for dental and aesthetic practices. He helps practices attract the right patients, improve conversion, and use modern tools and AI-enabled systems to support sustainable growth.",
   },
   {
     name: "Destinee Konecny",
     role: "Consultant",
-    photo: "headshot-destinee.jpg",
+    photo: "headshot-destinee.webp",
     bio: "Destinee leads client relationships and ensures every practice we work with achieves measurable results. Her background in dental team training and patient experience design shapes our people-first approach.",
   },
   {
     name: "Ashley Stephens",
     role: "Consultant",
-    photo: "headshot-ashley.jpg",
+    photo: "headshot-ashley.webp",
     bio: "Ashley brings hands-on dental operations and patient experience expertise, with a background in office management, scheduling, treatment planning, team support, and workflow coordination. She helps practices operate efficiently while creating strong client and patient experiences.",
   },
 ];
@@ -68,6 +68,10 @@ export default function AboutPage() {
                   <img
                     src={`${import.meta.env.BASE_URL}${member.photo}`}
                     alt={member.name}
+                    width="640"
+                    height={member.name === "Ashley Stephens" ? "960" : "680"}
+                    loading="lazy"
+                    decoding="async"
                     className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${member.name === "Ashley Stephens" ? "object-[center_18%]" : ""}`}
                   />
                 </div>

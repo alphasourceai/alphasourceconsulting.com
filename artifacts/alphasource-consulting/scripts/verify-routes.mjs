@@ -40,7 +40,6 @@ if (!fs.existsSync(redirectsPath)) {
     ...manifest.publicRedirects,
     ...manifest.publicRewrites,
     ...manifest.dynamicSpaRewrites,
-    manifest.catchAll,
   ].map((rule) => `${rule.source} ${rule.destination} ${rule.status}`);
   if (actualRules.length !== expectedRules.length) {
     errors.push(`Routing rule count mismatch: expected ${expectedRules.length}, found ${actualRules.length}`);

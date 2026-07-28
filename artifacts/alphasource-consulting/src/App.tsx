@@ -1,30 +1,52 @@
+import { lazy, Suspense } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
-import HomePage from "@/pages/HomePage";
-import DentalConsultingPage from "@/pages/DentalConsultingPage";
-import AnalyzerPage from "@/pages/AnalyzerPage";
-import AgreementSignerPage from "@/pages/AgreementSignerPage";
-import AboutPage from "@/pages/AboutPage";
-import PracticeOpportunityReviewPage from "@/pages/PracticeOpportunityReviewPage";
-import { PaymentCancelPage, PaymentSuccessPage } from "@/pages/PaymentResultPage";
-import PrivacyPage from "@/pages/PrivacyPage";
-import TermsPage from "@/pages/TermsPage";
-import {
-  ConsultingFaqPage,
-  ConsultingSupportPage,
-  DentalGroupsPage,
-  HowItWorksPage,
-  SecurityPage,
-} from "@/pages/ConsultingResourcePages";
 import Seo from "@/components/Seo";
 import PageAnalytics from "@/components/PageAnalytics";
 import TrackingConsentNotice from "@/components/TrackingConsentNotice";
 import { TrackingConsentProvider } from "@/context/TrackingConsentContext";
 
 const queryClient = new QueryClient();
+const HomePage = lazy(() => import("@/pages/HomePage"));
+const DentalConsultingPage = lazy(() => import("@/pages/DentalConsultingPage"));
+const AnalyzerPage = lazy(() => import("@/pages/AnalyzerPage"));
+const AgreementSignerPage = lazy(() => import("@/pages/AgreementSignerPage"));
+const AboutPage = lazy(() => import("@/pages/AboutPage"));
+const PracticeOpportunityReviewPage = lazy(() => import("@/pages/PracticeOpportunityReviewPage"));
+const PrivacyPage = lazy(() => import("@/pages/PrivacyPage"));
+const TermsPage = lazy(() => import("@/pages/TermsPage"));
+const PaymentSuccessPage = lazy(() =>
+  import("@/pages/PaymentResultPage").then((module) => ({ default: module.PaymentSuccessPage })),
+);
+const PaymentCancelPage = lazy(() =>
+  import("@/pages/PaymentResultPage").then((module) => ({ default: module.PaymentCancelPage })),
+);
+const HowItWorksPage = lazy(() =>
+  import("@/pages/ConsultingResourcePages").then((module) => ({ default: module.HowItWorksPage })),
+);
+const DentalGroupsPage = lazy(() =>
+  import("@/pages/ConsultingResourcePages").then((module) => ({ default: module.DentalGroupsPage })),
+);
+const ConsultingFaqPage = lazy(() =>
+  import("@/pages/ConsultingResourcePages").then((module) => ({ default: module.ConsultingFaqPage })),
+);
+const SecurityPage = lazy(() =>
+  import("@/pages/ConsultingResourcePages").then((module) => ({ default: module.SecurityPage })),
+);
+const ConsultingSupportPage = lazy(() =>
+  import("@/pages/ConsultingResourcePages").then((module) => ({ default: module.ConsultingSupportPage })),
+);
+
+function RouteFallback() {
+  return (
+    <div className="min-h-screen bg-[#F8F9FD]" role="status" aria-live="polite">
+      <span className="sr-only">Loading page...</span>
+    </div>
+  );
+}
 
 function Router() {
   return (
@@ -56,7 +78,9 @@ function PublicSiteShell() {
     <>
       <Seo location={location} />
       <PageAnalytics location={location} />
-      <Router />
+      <Suspense fallback={<RouteFallback />}>
+        <Router />
+      </Suspense>
       <TrackingConsentNotice />
     </>
   );

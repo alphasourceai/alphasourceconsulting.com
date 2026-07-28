@@ -20,14 +20,18 @@ export default function TrackingConsentNotice() {
 
   if (!hasSelection && !preferencesOpen) {
     return (
-      <aside className="fixed inset-x-4 bottom-4 z-[70] mx-auto max-w-2xl rounded-2xl border border-[#0A1547]/10 bg-white p-5 shadow-xl sm:p-6" aria-label="Privacy choices">
+      <aside
+        className="fixed inset-x-4 bottom-4 z-[70] mx-auto max-w-2xl rounded-2xl border border-[#0A1547]/10 bg-white p-5 shadow-xl sm:p-6"
+        style={{ fontFamily: "Arial, sans-serif" }}
+        aria-label="Privacy choices"
+      >
         <p className="text-sm font-bold text-[#0A1547]">Privacy choices</p>
         <p className="mt-2 text-sm leading-6 text-[#0A1547]/65">
           We use essential technology to operate this site. Optional first-party analytics helps us understand public page and form activity without placing contact details in analytics events. Read our <Link href="/privacy" className="font-semibold text-[#6F4FE4] underline">Privacy Policy</Link>.
         </p>
         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
           <button type="button" onClick={openPreferences} className="rounded-lg border border-[#0A1547]/15 px-4 py-2.5 text-sm font-semibold text-[#0A1547]">Configure</button>
-          <button type="button" onClick={acceptAnalytics} className="rounded-lg bg-[#A380F6] px-4 py-2.5 text-sm font-bold text-white">Allow</button>
+          <button type="button" onClick={acceptAnalytics} className="rounded-lg bg-[#6F4FE4] px-4 py-2.5 text-sm font-bold text-white">Allow</button>
         </div>
       </aside>
     );
@@ -56,7 +60,7 @@ export default function TrackingConsentNotice() {
         </div>
         <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
           <Link href="/privacy" onClick={closePreferences} className="rounded-lg border border-[#0A1547]/15 px-4 py-2.5 text-center text-sm font-semibold text-[#0A1547]">Privacy Policy</Link>
-          <button type="button" onClick={() => savePreferences({ analytics: draftAnalytics })} className="rounded-lg bg-[#A380F6] px-4 py-2.5 text-sm font-bold text-white">Save choices</button>
+          <button type="button" onClick={() => savePreferences({ analytics: draftAnalytics })} className="rounded-lg bg-[#6F4FE4] px-4 py-2.5 text-sm font-bold text-white">Save choices</button>
         </div>
       </section>
     </div>
