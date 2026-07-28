@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTrackingConsent } from "@/context/TrackingConsentContext";
 
 export default function TrackingConsentNotice() {
@@ -8,13 +8,17 @@ export default function TrackingConsentNotice() {
     hasSelection,
     preferencesOpen,
     acceptAnalytics,
-    rejectOptionalTracking,
     savePreferences,
+    openPreferences,
     closePreferences,
   } = useTrackingConsent();
   const [draftAnalytics, setDraftAnalytics] = useState(analyticsEnabled);
 
-  if (!hasSelection) {
+  useEffect(() => {
+    if (preferencesOpen) setDraftAnalytics(analyticsEnabled);
+  }, [analyticsEnabled, preferencesOpen]);
+
+  if (!hasSelection && !preferencesOpen) {
     return (
       <aside className="fixed inset-x-4 bottom-4 z-[70] mx-auto max-w-2xl rounded-2xl border border-[#0A1547]/10 bg-white p-5 shadow-xl sm:p-6" aria-label="Privacy choices">
         <p className="text-sm font-bold text-[#0A1547]">Privacy choices</p>
@@ -22,7 +26,7 @@ export default function TrackingConsentNotice() {
           We use essential technology to operate this site. Optional first-party analytics helps us understand public page and form activity without placing contact details in analytics events. Read our <Link href="/privacy" className="font-semibold text-[#6F4FE4] underline">Privacy Policy</Link>.
         </p>
         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
-          <button type="button" onClick={rejectOptionalTracking} className="rounded-lg border border-[#0A1547]/15 px-4 py-2.5 text-sm font-semibold text-[#0A1547]">Essential only</button>
+          <button type="button" onClick={openPreferences} className="rounded-lg border border-[#0A1547]/15 px-4 py-2.5 text-sm font-semibold text-[#0A1547]">Configure preferences</button>
           <button type="button" onClick={acceptAnalytics} className="rounded-lg bg-[#A380F6] px-4 py-2.5 text-sm font-bold text-white">Allow analytics</button>
         </div>
       </aside>
