@@ -1,6 +1,7 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ContactForm from "@/components/ContactForm";
+import { publicFaqItems, publicRouteModifiedDisplay } from "@/lib/publicContent";
 
 const pillars = [
   {
@@ -73,6 +74,8 @@ const offerCards = [
   },
 ];
 
+const homeFaqItems = publicFaqItems.slice(0, 3);
+
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-white font-sans">
@@ -124,6 +127,7 @@ export default function HomePage() {
                 Try the Analyzer
               </a>
             </div>
+            <p className="mt-6 text-xs font-semibold text-white/40">Last updated {publicRouteModifiedDisplay("/")}</p>
           </div>
 
           <div className="hidden md:flex flex-col gap-4">
@@ -268,6 +272,30 @@ export default function HomePage() {
               </div>
             </div>
         </div>
+        </div>
+      </section>
+
+      {/* Common questions */}
+      <section className="bg-[#F8F9FD] py-20">
+        <div className="mx-auto max-w-5xl px-6 lg:px-8">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <span className="mb-3 inline-block text-xs font-bold uppercase tracking-widest text-[#6F4FE4]">Common Questions</span>
+              <h2 className="text-3xl font-black text-[#0A1547] sm:text-4xl">Start with a clear answer.</h2>
+            </div>
+            <a href="/faq" className="text-sm font-bold text-[#6F4FE4] hover:text-[#0A1547]">View all FAQs</a>
+          </div>
+          <div className="mt-9 divide-y divide-[#0A1547]/10 border-y border-[#0A1547]/10">
+            {homeFaqItems.map((item) => (
+              <details key={item.question} className="group py-1">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-5 py-5 text-left text-base font-bold text-[#0A1547]">
+                  {item.question}
+                  <span aria-hidden="true" className="text-xl font-medium text-[#A380F6] transition-transform group-open:rotate-45">+</span>
+                </summary>
+                <p className="max-w-4xl pb-5 pr-10 text-sm leading-7 text-[#0A1547]/65">{item.answer}</p>
+              </details>
+            ))}
+          </div>
         </div>
       </section>
 

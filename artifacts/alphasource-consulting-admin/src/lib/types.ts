@@ -144,7 +144,13 @@ export type SiteAnalyticsLead = {
   messagePreview: string | null;
   fieldsCompleted: string[];
   lastField: string | null;
-  source: { path: string | null; cta: string | null; utm: Record<string, string> };
+  source: {
+    path: string | null;
+    cta: string | null;
+    utm: Record<string, string>;
+    referrerHost: string | null;
+    referrerSource: string;
+  };
   submittedAt: string | null;
   updatedAt: string | null;
   expiresAt: string | null;
@@ -158,6 +164,8 @@ export type SiteAnalyticsEvent = {
   path: string;
   properties: Record<string, unknown>;
   utm: Record<string, string>;
+  referrerHost: string | null;
+  referrerSource: string;
   occurredAt: string | null;
 };
 
@@ -169,6 +177,7 @@ export type SiteAnalyticsResponse = {
   summary: {
     publicAnalyticsEvents: number;
     pageViews: number;
+    aiReferrals: number;
     ctaClicks: number;
     leadCaptures: number;
     submittedLeads: number;
@@ -177,6 +186,7 @@ export type SiteAnalyticsResponse = {
   };
   leads: { items: SiteAnalyticsLead[]; count: number; hasMore: boolean; offset: number };
   pageActivity: Array<{ path: string; pageViews: number; ctaClicks: number; formActivity: number; leadCount: number }>;
+  referrerActivity: Array<{ source: string; host: string | null; count: number; isAi: boolean }>;
   ctaActivity: Array<{ label: string; placement: string; target: string; count: number }>;
   formActivity: Array<{ formId: string; formType: string; productInterest: string; viewed: number; started: number; submitted: number; draftSaved: number; abandoned: number }>;
   eventTypes: Array<{ eventName: string; count: number }>;

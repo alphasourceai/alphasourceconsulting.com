@@ -21,12 +21,12 @@ export default function PrivacyPage() {
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#A380F6]">alphaSource Consulting</p>
         <h1 className="mt-3 text-4xl font-black sm:text-5xl">Privacy Policy</h1>
         <p className="mt-4 max-w-3xl text-base leading-7 text-[#0A1547]/65">This policy explains how alphaSource Network, LLC dba alphaSource Consulting handles limited information from this public website, including privacy choices, public-site analytics, and contact requests.</p>
-        <p className="mt-3 text-sm font-semibold text-[#0A1547]/50">Effective date: July 27, 2026</p>
+        <p className="mt-3 text-sm font-semibold text-[#0A1547]/50">Effective date: July 28, 2026</p>
 
         <article className="mt-10 rounded-2xl border border-[#0A1547]/10 bg-white p-6 shadow-sm sm:p-9">
           <Section title="Information we collect">
-            <p>When you submit a contact request, we collect the business contact details you provide, such as your name, email address, phone number, and message, so we can respond to your inquiry. We may retain contact-ready partial form entries to help complete a request or follow up when appropriate.</p>
-            <p>Public analytics, when you enable it, may include page paths, page titles, referral paths, campaign parameters, call-to-action interactions, and form progress signals. Analytics events are designed not to include names, email addresses, phone numbers, messages, passwords, file contents, agreement details, payment data, or other private client information.</p>
+            <p>When you submit a contact request, we collect the business contact details you provide, such as your name, email address, phone number, and message, so we can respond to your inquiry. We may also retain the source page, general referring domain, and campaign information associated with the request. We may retain contact-ready partial form entries to help complete a request or follow up when appropriate.</p>
+            <p>Public analytics, when you enable it, may include page paths, page titles, the referring domain and general source category, campaign parameters, call-to-action interactions, and form progress signals. We do not retain the full external referral URL or its query string. Analytics events are designed not to include names, email addresses, phone numbers, messages, passwords, file contents, agreement details, payment data, or other private client information.</p>
           </Section>
           <Section title="Privacy choices and cookies">
             <p>Essential technology supports the security and core operation of this public site. Optional first-party analytics is disabled until you choose to allow it. Your preference is stored in this browser. Turning analytics off stops future application-controlled analytics events and clears application-owned analytics identifiers where possible.</p>

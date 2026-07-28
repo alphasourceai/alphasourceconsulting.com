@@ -2,6 +2,7 @@ import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ContactForm from "@/components/ContactForm";
+import { practiceReviewFaqItems as faqItems, publicRouteModifiedDisplay } from "@/lib/publicContent";
 
 const includedItems = [
   "One practice/location",
@@ -57,53 +58,6 @@ const partnerItems = [
   "Follow-up scorecard",
 ];
 
-const faqItems = [
-  {
-    question: "What is the Practice Opportunity Review?",
-    answer:
-      "It is a consultant-reviewed diagnostic that turns approved practice files into prioritized findings, a PDF summary, a 30-minute review call, and a 30-day action plan.",
-  },
-  {
-    question: "Is the analyzer the full product?",
-    answer:
-      "No. The analyzer provides an initial preview. The paid review adds human consultant interpretation, prioritization, and action planning.",
-  },
-  {
-    question: "What files can I upload?",
-    answer:
-      "You can upload approved financial or operations files such as supported PDF, CSV, or XLSX exports. Do not upload HIPAA-protected PHI through the public analyzer; sensitive files should use the team-provided Secure Upload workflow.",
-  },
-  {
-    question: "How do Secure Uploads work?",
-    answer:
-      "When sensitive or PHI-related documents are needed, the alphaSource Consulting team will provide a separate secure upload workflow.",
-  },
-  {
-    question: "Is PHI allowed in the public analyzer?",
-    answer:
-      "No. Do not upload HIPAA-protected PHI through the public analyzer. Sensitive files should use the team-provided secure upload workflow.",
-  },
-  {
-    question: "What happens after the review call?",
-    answer:
-      "The team will discuss the highest-priority findings and, when appropriate, recommend a focused sprint or ongoing advisory support.",
-  },
-  {
-    question: "Do you guarantee revenue improvement?",
-    answer:
-      "No. The review is designed to provide operational clarity, prioritized findings, and recommended next steps, not guaranteed financial outcomes.",
-  },
-  {
-    question: "What is included in the $995 review?",
-    answer:
-      "The founder-priced review includes one practice/location, a defined file set, AI-assisted analysis, human review, one PDF summary, one 30-minute call, and one 30-day action plan.",
-  },
-  {
-    question: "What is excluded from the $995 review?",
-    answer:
-      "It excludes unlimited file review, implementation work, ongoing monitoring, cleanup execution, custom financial modeling, guaranteed revenue lift, and sensitive document handling outside Secure Upload.",
-  },
-];
 
 function SectionIntro({ eyebrow, title, body }: { eyebrow: string; title: string; body?: string }) {
   return (
@@ -174,6 +128,7 @@ export default function PracticeOpportunityReviewPage() {
           <p className="mx-auto max-w-2xl text-sm leading-6 text-white/55">
             Use the public analyzer for approved financial and operations files only. For sensitive or PHI-related documents, our team will provide a secure upload workflow.
           </p>
+          <p className="mt-4 text-sm font-semibold text-white/40">Last updated {publicRouteModifiedDisplay("/practice-opportunity-review")}</p>
         </div>
       </section>
 

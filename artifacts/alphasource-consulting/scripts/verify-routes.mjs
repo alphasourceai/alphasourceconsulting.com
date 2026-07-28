@@ -6,7 +6,24 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "..");
 const distRoot = path.join(projectRoot, "dist", "public");
 const manifest = JSON.parse(fs.readFileSync(path.join(projectRoot, "render-routes.json"), "utf8"));
+const publicSiteContent = JSON.parse(
+  fs.readFileSync(path.join(projectRoot, "src", "lib", "publicSiteContent.json"), "utf8"),
+);
+const SITE_URL = "https://alphasourceconsulting.com";
 const errors = [];
+const specializedTypes = {
+  "/dental-consulting": "Service",
+  "/practice-opportunity-review": "Service",
+  "/for-dental-groups": "Service",
+  "/analyzer": "SoftwareApplication",
+  "/support": "ContactPage",
+};
+const faqCounts = {
+  "/": 3,
+  "/faq": publicSiteContent.publicFaqSections.flatMap((section) => section.items).length,
+  "/practice-opportunity-review": publicSiteContent.practiceReviewFaqItems.length,
+  "/support": publicSiteContent.publicSupportQuestions.length,
+};
 
 for (const route of manifest.publicRoutes) {
   const filePath = route === "/"
@@ -29,20 +46,67 @@ for (const route of manifest.publicRoutes) {
   if (html.includes("fonts.googleapis.com") || html.includes("fonts.gstatic.com")) {
     errors.push(`${route} contains a render-blocking external font dependency`);
   }
+  const schemas = [];
   for (const match of html.matchAll(/<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g)) {
     try {
-      JSON.parse(match[1]);
+      schemas.push(JSON.parse(match[1]));
     } catch {
       errors.push(`${route} contains invalid JSON-LD`);
     }
   }
-  if (route === "/about" && (html.match(/"@type":"Person"/g) || []).length !== 4) {
-    errors.push("/about must include four published team Person schemas");
+  const schemaTypes = schemas.map((schema) => schema["@type"]);
+  const pageSchema = schemas.find((schema) => ["WebPage", "AboutPage"].includes(schema["@type"]));
+  if (pageSchema?.dateModified !== publicSiteContent.routeLastModified[route]) {
+    errors.push(`${route} has stale or missing dateModified`);
+  }
+  if (route !== "/" && !schemaTypes.includes("BreadcrumbList")) {
+    errors.push(`${route} is missing BreadcrumbList schema`);
+  }
+  if (specializedTypes[route] && !schemaTypes.includes(specializedTypes[route])) {
+    errors.push(`${route} is missing ${specializedTypes[route]} schema`);
+  }
+  if (faqCounts[route]) {
+    const faqSchema = schemas.find((schema) => schema["@type"] === "FAQPage");
+    if (faqSchema?.mainEntity?.length !== faqCounts[route]) {
+      errors.push(`${route} must include ${faqCounts[route]} FAQ questions`);
+    }
+  }
+  for (const disallowedType of ["ProfessionalService", "MedicalBusiness", "Dentist", "AggregateRating"]) {
+    if (schemaTypes.includes(disallowedType)) {
+      errors.push(`${route} contains unsupported or unverified ${disallowedType} schema`);
+    }
+  }
+  if (route === "/about") {
+    const personSchemas = schemas.filter((schema) => schema["@type"] === "Person");
+    if (personSchemas.length !== publicSiteContent.teamMembers.length) {
+      errors.push(`/about must include ${publicSiteContent.teamMembers.length} published team Person schemas`);
+    }
+    for (const member of publicSiteContent.teamMembers) {
+      const person = personSchemas.find((schema) => schema.name === member.name);
+      if (!person?.sameAs?.includes(member.linkedIn) || !html.includes(member.linkedIn)) {
+        errors.push(`/about is missing the verified LinkedIn identity for ${member.name}`);
+      }
+    }
   }
 }
 
 const localFontPath = path.join(distRoot, "fonts", "raleway-latin-variable.woff2");
 if (!fs.existsSync(localFontPath)) errors.push("Missing self-hosted Raleway font");
+
+const robotsPath = path.join(distRoot, "robots.txt");
+if (!fs.existsSync(robotsPath)) {
+  errors.push("Missing robots.txt");
+} else {
+  const robots = fs.readFileSync(robotsPath, "utf8");
+  for (const userAgent of ["OAI-SearchBot", "ChatGPT-User", "GPTBot", "Claude-SearchBot", "Claude-User", "ClaudeBot", "PerplexityBot"]) {
+    if (!robots.includes(`User-agent: ${userAgent}\nAllow: /`)) {
+      errors.push(`robots.txt does not explicitly allow ${userAgent}`);
+    }
+  }
+  for (const privatePath of ["/agreements/sign/", "/payment-success", "/payment-cancel"]) {
+    if (!robots.includes(`Disallow: ${privatePath}`)) errors.push(`robots.txt does not protect ${privatePath}`);
+  }
+}
 
 const redirectsPath = path.join(distRoot, "_redirects");
 if (!fs.existsSync(redirectsPath)) {
@@ -75,6 +139,18 @@ if (!fs.existsSync(spaShellPath)) {
   if (!spaShell.includes('<script type="module"')) errors.push("SPA shell is missing the application module");
 }
 
+const sitemapPath = path.join(distRoot, "sitemap.xml");
+if (!fs.existsSync(sitemapPath)) {
+  errors.push("Missing generated sitemap.xml");
+} else {
+  const sitemap = fs.readFileSync(sitemapPath, "utf8");
+  for (const route of manifest.publicRoutes) {
+    const routeUrl = route === "/" ? `${SITE_URL}/` : `${SITE_URL}${route}`;
+    const expected = `<loc>${routeUrl}</loc>\n    <lastmod>${publicSiteContent.routeLastModified[route]}</lastmod>`;
+    if (!sitemap.includes(expected)) errors.push(`Sitemap entry is stale or missing for ${route}`);
+  }
+}
+
 for (const privateDirectory of ["agreements", "payment-success", "payment-cancel"]) {
   const privatePath = path.join(distRoot, privateDirectory);
   if (fs.existsSync(privatePath)) errors.push(`Private/dynamic snapshot directory should not exist: ${privatePath}`);
@@ -86,4 +162,4 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log(`Verified ${manifest.publicRoutes.length} public route snapshots and generated routing rules.`);
+console.log(`Verified ${manifest.publicRoutes.length} public route snapshots, schema, sitemap, and routing rules.`);

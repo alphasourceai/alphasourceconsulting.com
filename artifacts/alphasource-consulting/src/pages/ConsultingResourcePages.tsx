@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useLocation } from "wouter";
 import {
   ArrowRight,
   BarChart3,
@@ -19,9 +20,9 @@ import {
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import {
-  PUBLIC_CONTENT_LAST_UPDATED,
   publicFaqItems,
   publicFaqSections,
+  publicRouteModifiedDisplay,
   publicSupportQuestions,
   publicSupportTopics,
 } from "@/lib/publicContent";
@@ -66,13 +67,14 @@ function PageHero({
   title: string;
   body: string;
 }) {
+  const [location] = useLocation();
   return (
     <section className="bg-[#0A1547] pb-16 pt-32 text-white lg:pb-20">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <p className="text-xs font-bold uppercase text-[#A380F6]">{eyebrow}</p>
         <h1 className="mt-4 max-w-4xl text-4xl font-black leading-tight sm:text-5xl lg:text-6xl">{title}</h1>
         <p className="mt-5 max-w-3xl text-lg leading-8 text-white/68">{body}</p>
-        <p className="mt-5 text-sm font-semibold text-white/45">Last updated {PUBLIC_CONTENT_LAST_UPDATED}</p>
+        <p className="mt-5 text-sm font-semibold text-white/45">Last updated {publicRouteModifiedDisplay(location)}</p>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <a
             href="/#contact"

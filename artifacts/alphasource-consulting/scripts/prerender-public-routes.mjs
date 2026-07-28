@@ -8,52 +8,22 @@ const distRoot = path.join(projectRoot, "dist", "public");
 const indexPath = path.join(distRoot, "index.html");
 const spaShellPath = path.join(distRoot, "spa-shell.html");
 const manifestPath = path.join(projectRoot, "render-routes.json");
+const publicSiteContentPath = path.join(projectRoot, "src", "lib", "publicSiteContent.json");
 const SITE_URL = "https://alphasourceconsulting.com";
-const LAST_UPDATED = "July 28, 2026";
 const ORGANIZATION_ID = `${SITE_URL}/#organization`;
 const WEBSITE_ID = `${SITE_URL}/#website`;
-const TEAM_MEMBERS = [
-  {
-    "@context": "https://schema.org",
-    "@type": "Person",
-    "@id": `${SITE_URL}/about#jason-gardner`,
-    name: "Jason Gardner",
-    jobTitle: "Co-Founder & CEO",
-    description: "Dental industry operator with experience in multi-site DSOs and private practices.",
-    image: `${SITE_URL}/headshot-jason.webp`,
-    worksFor: { "@id": ORGANIZATION_ID },
-  },
-  {
-    "@context": "https://schema.org",
-    "@type": "Person",
-    "@id": `${SITE_URL}/about#brent-ford`,
-    name: "Brent Ford",
-    jobTitle: "Co-Founder & CRO",
-    description: "Growth strategist focused on digital marketing, new-patient acquisition, and sustainable practice growth.",
-    image: `${SITE_URL}/headshot-brent.webp`,
-    worksFor: { "@id": ORGANIZATION_ID },
-  },
-  {
-    "@context": "https://schema.org",
-    "@type": "Person",
-    "@id": `${SITE_URL}/about#destinee-konecny`,
-    name: "Destinee Konecny",
-    jobTitle: "Consultant",
-    description: "Dental consultant focused on client relationships, team training, and patient experience.",
-    image: `${SITE_URL}/headshot-destinee.webp`,
-    worksFor: { "@id": ORGANIZATION_ID },
-  },
-  {
-    "@context": "https://schema.org",
-    "@type": "Person",
-    "@id": `${SITE_URL}/about#ashley-stephens`,
-    name: "Ashley Stephens",
-    jobTitle: "Consultant",
-    description: "Dental operations consultant with experience in office management, scheduling, treatment planning, and workflow coordination.",
-    image: `${SITE_URL}/headshot-ashley.webp`,
-    worksFor: { "@id": ORGANIZATION_ID },
-  },
-];
+const publicSiteContent = JSON.parse(fs.readFileSync(publicSiteContentPath, "utf8"));
+const TEAM_MEMBERS = publicSiteContent.teamMembers.map((member) => ({
+  "@context": "https://schema.org",
+  "@type": "Person",
+  "@id": `${SITE_URL}/about#${member.name.toLowerCase().replace(/\s+/g, "-")}`,
+  name: member.name,
+  jobTitle: member.role,
+  description: member.bio,
+  image: `${SITE_URL}/${member.photo}`,
+  sameAs: [member.linkedIn],
+  worksFor: { "@id": ORGANIZATION_ID },
+}));
 
 if (!fs.existsSync(indexPath)) {
   throw new Error(`Build output not found at ${indexPath}. Run Vite build before prerendering.`);
@@ -83,18 +53,11 @@ const navLinks = [
   ["About", "/about"],
 ];
 
-const faqItems = [
-  ["What is alphaSource Consulting?", "alphaSource Consulting is a dental operations consulting firm that combines dental industry experience, practical analysis, and AI-assisted tools to help practices identify priorities and improve operational follow-through."],
-  ["Who does alphaSource Consulting work with?", "The services are designed for independent dental practices, growth-oriented offices, dental groups, and multi-location organizations that want clearer operational priorities and practical implementation support."],
-  ["What is the Practice Opportunity Review?", "It is a focused, consultant-reviewed diagnostic for one practice or location. The published scope includes a defined file set, AI-assisted analysis, human consultant review, a PDF summary, a 30-minute review call, and a 30-day action plan."],
-  ["How is AI used in the consulting workflow?", "AI-assisted tools can organize and analyze approved financial or operational files, surface patterns, and support draft findings. Human consultants review and interpret the output before client-facing recommendations are delivered."],
-  ["Can I submit PHI through the public website or analyzer?", "No. Do not submit protected health information, patient records, passwords, payment card data, or confidential files through public contact forms or the public analyzer. Use only the secure workflow provided by the alphaSource Consulting team."],
-  ["How are sensitive files transferred?", "When an engagement requires sensitive files, the team provides a separate Secure Upload workflow. Public forms and public analytics are intentionally kept separate from client file-transfer workflows."],
-  ["Is a BAA/Privacy Agreement available?", "alphaSource Consulting has an agreement workflow for BAA/Privacy Agreements when appropriate to the engagement. The applicable agreement is generated, reviewed, signed by both parties, and retained through private document workflows."],
-  ["Do you work with multi-location dental groups?", "Yes. Multi-location work can include location-level comparison, shared KPI definitions, operating rhythm, revenue-cycle visibility, leadership reporting, and prioritization across the group. Scope is confirmed before an engagement begins."],
-  ["Does alphaSource Consulting guarantee financial results?", "No. Consulting and analysis are intended to improve clarity, prioritization, and execution. Outcomes depend on the practice, available data, decisions, and implementation, so financial or operational results are not guaranteed."],
-  ["How do I get support?", "Email hello@alphasourceconsulting.com with your name, organization, the email associated with the engagement, and a short description of the issue. Sensitive files should only be sent through an approved secure workflow."],
-];
+const faqItems = publicSiteContent.publicFaqSections
+  .flatMap((section) => section.items)
+  .map((item) => [item.question, item.answer]);
+const supportFaqItems = publicSiteContent.publicSupportQuestions.map((item) => [item.question, item.answer]);
+const practiceReviewFaqItems = publicSiteContent.practiceReviewFaqItems.map((item) => [item.question, item.answer]);
 
 const routeContent = {
   "/": {
@@ -108,6 +71,7 @@ const routeContent = {
       ["Ways to engage", ["Start with a Practice Opportunity Review, use a focused sprint for a defined operating issue, or establish an ongoing Operations Intelligence Partner cadence."]],
       ["Public and secure workflows", ["Public contact and analyzer routes are separate from agreements, payments, Secure Uploads, client analysis, and private report workflows."]],
     ],
+    qa: faqItems.slice(0, 3),
   },
   "/dental-consulting": {
     title: "Dental Operations Consulting | alphaSource Consulting",
@@ -168,6 +132,7 @@ const routeContent = {
       ["What is not included", ["The review does not include unlimited file review, implementation work, ongoing monitoring, custom financial modeling, guaranteed revenue lift, or sensitive document handling outside Secure Upload."]],
       ["Turnaround and next steps", ["Standard files are typically reviewed within three to five business days. Timing depends on file readiness, scope, and data quality."]],
     ],
+    qa: practiceReviewFaqItems,
   },
   "/faq": {
     title: "Dental Consulting FAQ | alphaSource Consulting",
@@ -204,11 +169,7 @@ const routeContent = {
       ["Information not to email", ["Do not email PHI, confidential files, passwords, payment card information, signature data, or raw access tokens."]],
       ["Support areas", ["The team can help with consultation setup, agreements, payment links, Secure Uploads, approved analysis workflows, and existing PDF reports."]],
     ],
-    qa: [
-      ["What should I do if an agreement signing link is unavailable?", "Contact hello@alphasourceconsulting.com from the signer or client email address and identify the organization. The team can review the agreement status and determine whether a new request is appropriate."],
-      ["What should I do if a payment link is expired?", "Contact the team with the client email and offer name. The team can verify the local checkout status and issue a replacement link when appropriate."],
-      ["Can I email files to support?", "Do not email PHI, patient records, confidential exports, passwords, or access tokens. Use only the Secure Upload workflow supplied by the team."],
-    ],
+    qa: supportFaqItems,
   },
   "/analyzer": {
     title: "Dental Operations Analyzer | alphaSource Consulting",
@@ -230,9 +191,9 @@ const routeContent = {
     intro: "The alphaSource Consulting team combines dental operations experience, practical consulting, and technology to help practices focus on the work that matters most.",
     sections: [
       ["Mission", ["Help dental practices reduce administrative friction, understand operating performance, and turn evidence into practical priorities."]],
-      ["Leadership and experience", ["The public team page identifies the leaders and backgrounds behind alphaSource Consulting."]],
       ["Technology", ["Technology supports the consulting workflow, while human consultants review client-facing findings and recommendations."]],
     ],
+    profiles: publicSiteContent.teamMembers,
   },
   "/privacy": {
     title: "Privacy Policy | alphaSource Consulting",
@@ -241,8 +202,8 @@ const routeContent = {
     h1: "How alphaSource Consulting handles public website information.",
     intro: "The policy covers public analytics choices, contact lead capture, service providers, retention, public form boundaries, and privacy requests.",
     sections: [
-      ["Public analytics", ["Optional first-party analytics is disabled until the visitor allows it. Analytics events are designed not to include contact details, messages, passwords, file contents, agreement details, or payment data."]],
-      ["Contact information", ["Business contact details submitted through public forms are used to respond to inquiries and maintain appropriate business records."]],
+      ["Public analytics", ["Optional first-party analytics is disabled until the visitor allows it. It can include page activity, a general referring domain and source category, and campaign or interaction signals, but not the full external referral URL or query string. Analytics events are designed not to include contact details, messages, passwords, file contents, agreement details, or payment data."]],
+      ["Contact information", ["Business contact details submitted through public forms are used to respond to inquiries and maintain appropriate business records. The source page, general referring domain, and campaign information associated with a request may also be retained."]],
       ["Sensitive information", ["Do not submit PHI, patient records, passwords, payment card information, or confidential files through public contact forms."]],
     ],
   },
@@ -268,6 +229,7 @@ for (const route of manifest.publicRoutes) {
 
 writeSpaShell();
 writeRoutingFile();
+writeSitemap();
 console.log(`Prerendered ${manifest.publicRoutes.length} public routes in ${distRoot}.`);
 
 function renderRouteHtml(html, route, content) {
@@ -328,6 +290,7 @@ function createSchemas(route, content) {
       name: content.title,
       description: content.description,
       url: routeUrl(route),
+      dateModified: routeLastModified(route),
       isPartOf: { "@type": "WebSite", "@id": WEBSITE_ID, name: "alphaSource Consulting", url: `${SITE_URL}/` },
       publisher: { "@id": ORGANIZATION_ID },
       ...(isAboutPage
@@ -340,6 +303,80 @@ function createSchemas(route, content) {
   ];
   if (route === "/") schemas.unshift(organization);
   if (isAboutPage) schemas.unshift(organization, ...TEAM_MEMBERS);
+  if (route !== "/") {
+    schemas.push({
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: `${SITE_URL}/` },
+        { "@type": "ListItem", position: 2, name: content.eyebrow, item: routeUrl(route) },
+      ],
+    });
+  }
+  if (route === "/dental-consulting") {
+    schemas.push({
+      "@context": "https://schema.org",
+      "@type": "Service",
+      name: "Dental operations consulting",
+      serviceType: "Dental operations consulting",
+      description: content.description,
+      url: routeUrl(route),
+      provider: { "@id": ORGANIZATION_ID },
+      areaServed: { "@type": "Country", name: "United States" },
+      audience: {
+        "@type": "BusinessAudience",
+        audienceType: "Independent dental practices, dental groups, and multi-location dental organizations",
+      },
+    });
+  }
+  if (route === "/practice-opportunity-review") {
+    schemas.push({
+      "@context": "https://schema.org",
+      "@type": "Service",
+      name: "Practice Opportunity Review",
+      serviceType: "Dental practice operations review",
+      description: content.description,
+      url: routeUrl(route),
+      provider: { "@id": ORGANIZATION_ID },
+    });
+  }
+  if (route === "/for-dental-groups") {
+    schemas.push({
+      "@context": "https://schema.org",
+      "@type": "Service",
+      name: "Dental group operations consulting",
+      serviceType: "Multi-location dental operations consulting",
+      description: content.description,
+      url: routeUrl(route),
+      provider: { "@id": ORGANIZATION_ID },
+      audience: {
+        "@type": "BusinessAudience",
+        audienceType: "Dental groups and multi-location dental practices",
+      },
+    });
+  }
+  if (route === "/analyzer") {
+    schemas.push({
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      name: "Dental Operations Analyzer",
+      applicationCategory: "BusinessApplication",
+      operatingSystem: "Web",
+      description: content.description,
+      url: routeUrl(route),
+      provider: { "@id": ORGANIZATION_ID },
+    });
+  }
+  if (route === "/support") {
+    schemas.push({
+      "@context": "https://schema.org",
+      "@type": "ContactPage",
+      name: "alphaSource Consulting Support",
+      description: content.description,
+      url: routeUrl(route),
+      mainEntity: { "@id": ORGANIZATION_ID },
+    });
+  }
   if (content.qa) {
     schemas.push({
       "@context": "https://schema.org",
@@ -383,6 +420,21 @@ function renderSnapshot(route, content) {
           </div>
         </section>`
     : "";
+  const profilesHtml = content.profiles
+    ? `
+        <section class="as-snapshot-section">
+          <h2>Leadership and experience</h2>
+          <div class="as-profile-list">
+            ${content.profiles.map((member) => `
+              <article id="${escapeAttr(member.name.toLowerCase().replace(/\s+/g, "-"))}">
+                <h3>${escapeHtml(member.name)}</h3>
+                <p><strong>${escapeHtml(member.role)}</strong></p>
+                <p>${escapeHtml(member.bio)}</p>
+                <a href="${escapeAttr(member.linkedIn)}" rel="noopener noreferrer">LinkedIn profile</a>
+              </article>`).join("\n            ")}
+          </div>
+        </section>`
+    : "";
   return `
     <div class="as-crawler-snapshot" data-public-prerender-route="${escapeAttr(route)}">
       <nav class="as-snapshot-nav" aria-label="Public navigation">
@@ -394,9 +446,10 @@ function renderSnapshot(route, content) {
           <p class="as-eyebrow">${escapeHtml(content.eyebrow)}</p>
           <h1>${escapeHtml(content.h1)}</h1>
           <p class="as-intro">${escapeHtml(content.intro)}</p>
-          <p class="as-updated">Last updated ${LAST_UPDATED}</p>
+          <p class="as-updated">Last updated ${routeModifiedDisplay(route)}</p>
         </section>
         ${sectionHtml}
+        ${profilesHtml}
         ${qaHtml}
         <section class="as-snapshot-section as-related-links">
           <h2>Related public resources</h2>
@@ -431,7 +484,8 @@ function snapshotStyles() {
       .as-snapshot-section h3{margin:0 0 .4rem;font-size:1rem}
       .as-snapshot-section p{margin:.5rem 0;color:rgba(10,21,71,.68)}
       .as-faq-list{display:grid;gap:1rem;margin-top:1.25rem}
-      .as-faq-list article{padding:1rem;border:1px solid rgba(10,21,71,.1);border-radius:8px;background:#F8F9FD}
+      .as-faq-list article,.as-profile-list article{padding:1rem;border:1px solid rgba(10,21,71,.1);border-radius:8px;background:#F8F9FD}
+      .as-profile-list{display:grid;gap:1rem;margin-top:1.25rem;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
       .as-related-links nav{display:flex;flex-wrap:wrap;gap:.65rem}
       .as-related-links a{border:1px solid rgba(10,21,71,.12);border-radius:999px;padding:.5rem .8rem;background:#fff;font-weight:700}
       .as-snapshot-footer{border-top:1px solid rgba(10,21,71,.1);border-bottom:0;background:#0A1547;color:#fff}
@@ -467,6 +521,39 @@ function writeRoutingFile() {
   fs.writeFileSync(path.join(distRoot, "_redirects"), rules.join("\n"));
 }
 
+function writeSitemap() {
+  const routeSettings = {
+    "/": { changefreq: "weekly", priority: "1.0" },
+    "/dental-consulting": { changefreq: "monthly", priority: "0.9" },
+    "/how-it-works": { changefreq: "monthly", priority: "0.8" },
+    "/for-dental-groups": { changefreq: "monthly", priority: "0.8" },
+    "/practice-opportunity-review": { changefreq: "weekly", priority: "0.9" },
+    "/faq": { changefreq: "monthly", priority: "0.8" },
+    "/security": { changefreq: "monthly", priority: "0.7" },
+    "/support": { changefreq: "monthly", priority: "0.7" },
+    "/analyzer": { changefreq: "monthly", priority: "0.7" },
+    "/about": { changefreq: "monthly", priority: "0.6" },
+    "/privacy": { changefreq: "monthly", priority: "0.3" },
+    "/terms": { changefreq: "monthly", priority: "0.3" },
+  };
+  const entries = manifest.publicRoutes.map((route) => {
+    const settings = routeSettings[route];
+    if (!settings) throw new Error(`Missing sitemap settings for ${route}`);
+    return `  <url>
+    <loc>${escapeHtml(routeUrl(route))}</loc>
+    <lastmod>${routeLastModified(route)}</lastmod>
+    <changefreq>${settings.changefreq}</changefreq>
+    <priority>${settings.priority}</priority>
+  </url>`;
+  });
+  const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${entries.join("\n")}
+</urlset>
+`;
+  fs.writeFileSync(path.join(distRoot, "sitemap.xml"), sitemap);
+}
+
 function formatRule(rule) {
   if (!rule?.source || !rule?.destination || !rule?.status) {
     throw new Error(`Invalid routing rule: ${JSON.stringify(rule)}`);
@@ -476,6 +563,23 @@ function formatRule(rule) {
 
 function routeUrl(route) {
   return route === "/" ? `${SITE_URL}/` : `${SITE_URL}${route}`;
+}
+
+function routeLastModified(route) {
+  const value = publicSiteContent.routeLastModified[route];
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value || "")) {
+    throw new Error(`Missing or invalid last-modified date for ${route}`);
+  }
+  return value;
+}
+
+function routeModifiedDisplay(route) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${routeLastModified(route)}T00:00:00Z`));
 }
 
 function replaceTitle(html, title) {

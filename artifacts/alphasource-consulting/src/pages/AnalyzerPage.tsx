@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { publicRouteModifiedDisplay } from "@/lib/publicContent";
 
 type OrgType = "" | "Location" | "Group";
 type JobStatus = "idle" | "queued" | "processing" | "cancel_requested" | "canceled" | "completed" | "error";
@@ -565,6 +566,7 @@ export default function AnalyzerPage() {
           <p className="text-xl text-white/65 leading-relaxed max-w-2xl mx-auto">
             An AI-powered tool designed to quickly identify trends and opportunities hidden in your practice's operational data — giving you clarity to act in minutes, not months.
           </p>
+          <p className="mt-5 text-sm font-semibold text-white/40">Last updated {publicRouteModifiedDisplay("/analyzer")}</p>
         </div>
       </section>
 

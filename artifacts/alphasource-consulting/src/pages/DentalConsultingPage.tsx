@@ -1,6 +1,7 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ContactForm from "@/components/ContactForm";
+import { publicRouteModifiedDisplay } from "@/lib/publicContent";
 
 const services = [
   {
@@ -75,6 +76,7 @@ export default function DentalConsultingPage() {
           >
             Book a Free Consultation
           </a>
+          <p className="mt-5 text-sm font-semibold text-white/40">Last updated {publicRouteModifiedDisplay("/dental-consulting")}</p>
         </div>
       </section>
 

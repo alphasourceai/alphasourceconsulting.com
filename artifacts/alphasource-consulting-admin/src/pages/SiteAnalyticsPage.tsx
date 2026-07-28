@@ -20,7 +20,7 @@ function StatusChip({ value }: { value: string }) {
   return <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-bold ${tone}`}>{value === "submitted" ? "Submitted" : value === "abandoned" ? "Abandoned" : "Partial"}</span>;
 }
 
-type IconName = "activity" | "archive" | "chart" | "download" | "file" | "mail" | "pointer" | "restore" | "users";
+type IconName = "activity" | "archive" | "chart" | "download" | "file" | "mail" | "pointer" | "restore" | "sparkles" | "users";
 
 function Metric({ label, value, icon, tone }: { label: string; value: number; icon: IconName; tone: string }) {
   return (
@@ -50,6 +50,7 @@ function LeadRow({ lead, canManage, onArchive }: { lead: SiteAnalyticsLead; canM
             {lead.contact.email && <span className="inline-flex items-center gap-1"><span className="text-[#A380F6]"><Icon name="mail" size={14} /></span>{lead.contact.email}</span>}
             {lead.contact.phone && <span>{lead.contact.phone}</span>}
             <span>{lead.source.path || "/"}</span>
+            {lead.source.referrerSource && lead.source.referrerSource !== "Direct / internal" && <span>From {lead.source.referrerSource}</span>}
             <span>Updated {formatDate(lead.updatedAt)}</span>
           </div>
           {lead.messagePreview && <p className="mt-3 max-w-4xl rounded-lg bg-[#F8F9FD] px-3 py-2 text-xs leading-5 text-[#0A1547]/65">{lead.messagePreview}</p>}
@@ -142,10 +143,11 @@ export default function SiteAnalyticsPage() {
       {error && <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</p>}
       {actionError && <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{actionError}</p>}
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <Metric label="Lead captures" value={summary?.leadCaptures || 0} icon="users" tone="text-[#A380F6]" />
         <Metric label="Submitted leads" value={summary?.submittedLeads || 0} icon="mail" tone="text-[#02D99D]" />
         <Metric label="Page views" value={summary?.pageViews || 0} icon="chart" tone="text-[#02ABE0]" />
+        <Metric label="AI referrals" value={summary?.aiReferrals || 0} icon="sparkles" tone="text-[#7C5CF2]" />
         <Metric label="CTA clicks" value={summary?.ctaClicks || 0} icon="pointer" tone="text-[#F59E0B]" />
       </section>
 
@@ -160,6 +162,7 @@ export default function SiteAnalyticsPage() {
 
       <section className="grid gap-5 xl:grid-cols-2">
         <SummaryList title="Page activity" icon="chart" iconTone="text-[#02ABE0]" empty="No public page activity in this range." rows={(payload?.pageActivity || []).map((item) => ({ primary: item.path, detail: `${item.pageViews} views · ${item.ctaClicks} CTA clicks · ${item.leadCount} leads`, value: item.pageViews + item.leadCount }))} />
+        <SummaryList title="Referral sources" icon="sparkles" iconTone="text-[#7C5CF2]" empty="No referral activity in this range." rows={(payload?.referrerActivity || []).map((item) => ({ primary: item.source, detail: `${item.isAi ? "AI referral" : "Referral source"}${item.host ? ` · ${item.host}` : ""}`, value: item.count }))} />
         <SummaryList title="CTA activity" icon="pointer" iconTone="text-[#F59E0B]" empty="No tracked CTA activity in this range." rows={(payload?.ctaActivity || []).map((item) => ({ primary: item.label, detail: `${item.placement} · ${item.target}`, value: item.count }))} />
         <SummaryList title="Form progress" icon="file" iconTone="text-[#A380F6]" empty="No form progress signals in this range." rows={(payload?.formActivity || []).map((item) => ({ primary: item.productInterest || item.formId, detail: `${item.viewed} views · ${item.started} starts · ${item.submitted} submitted`, value: item.submitted }))} />
         <SummaryList title="Event mix" icon="activity" iconTone="text-[#00A89C]" empty="No public events in this range." rows={(payload?.eventTypes || []).map((item) => ({ primary: item.eventName.replace(/_/g, " "), detail: "consented public-site events", value: item.count }))} />
@@ -168,7 +171,7 @@ export default function SiteAnalyticsPage() {
       <details className="admin-card overflow-hidden">
         <summary className="cursor-pointer list-none px-5 py-4"><div className="flex items-center justify-between gap-4"><div><h2 className="text-base font-black text-[#0A1547]">Recent analytics events</h2><p className="mt-1 text-xs text-[#0A1547]/55">Sanitized public-site event details for troubleshooting.</p></div><span className="text-[#02ABE0]"><Icon name="activity" size={16} /></span></div></summary>
         <div className="border-t border-[#0A1547]/8">
-          {payload?.events.items.length ? payload.events.items.map((event) => <div key={event.id} className="grid gap-2 border-t border-[#0A1547]/8 px-5 py-3 first:border-t-0 md:grid-cols-[minmax(190px,0.7fr)_minmax(160px,1fr)_auto]"><div><p className="text-sm font-bold text-[#0A1547]">{event.eventName.replace(/_/g, " ")}</p><p className="mt-1 text-xs text-[#0A1547]/55">{event.path}</p></div><p className="text-xs leading-5 text-[#0A1547]/55">{Object.entries(event.properties).map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(", ") : String(value)}`).join(" · ") || "No additional metadata"}</p><p className="text-xs text-[#0A1547]/50 md:text-right">{formatDate(event.occurredAt)}</p></div>) : <p className="px-5 py-6 text-sm text-[#0A1547]/55">No events match these filters.</p>}
+          {payload?.events.items.length ? payload.events.items.map((event) => <div key={event.id} className="grid gap-2 border-t border-[#0A1547]/8 px-5 py-3 first:border-t-0 md:grid-cols-[minmax(190px,0.7fr)_minmax(160px,1fr)_auto]"><div><p className="text-sm font-bold text-[#0A1547]">{event.eventName.replace(/_/g, " ")}</p><p className="mt-1 text-xs text-[#0A1547]/55">{event.path}{event.referrerSource ? ` · ${event.referrerSource}` : ""}</p></div><p className="text-xs leading-5 text-[#0A1547]/55">{Object.entries(event.properties).map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(", ") : String(value)}`).join(" · ") || "No additional metadata"}</p><p className="text-xs text-[#0A1547]/50 md:text-right">{formatDate(event.occurredAt)}</p></div>) : <p className="px-5 py-6 text-sm text-[#0A1547]/55">No events match these filters.</p>}
         </div>
       </details>
 
@@ -192,6 +195,7 @@ function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
     {name === "mail" && <><rect height="14" rx="2" width="18" x="3" y="5" /><path d="m3 7 9 6 9-6" /></>}
     {name === "pointer" && <><path d="m5 3 7 17 2-7 7-2L5 3Z" /><path d="m14 14 4 5" /></>}
     {name === "restore" && <><path d="M3 12a9 9 0 1 0 3-6.7" /><path d="M3 4v5h5" /></>}
+    {name === "sparkles" && <><path d="m12 3 1.4 3.6L17 8l-3.6 1.4L12 13l-1.4-3.6L7 8l3.6-1.4L12 3Z" /><path d="m18.5 14 .8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2Z" /><path d="m5 14 .8 2.2 2.2.8-2.2.8L5 20l-.8-2.2L2 17l2.2-.8L5 14Z" /></>}
     {name === "users" && <><circle cx="9" cy="8" r="3" /><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" /><path d="M16 5a3 3 0 0 1 0 6" /><path d="M21 20c0-2.6-1.7-4.8-4-5.6" /></>}
   </svg>;
 }

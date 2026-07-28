@@ -10,4 +10,40 @@ Disallow: /agreements/sign/
 Disallow: /payment-success
 Disallow: /payment-cancel
 
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /agreements/sign/
+Disallow: /payment-success
+Disallow: /payment-cancel
+
+User-agent: GPTBot
+Allow: /
+Disallow: /agreements/sign/
+Disallow: /payment-success
+Disallow: /payment-cancel
+
+User-agent: Claude-SearchBot
+Allow: /
+Disallow: /agreements/sign/
+Disallow: /payment-success
+Disallow: /payment-cancel
+
+User-agent: Claude-User
+Allow: /
+Disallow: /agreements/sign/
+Disallow: /payment-success
+Disallow: /payment-cancel
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /agreements/sign/
+Disallow: /payment-success
+Disallow: /payment-cancel
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /agreements/sign/
+Disallow: /payment-success
+Disallow: /payment-cancel
+
 Sitemap: https://alphasourceconsulting.com/sitemap.xml

@@ -1,7 +1,7 @@
-import { currentUtm, getAnonymousId, getSessionId, trackEvent } from "@/lib/analytics";
+import { currentReferrerContext, currentUtm, getAnonymousId, getSessionId, trackEvent } from "@/lib/analytics";
 import { isAnalyticsConsentGranted } from "@/context/TrackingConsentContext";
 
-export const LEAD_CAPTURE_NOTICE_VERSION = "consulting-public-lead-capture-v1-2026-07-27";
+export const LEAD_CAPTURE_NOTICE_VERSION = "consulting-public-lead-capture-v2-2026-07-28";
 
 export type LeadDraftStatus = "partial" | "abandoned" | "submitted";
 export type LeadFields = {
@@ -74,6 +74,7 @@ export async function saveLead(input: SaveLeadInput): Promise<boolean> {
   if (!base) return false;
   const submitted = input.status === "submitted";
   const analyticsConsent = isAnalyticsConsentGranted();
+  const referrer = currentReferrerContext();
   const payload = {
     draft_id: input.draftId,
     form_id: input.formId,
@@ -94,7 +95,8 @@ export async function saveLead(input: SaveLeadInput): Promise<boolean> {
     privacy_notice_version: LEAD_CAPTURE_NOTICE_VERSION,
     source: {
       path: window.location.pathname || "/",
-      referrer_path: document.referrer || "",
+      referrer_path: referrer.path,
+      referrer_host: referrer.host,
       cta: input.cta || "",
       utm: currentUtm(),
     },

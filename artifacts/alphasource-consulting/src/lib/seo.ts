@@ -1,4 +1,10 @@
-import { publicFaqItems } from "@/lib/publicContent";
+import {
+  practiceReviewFaqItems,
+  publicFaqItems,
+  publicRouteModifiedIso,
+  publicSupportQuestions,
+  publicTeamMembers,
+} from "@/lib/publicContent";
 
 type JsonLd = Record<string, unknown> | Array<Record<string, unknown>>;
 
@@ -13,48 +19,17 @@ export type SeoConfig = {
 const siteUrl = "https://alphasourceconsulting.com";
 const organizationId = `${siteUrl}/#organization`;
 const websiteId = `${siteUrl}/#website`;
-const teamMembers = [
-  {
-    "@context": "https://schema.org",
-    "@type": "Person",
-    "@id": `${siteUrl}/about#jason-gardner`,
-    name: "Jason Gardner",
-    jobTitle: "Co-Founder & CEO",
-    description: "Dental industry operator with experience in multi-site DSOs and private practices.",
-    image: `${siteUrl}/headshot-jason.webp`,
-    worksFor: { "@id": organizationId },
-  },
-  {
-    "@context": "https://schema.org",
-    "@type": "Person",
-    "@id": `${siteUrl}/about#brent-ford`,
-    name: "Brent Ford",
-    jobTitle: "Co-Founder & CRO",
-    description: "Growth strategist focused on digital marketing, new-patient acquisition, and sustainable practice growth.",
-    image: `${siteUrl}/headshot-brent.webp`,
-    worksFor: { "@id": organizationId },
-  },
-  {
-    "@context": "https://schema.org",
-    "@type": "Person",
-    "@id": `${siteUrl}/about#destinee-konecny`,
-    name: "Destinee Konecny",
-    jobTitle: "Consultant",
-    description: "Dental consultant focused on client relationships, team training, and patient experience.",
-    image: `${siteUrl}/headshot-destinee.webp`,
-    worksFor: { "@id": organizationId },
-  },
-  {
-    "@context": "https://schema.org",
-    "@type": "Person",
-    "@id": `${siteUrl}/about#ashley-stephens`,
-    name: "Ashley Stephens",
-    jobTitle: "Consultant",
-    description: "Dental operations consultant with experience in office management, scheduling, treatment planning, and workflow coordination.",
-    image: `${siteUrl}/headshot-ashley.webp`,
-    worksFor: { "@id": organizationId },
-  },
-];
+const teamMembers = publicTeamMembers.map((member) => ({
+  "@context": "https://schema.org",
+  "@type": "Person",
+  "@id": `${siteUrl}/about#${member.name.toLowerCase().replace(/\s+/g, "-")}`,
+  name: member.name,
+  jobTitle: member.role,
+  description: member.bio,
+  image: `${siteUrl}/${member.photo}`,
+  sameAs: [member.linkedIn],
+  worksFor: { "@id": organizationId },
+}));
 const organization = {
   "@context": "https://schema.org",
   "@type": "Organization",
@@ -102,6 +77,7 @@ function pageSchema(path: string, name: string, description: string): Record<str
     name,
     description,
     url: canonical(path),
+    dateModified: publicRouteModifiedIso(path),
     isPartOf: website,
     publisher: organization,
   };
@@ -125,7 +101,20 @@ const configs: Record<string, Omit<SeoConfig, "robots">> = {
     title: "alphaSource Consulting | Dental Operations Consulting",
     description: "alphaSource Consulting helps dental practices improve operational performance through practical consulting, financial analysis, and focused growth initiatives.",
     path: "/",
-    jsonLd: [organization, website, pageSchema("/", "alphaSource Consulting", "Dental operations consulting and practical analysis support for dental practices.")],
+    jsonLd: [
+      organization,
+      website,
+      pageSchema("/", "alphaSource Consulting", "Dental operations consulting and practical analysis support for dental practices."),
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: publicFaqItems.slice(0, 3).map((item) => ({
+          "@type": "Question",
+          name: item.question,
+          acceptedAnswer: { "@type": "Answer", text: item.answer },
+        })),
+      },
+    ],
   },
   "/dental-consulting": {
     title: "Dental Operations Consulting | alphaSource Consulting",
@@ -134,14 +123,20 @@ const configs: Record<string, Omit<SeoConfig, "robots">> = {
     jsonLd: [
       {
         "@context": "https://schema.org",
-        "@type": "ProfessionalService",
-        name: "alphaSource Consulting",
+        "@type": "Service",
+        name: "Dental operations consulting",
         url: canonical("/dental-consulting"),
         description: "Dental operations consulting for independent practices, dental groups, and multi-location organizations.",
-        provider: organization,
+        provider: { "@id": organizationId },
         serviceType: "Dental operations consulting",
+        areaServed: { "@type": "Country", name: "United States" },
+        audience: {
+          "@type": "BusinessAudience",
+          audienceType: "Independent dental practices, dental groups, and multi-location dental organizations",
+        },
       },
       pageSchema("/dental-consulting", "Dental Operations Consulting", "Dental consulting services focused on operational performance, growth, and practical follow-through."),
+      breadcrumbSchema([["Home", "/"], ["Dental Consulting", "/dental-consulting"]]),
     ],
   },
   "/practice-opportunity-review": {
@@ -154,10 +149,20 @@ const configs: Record<string, Omit<SeoConfig, "robots">> = {
         "@type": "Service",
         name: "Practice Opportunity Review",
         serviceType: "Dental practice operations review",
-        provider: organization,
+        provider: { "@id": organizationId },
         url: canonical("/practice-opportunity-review"),
       },
       pageSchema("/practice-opportunity-review", "Practice Opportunity Review", "A focused dental practice review that identifies operational opportunities and prioritized next steps."),
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: practiceReviewFaqItems.map((item) => ({
+          "@type": "Question",
+          name: item.question,
+          acceptedAnswer: { "@type": "Answer", text: item.answer },
+        })),
+      },
+      breadcrumbSchema([["Home", "/"], ["Practice Opportunity Review", "/practice-opportunity-review"]]),
     ],
   },
   "/how-it-works": {
@@ -199,7 +204,7 @@ const configs: Record<string, Omit<SeoConfig, "robots">> = {
         "@type": "Service",
         name: "Dental group operations consulting",
         serviceType: "Multi-location dental operations consulting",
-        provider: organization,
+        provider: { "@id": organizationId },
         audience: {
           "@type": "BusinessAudience",
           audienceType: "Dental groups and multi-location dental practices",
@@ -253,6 +258,15 @@ const configs: Record<string, Omit<SeoConfig, "robots">> = {
         mainEntity: organization,
       },
       pageSchema("/support", "alphaSource Consulting Support", "Public support for alphaSource Consulting workflows."),
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: publicSupportQuestions.map((item) => ({
+          "@type": "Question",
+          name: item.question,
+          acceptedAnswer: { "@type": "Answer", text: item.answer },
+        })),
+      },
       breadcrumbSchema([["Home", "/"], ["Support", "/support"]]),
     ],
   },
@@ -268,10 +282,11 @@ const configs: Record<string, Omit<SeoConfig, "robots">> = {
         applicationCategory: "BusinessApplication",
         operatingSystem: "Web",
         url: canonical("/analyzer"),
-        provider: organization,
+        provider: { "@id": organizationId },
         description: "A web-based intake and analysis workflow for approved dental practice financial and operations files.",
       },
       pageSchema("/analyzer", "Dental Operations Analyzer", "Public intake page for approved dental practice financial and operations analysis."),
+      breadcrumbSchema([["Home", "/"], ["Dental Operations Analyzer", "/analyzer"]]),
     ],
   },
   "/about": {
@@ -287,6 +302,7 @@ const configs: Record<string, Omit<SeoConfig, "robots">> = {
         name: "About alphaSource Consulting",
         description: "Dental industry experience and practical operational consulting from alphaSource Consulting.",
         url: canonical("/about"),
+        dateModified: publicRouteModifiedIso("/about"),
         isPartOf: { "@id": websiteId },
         publisher: { "@id": organizationId },
         mainEntity: { "@id": organizationId },
@@ -299,13 +315,19 @@ const configs: Record<string, Omit<SeoConfig, "robots">> = {
     title: "Privacy Policy | alphaSource Consulting",
     description: "Learn how alphaSource Consulting handles public website analytics, contact form lead capture, privacy choices, and public website requests.",
     path: "/privacy",
-    jsonLd: pageSchema("/privacy", "Privacy Policy", "Public website privacy policy for alphaSource Consulting."),
+    jsonLd: [
+      pageSchema("/privacy", "Privacy Policy", "Public website privacy policy for alphaSource Consulting."),
+      breadcrumbSchema([["Home", "/"], ["Privacy Policy", "/privacy"]]),
+    ],
   },
   "/terms": {
     title: "Website Terms | alphaSource Consulting",
     description: "Review the public website terms for alphaSource Consulting.",
     path: "/terms",
-    jsonLd: pageSchema("/terms", "Website Terms", "Public website terms for alphaSource Consulting."),
+    jsonLd: [
+      pageSchema("/terms", "Website Terms", "Public website terms for alphaSource Consulting."),
+      breadcrumbSchema([["Home", "/"], ["Website Terms", "/terms"]]),
+    ],
   },
 };
 

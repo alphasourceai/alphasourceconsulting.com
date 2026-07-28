@@ -59,6 +59,24 @@ function cleanPath(value: string): string {
   }
 }
 
+export function currentReferrerContext(): { path: string; host: string } {
+  if (typeof window === "undefined" || typeof document === "undefined" || !document.referrer) {
+    return { path: "/", host: "" };
+  }
+  try {
+    const referrer = new URL(document.referrer, window.location.origin);
+    if (referrer.origin === window.location.origin) {
+      return { path: referrer.pathname || "/", host: "" };
+    }
+    return {
+      path: "/external",
+      host: referrer.hostname.toLowerCase().replace(/^www\./, "").slice(0, 253),
+    };
+  } catch {
+    return { path: "/", host: "" };
+  }
+}
+
 export function currentUtm(): Record<string, string> {
   if (typeof window === "undefined") return {};
   const params = new URLSearchParams(window.location.search || "");
@@ -99,13 +117,15 @@ export function trackEvent(eventName: string, properties: AnalyticsProperties = 
   if (!analyticsEnabled || !isAnalyticsConsentGranted() || typeof window === "undefined") return;
   const base = siteApiBase();
   if (!base) return;
+  const referrer = currentReferrerContext();
   const payload = {
     event_name: eventName,
     anonymous_id: getAnonymousId(),
     session_id: getSessionId(),
     path: window.location.pathname || "/",
     page_title: document.title || "",
-    referrer_path: cleanPath(document.referrer || ""),
+    referrer_path: referrer.path,
+    referrer_host: referrer.host,
     utm: currentUtm(),
     properties: sanitizeProperties(properties),
   };

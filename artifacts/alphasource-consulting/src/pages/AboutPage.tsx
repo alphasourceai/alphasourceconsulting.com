@@ -1,41 +1,8 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ContactForm from "@/components/ContactForm";
-
-const team = [
-  {
-    name: "Jason Gardner",
-    role: "Co-Founder & CEO",
-    photo: "headshot-jason.webp",
-    width: 400,
-    height: 272,
-    bio: "Jason brings over 15 years of dental industry experience, having served in operational leadership roles at multi-site DSOs and private practices. He founded alphaSource to bridge the gap between enterprise-grade analytics and the independent practice.",
-  },
-  {
-    name: "Brent Ford",
-    role: "Co-Founder & CRO",
-    photo: "headshot-brent.webp",
-    width: 400,
-    height: 422,
-    bio: "Brent brings deep experience in digital marketing, growth strategy, and new-patient acquisition for dental and aesthetic practices. He helps practices attract the right patients, improve conversion, and use modern tools and AI-enabled systems to support sustainable growth.",
-  },
-  {
-    name: "Destinee Konecny",
-    role: "Consultant",
-    photo: "headshot-destinee.webp",
-    width: 400,
-    height: 413,
-    bio: "Destinee leads client relationships and ensures every practice we work with achieves measurable results. Her background in dental team training and patient experience design shapes our people-first approach.",
-  },
-  {
-    name: "Ashley Stephens",
-    role: "Consultant",
-    photo: "headshot-ashley.webp",
-    width: 400,
-    height: 600,
-    bio: "Ashley brings hands-on dental operations and patient experience expertise, with a background in office management, scheduling, treatment planning, team support, and workflow coordination. She helps practices operate efficiently while creating strong client and patient experiences.",
-  },
-];
+import { Linkedin } from "lucide-react";
+import { publicRouteModifiedDisplay, publicTeamMembers } from "@/lib/publicContent";
 
 export default function AboutPage() {
   return (
@@ -59,6 +26,7 @@ export default function AboutPage() {
           <p className="text-xl text-white/65 leading-relaxed max-w-2xl mx-auto">
             We're dental industry veterans, operators, and technologists who came together with one mission: help great practices reach their full potential.
           </p>
+          <p className="mt-5 text-sm font-semibold text-white/45">Last updated {publicRouteModifiedDisplay("/about")}</p>
         </div>
       </section>
 
@@ -70,7 +38,7 @@ export default function AboutPage() {
             <h2 className="text-4xl font-black text-[#0A1547]">Leadership Team</h2>
           </div>
           <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-4">
-            {team.map((member) => (
+            {publicTeamMembers.map((member) => (
               <div key={member.name} className="group bg-white rounded-3xl overflow-hidden border border-gray-100 hover:shadow-xl transition-all duration-300">
                 <div className="relative overflow-hidden h-72">
                   <img
@@ -87,6 +55,16 @@ export default function AboutPage() {
                   <h3 className="text-xl font-black text-[#0A1547] mb-1">{member.name}</h3>
                   <div className="text-xs font-bold text-[#A380F6] uppercase tracking-wider mb-4">{member.role}</div>
                   <p className="text-sm text-[#0A1547]/60 leading-relaxed">{member.bio}</p>
+                  <a
+                    href={member.linkedIn}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#6F4FE4] hover:text-[#0A1547]"
+                    aria-label={`${member.name} on LinkedIn`}
+                  >
+                    <Linkedin className="h-4 w-4" />
+                    LinkedIn
+                  </a>
                 </div>
               </div>
             ))}
