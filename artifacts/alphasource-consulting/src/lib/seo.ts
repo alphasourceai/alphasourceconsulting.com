@@ -1,3 +1,5 @@
+import { publicFaqItems } from "@/lib/publicContent";
+
 type JsonLd = Record<string, unknown> | Array<Record<string, unknown>>;
 
 export type SeoConfig = {
@@ -48,6 +50,19 @@ function pageSchema(path: string, name: string, description: string): Record<str
   };
 }
 
+function breadcrumbSchema(items: Array<[string, string]>): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map(([name, path], index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name,
+      item: canonical(path),
+    })),
+  };
+}
+
 const configs: Record<string, Omit<SeoConfig, "robots">> = {
   "/": {
     title: "alphaSource Consulting | Dental Operations Consulting",
@@ -86,6 +101,102 @@ const configs: Record<string, Omit<SeoConfig, "robots">> = {
         url: canonical("/practice-opportunity-review"),
       },
       pageSchema("/practice-opportunity-review", "Practice Opportunity Review", "A focused dental practice review that identifies operational opportunities and prioritized next steps."),
+    ],
+  },
+  "/how-it-works": {
+    title: "How Dental Operations Consulting Works | alphaSource Consulting",
+    description: "See how alphaSource Consulting scopes dental operations work, handles approved files, reviews evidence, prioritizes findings, and supports implementation.",
+    path: "/how-it-works",
+    jsonLd: [
+      {
+        "@context": "https://schema.org",
+        "@type": "HowTo",
+        name: "How an alphaSource Consulting engagement works",
+        description: "A practical workflow for scoping, data handling, analysis, consultant review, recommendations, and implementation follow-through.",
+        step: [
+          "Start with the operating question",
+          "Choose the right engagement",
+          "Confirm scope and agreements",
+          "Use the approved data path",
+          "Analyze and validate",
+          "Prioritize findings",
+          "Review recommendations",
+          "Implement and follow through",
+        ].map((name, index) => ({
+          "@type": "HowToStep",
+          position: index + 1,
+          name,
+        })),
+      },
+      pageSchema("/how-it-works", "How alphaSource Consulting Works", "The alphaSource Consulting workflow from scope confirmation through operating recommendations and follow-through."),
+      breadcrumbSchema([["Home", "/"], ["How It Works", "/how-it-works"]]),
+    ],
+  },
+  "/for-dental-groups": {
+    title: "Dental Group Operations Consulting | alphaSource Consulting",
+    description: "Operational consulting for dental groups and multi-location practices focused on location visibility, shared KPIs, revenue-cycle priorities, and leadership follow-through.",
+    path: "/for-dental-groups",
+    jsonLd: [
+      {
+        "@context": "https://schema.org",
+        "@type": "Service",
+        name: "Dental group operations consulting",
+        serviceType: "Multi-location dental operations consulting",
+        provider: organization,
+        audience: {
+          "@type": "BusinessAudience",
+          audienceType: "Dental groups and multi-location dental practices",
+        },
+        url: canonical("/for-dental-groups"),
+      },
+      pageSchema("/for-dental-groups", "Dental Group Operations Consulting", "Operational consulting for dental groups and multi-location dental practices."),
+      breadcrumbSchema([["Home", "/"], ["For Dental Groups", "/for-dental-groups"]]),
+    ],
+  },
+  "/faq": {
+    title: "Dental Consulting FAQ | alphaSource Consulting",
+    description: "Answers about dental operations consulting, Practice Opportunity Reviews, focused sprints, AI-assisted analysis, secure files, agreements, billing, and support.",
+    path: "/faq",
+    jsonLd: [
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: publicFaqItems.map((item) => ({
+          "@type": "Question",
+          name: item.question,
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: item.answer,
+          },
+        })),
+      },
+      pageSchema("/faq", "alphaSource Consulting FAQ", "Public questions and answers about alphaSource Consulting services and workflows."),
+      breadcrumbSchema([["Home", "/"], ["FAQ", "/faq"]]),
+    ],
+  },
+  "/security": {
+    title: "Security and Data Handling | alphaSource Consulting",
+    description: "Learn how alphaSource Consulting separates public forms, agreements, payments, Secure Uploads, analysis, reports, and sensitive client file workflows.",
+    path: "/security",
+    jsonLd: [
+      pageSchema("/security", "Security and Data Handling", "Public overview of alphaSource Consulting data-handling boundaries and workflow safeguards."),
+      breadcrumbSchema([["Home", "/"], ["Security and Data Handling", "/security"]]),
+    ],
+  },
+  "/support": {
+    title: "alphaSource Consulting Support",
+    description: "Get help with alphaSource Consulting setup, agreements, payment links, Secure Uploads, analysis workflows, PDF reports, and client records.",
+    path: "/support",
+    jsonLd: [
+      {
+        "@context": "https://schema.org",
+        "@type": "ContactPage",
+        name: "alphaSource Consulting Support",
+        url: canonical("/support"),
+        mainEntity: organization,
+      },
+      pageSchema("/support", "alphaSource Consulting Support", "Public support for alphaSource Consulting workflows."),
+      breadcrumbSchema([["Home", "/"], ["Support", "/support"]]),
     ],
   },
   "/analyzer": {

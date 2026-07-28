@@ -28,7 +28,19 @@ type TrackingConsentContextValue = {
 };
 
 const TrackingConsentContext = createContext<TrackingConsentContextValue | null>(null);
-const publicTrackingPaths = new Set(["/", "/dental-consulting", "/practice-opportunity-review", "/about", "/privacy", "/terms"]);
+const publicTrackingPaths = new Set([
+  "/",
+  "/dental-consulting",
+  "/practice-opportunity-review",
+  "/how-it-works",
+  "/for-dental-groups",
+  "/faq",
+  "/security",
+  "/support",
+  "/about",
+  "/privacy",
+  "/terms",
+]);
 
 function normalizePath(value: string): string {
   const path = String(value || "/").split("?")[0].split("#")[0] || "/";

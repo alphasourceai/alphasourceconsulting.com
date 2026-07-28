@@ -4,8 +4,16 @@ import { Link, useLocation } from "wouter";
 const navLinks = [
   { label: "Home", href: "/" },
   { label: "Dental Consulting", href: "/dental-consulting" },
-  { label: "Dental Operations Analyzer", href: "/analyzer" },
+  { label: "How It Works", href: "/how-it-works" },
+  { label: "Dental Groups", href: "/for-dental-groups" },
   { label: "About Us", href: "/about" },
+];
+const resourceLinks = [
+  { label: "Practice Opportunity Review", href: "/practice-opportunity-review" },
+  { label: "Dental Operations Analyzer", href: "/analyzer" },
+  { label: "FAQ", href: "/faq" },
+  { label: "Security", href: "/security" },
+  { label: "Support", href: "/support" },
 ];
 const contactPagePaths = new Set(["/", "/dental-consulting", "/about", "/practice-opportunity-review"]);
 
@@ -26,7 +34,7 @@ export default function Navbar() {
             />
           </Link>
 
-          <div className="hidden md:flex items-center gap-1">
+          <div className="hidden lg:flex items-center gap-1">
             {navLinks.map((link) => (
               <Link
                 key={link.label}
@@ -40,17 +48,33 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
+            <details className="group relative">
+              <summary className="cursor-pointer list-none rounded-lg px-3 py-2 text-sm font-semibold text-white/75 transition-colors hover:text-white">
+                Resources
+              </summary>
+              <div className="absolute right-0 top-full z-10 mt-2 w-64 rounded-lg border border-[#0A1547]/10 bg-white p-2 shadow-xl">
+                {resourceLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className="block rounded-md px-3 py-2.5 text-sm font-semibold text-[#0A1547]/70 transition-colors hover:bg-[#F8F9FD] hover:text-[#7C5CF2]"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+            </details>
           </div>
 
           <a
             href={contactHref}
-            className="hidden md:inline-flex items-center gap-2 px-5 py-2 text-sm font-bold text-[#0A1547] bg-white rounded-full hover:bg-[#A380F6] hover:text-white transition-all duration-200 active:scale-95"
+            className="hidden lg:inline-flex items-center gap-2 px-5 py-2 text-sm font-bold text-[#0A1547] bg-white rounded-full hover:bg-[#A380F6] hover:text-white transition-all duration-200 active:scale-95"
           >
             Get in Touch
           </a>
 
           <button
-            className="md:hidden p-2 rounded-lg text-white"
+            className="lg:hidden p-2 rounded-lg text-white"
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-label="Toggle menu"
           >
@@ -66,10 +90,21 @@ export default function Navbar() {
       </div>
 
       {mobileOpen && (
-        <div className="md:hidden bg-[#0d1a5e] border-t border-white/10 px-6 py-4 space-y-1">
+        <div className="lg:hidden bg-[#0d1a5e] border-t border-white/10 px-6 py-4 space-y-1">
           {navLinks.map((link) => (
             <Link
               key={link.label}
+              href={link.href}
+              className="block px-3 py-2.5 text-sm font-semibold text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+              onClick={() => setMobileOpen(false)}
+            >
+              {link.label}
+            </Link>
+          ))}
+          <p className="px-3 pb-1 pt-3 text-xs font-bold uppercase text-white/40">Resources</p>
+          {resourceLinks.map((link) => (
+            <Link
+              key={link.href}
               href={link.href}
               className="block px-3 py-2.5 text-sm font-semibold text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
               onClick={() => setMobileOpen(false)}

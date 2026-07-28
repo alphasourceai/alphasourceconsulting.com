@@ -12,6 +12,13 @@ import PracticeOpportunityReviewPage from "@/pages/PracticeOpportunityReviewPage
 import { PaymentCancelPage, PaymentSuccessPage } from "@/pages/PaymentResultPage";
 import PrivacyPage from "@/pages/PrivacyPage";
 import TermsPage from "@/pages/TermsPage";
+import {
+  ConsultingFaqPage,
+  ConsultingSupportPage,
+  DentalGroupsPage,
+  HowItWorksPage,
+  SecurityPage,
+} from "@/pages/ConsultingResourcePages";
 import Seo from "@/components/Seo";
 import PageAnalytics from "@/components/PageAnalytics";
 import TrackingConsentNotice from "@/components/TrackingConsentNotice";
@@ -24,6 +31,11 @@ function Router() {
     <Switch>
       <Route path="/" component={HomePage} />
       <Route path="/dental-consulting" component={DentalConsultingPage} />
+      <Route path="/how-it-works" component={HowItWorksPage} />
+      <Route path="/for-dental-groups" component={DentalGroupsPage} />
+      <Route path="/faq" component={ConsultingFaqPage} />
+      <Route path="/security" component={SecurityPage} />
+      <Route path="/support" component={ConsultingSupportPage} />
       <Route path="/analyzer" component={AnalyzerPage} />
       <Route path="/agreements/sign/:token" component={AgreementSignerPage} />
       <Route path="/practice-opportunity-review" component={PracticeOpportunityReviewPage} />

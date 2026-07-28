@@ -4,4 +4,10 @@ Disallow: /agreements/sign/
 Disallow: /payment-success
 Disallow: /payment-cancel
 
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /agreements/sign/
+Disallow: /payment-success
+Disallow: /payment-cancel
+
 Sitemap: https://alphasourceconsulting.com/sitemap.xml

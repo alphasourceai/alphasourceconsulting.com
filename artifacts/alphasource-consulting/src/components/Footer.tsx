@@ -7,7 +7,7 @@ export default function Footer() {
   return (
     <footer className="bg-[#0A1547] text-white">
       <div className="max-w-7xl mx-auto px-6 lg:px-8 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
+        <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-5">
           <div className="md:col-span-2">
             <div className="mb-4">
               <img
@@ -40,8 +40,28 @@ export default function Footer() {
               {[
                 { label: "Home", href: "/" },
                 { label: "Dental Consulting", href: "/dental-consulting" },
-                { label: "Dental Operations Analyzer", href: "/analyzer" },
+                { label: "How It Works", href: "/how-it-works" },
+                { label: "For Dental Groups", href: "/for-dental-groups" },
                 { label: "About Us", href: "/about" },
+              ].map((link) => (
+                <li key={link.label}>
+                  <Link href={link.href} className="text-sm text-white/60 hover:text-[#A380F6] transition-colors">
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-sm font-bold text-white mb-4 uppercase tracking-wider">Resources</h4>
+            <ul className="space-y-3">
+              {[
+                { label: "Practice Opportunity Review", href: "/practice-opportunity-review" },
+                { label: "Dental Operations Analyzer", href: "/analyzer" },
+                { label: "FAQ", href: "/faq" },
+                { label: "Security", href: "/security" },
+                { label: "Support", href: "/support" },
               ].map((link) => (
                 <li key={link.label}>
                   <Link href={link.href} className="text-sm text-white/60 hover:text-[#A380F6] transition-colors">
@@ -73,7 +93,7 @@ export default function Footer() {
           <p className="text-white/40 text-sm">
             &copy; {new Date().getFullYear()} alphaSource Consulting. All rights reserved.
           </p>
-          <div className="flex items-center gap-6">
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
             <Link href="/terms" className="text-white/40 text-sm hover:text-white/70 transition-colors">
               Terms &amp; Conditions
             </Link>

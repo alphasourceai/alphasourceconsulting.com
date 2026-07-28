@@ -27,6 +27,7 @@ function upsertCanonical(href: string | null) {
 
 function upsertJsonLd(data: unknown) {
   const idPrefix = "alphasource-consulting-route-jsonld";
+  document.querySelectorAll('script[data-prerender-jsonld]').forEach((element) => element.remove());
   const existing = Array.from(document.querySelectorAll<HTMLScriptElement>(`script[id^="${idPrefix}"]`));
   const entries = Array.isArray(data) ? data : data ? [data] : [];
   entries.forEach((entry, index) => {
@@ -45,6 +46,7 @@ function upsertJsonLd(data: unknown) {
 
 export default function Seo({ location }: { location: string }) {
   useEffect(() => {
+    document.querySelector('style[data-prerender-styles]')?.remove();
     const config = getSeoConfig(location);
     const indexable = config.robots.startsWith("index") && Boolean(config.path);
     const url = indexable && config.path ? canonicalUrl(config.path) : null;
