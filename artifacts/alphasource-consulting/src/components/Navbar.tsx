@@ -5,10 +5,10 @@ const navLinks = [
   { label: "Home", href: "/" },
   { label: "Dental Consulting", href: "/dental-consulting" },
   { label: "How It Works", href: "/how-it-works" },
-  { label: "Dental Groups", href: "/for-dental-groups" },
   { label: "About Us", href: "/about" },
 ];
 const resourceLinks = [
+  { label: "Dental Groups", href: "/for-dental-groups" },
   { label: "Practice Opportunity Review", href: "/practice-opportunity-review" },
   { label: "Dental Operations Analyzer", href: "/analyzer" },
   { label: "FAQ", href: "/faq" },
