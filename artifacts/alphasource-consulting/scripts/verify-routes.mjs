@@ -19,7 +19,7 @@ const specializedTypes = {
   "/support": "ContactPage",
 };
 const faqCounts = {
-  "/": 3,
+  "/": publicSiteContent.homeFaqQuestions.length,
   "/faq": publicSiteContent.publicFaqSections.flatMap((section) => section.items).length,
   "/practice-opportunity-review": publicSiteContent.practiceReviewFaqItems.length,
   "/support": publicSiteContent.publicSupportQuestions.length,
@@ -38,6 +38,7 @@ for (const route of manifest.publicRoutes) {
     `data-public-prerender-route="${route}"`,
     '<meta name="robots" content="index,follow"',
     '<link rel="canonical"',
+    'property="og:locale" content="en_US"',
     'type="application/ld+json"',
     '<script type="module"',
   ]) {
@@ -69,6 +70,20 @@ for (const route of manifest.publicRoutes) {
     const faqSchema = schemas.find((schema) => schema["@type"] === "FAQPage");
     if (faqSchema?.mainEntity?.length !== faqCounts[route]) {
       errors.push(`${route} must include ${faqCounts[route]} FAQ questions`);
+    }
+  }
+  if (route === "/") {
+    for (const requiredCopy of [
+      "Built for People, Powered by AI",
+      "Turn practice files into operational priorities",
+      "Who this is for",
+      "What you get",
+      "Who we are",
+      "Free Analyzer",
+      "Practice Opportunity Review",
+      "Operations Intelligence Partner",
+    ]) {
+      if (!html.includes(requiredCopy)) errors.push(`/ crawler snapshot is missing ${requiredCopy}`);
     }
   }
   for (const disallowedType of ["ProfessionalService", "MedicalBusiness", "Dentist", "AggregateRating"]) {

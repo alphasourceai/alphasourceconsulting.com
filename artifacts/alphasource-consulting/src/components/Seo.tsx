@@ -55,6 +55,7 @@ export default function Seo({ location }: { location: string }) {
     upsertMeta('meta[name="description"]', { name: "description" }, config.description);
     upsertMeta('meta[name="robots"]', { name: "robots" }, config.robots);
     upsertMeta('meta[property="og:type"]', { property: "og:type" }, "website");
+    upsertMeta('meta[property="og:locale"]', { property: "og:locale" }, "en_US");
     upsertMeta('meta[property="og:site_name"]', { property: "og:site_name" }, "alphaSource Consulting");
     upsertMeta('meta[property="og:title"]', { property: "og:title" }, config.title);
     upsertMeta('meta[property="og:description"]', { property: "og:description" }, config.description);

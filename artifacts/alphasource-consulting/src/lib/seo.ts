@@ -1,6 +1,7 @@
 import {
   practiceReviewFaqItems,
   publicFaqItems,
+  publicHomeFaqItems,
   publicRouteModifiedIso,
   publicSupportQuestions,
   publicTeamMembers,
@@ -108,7 +109,7 @@ const configs: Record<string, Omit<SeoConfig, "robots">> = {
       {
         "@context": "https://schema.org",
         "@type": "FAQPage",
-        mainEntity: publicFaqItems.slice(0, 3).map((item) => ({
+        mainEntity: publicHomeFaqItems.map((item) => ({
           "@type": "Question",
           name: item.question,
           acceptedAnswer: { "@type": "Answer", text: item.answer },

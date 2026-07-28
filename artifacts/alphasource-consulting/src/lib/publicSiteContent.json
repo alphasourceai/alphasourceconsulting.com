@@ -13,6 +13,14 @@
     "/privacy": "2026-07-28",
     "/terms": "2026-07-27"
   },
+  "homeFaqQuestions": [
+    "What is alphaSource Consulting?",
+    "Who does alphaSource Consulting work with?",
+    "What types of operational issues can you review?",
+    "How much does the Practice Opportunity Review cost?",
+    "How long does a Practice Opportunity Review take?",
+    "Can I submit PHI through the public website or analyzer?"
+  ],
   "teamMembers": [
     {
       "name": "Jason Gardner",
@@ -85,6 +93,10 @@
         {
           "question": "What is the Practice Opportunity Review?",
           "answer": "It is a focused, consultant-reviewed diagnostic for one practice or location. The published scope includes a defined file set, AI-assisted analysis, human consultant review, a PDF summary, a 30-minute review call, and a 30-day action plan."
+        },
+        {
+          "question": "How much does the Practice Opportunity Review cost?",
+          "answer": "Current founder pricing is $995 for the published one-practice or one-location scope. Final scope, fees, and any work beyond that published scope are confirmed in writing before the engagement begins."
         },
         {
           "question": "What is a focused consulting sprint?",

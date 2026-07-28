@@ -56,6 +56,11 @@ const navLinks = [
 const faqItems = publicSiteContent.publicFaqSections
   .flatMap((section) => section.items)
   .map((item) => [item.question, item.answer]);
+const homeFaqItems = publicSiteContent.homeFaqQuestions.map((question) => {
+  const item = faqItems.find(([candidate]) => candidate === question);
+  if (!item) throw new Error(`Missing configured homepage FAQ: ${question}`);
+  return item;
+});
 const supportFaqItems = publicSiteContent.publicSupportQuestions.map((item) => [item.question, item.answer]);
 const practiceReviewFaqItems = publicSiteContent.practiceReviewFaqItems.map((item) => [item.question, item.answer]);
 
@@ -67,11 +72,23 @@ const routeContent = {
     h1: "Practical operating clarity for dental practices and groups.",
     intro: "alphaSource Consulting combines dental industry experience, AI-assisted analysis, and human consultant review to help practices identify priorities and improve follow-through.",
     sections: [
-      ["Consulting services", ["Engagements can address operations analysis, talent strategy, AI integration, practice growth, revenue leakage, accounts receivable, claims, new-patient conversion, and leadership visibility."]],
-      ["Ways to engage", ["Start with a Practice Opportunity Review, use a focused sprint for a defined operating issue, or establish an ongoing Operations Intelligence Partner cadence."]],
+      ["Built for People, Powered by AI", [
+        "People-Driven: Technology should serve people. Recommendations keep the practice team and patients central, including scheduling, staffing, and operating workflow decisions.",
+        "Data-Informed: The AI-powered analyzer can surface trends and patterns in approved operations data. Human consultant review adds interpretation, prioritization, and client-facing recommendations.",
+        "Time Back: The tools and consulting workflow are designed to reduce administrative overhead so practice leaders can focus on patient care and operational follow-through.",
+      ]],
+      ["Turn practice files into operational priorities", [
+        "The analyzer gives an initial view. The Practice Opportunity Review turns that signal into a consultant-reviewed action plan.",
+        "Free Analyzer: Upload approved practice financial or operations files and receive an initial AI-assisted view of trends, risks, and improvement opportunities.",
+        "Practice Opportunity Review: Current founder pricing is $995 for a consultant-reviewed diagnostic with 5-7 prioritized findings, a PDF summary, a 30-minute review call, and a 30-day action plan.",
+        "Operations Intelligence Partner: Starting at $2,500 per month, this ongoing option can include monthly review, KPI and action planning, workflow recommendations, and implementation accountability.",
+      ]],
+      ["Who this is for", ["Services are designed for independent dental practices, growth-oriented offices, dental groups, and multi-location organizations that want clearer operational priorities and practical implementation support."]],
+      ["What you get", ["Deliverables depend on the written scope. A focused review can include a PDF summary, prioritized findings, a review call, and an action plan. Sprints and ongoing engagements may add implementation priorities, scorecards, trend review, and follow-up."]],
+      ["Who we are", ["alphaSource Consulting was founded by dental industry veterans who have seen firsthand the administrative burden that keeps practices from reaching their full potential. The team combines dental operations experience, growth strategy, practical consulting, and technology."]],
       ["Public and secure workflows", ["Public contact and analyzer routes are separate from agreements, payments, Secure Uploads, client analysis, and private report workflows."]],
     ],
-    qa: faqItems.slice(0, 3),
+    qa: homeFaqItems,
   },
   "/dental-consulting": {
     title: "Dental Operations Consulting | alphaSource Consulting",
@@ -240,6 +257,7 @@ function renderRouteHtml(html, route, content) {
   next = replaceOrInsert(next, /<meta\s+name=["']robots["'][\s\S]*?>/i, '<meta name="robots" content="index,follow" />');
   next = replaceOrInsert(next, /<link\s+rel=["']canonical["'][\s\S]*?>/i, `<link rel="canonical" href="${routeUrl(route)}" />`);
   next = replaceOrInsert(next, /<meta\s+property=["']og:type["'][\s\S]*?>/i, '<meta property="og:type" content="website" />');
+  next = replaceOrInsert(next, /<meta\s+property=["']og:locale["'][\s\S]*?>/i, '<meta property="og:locale" content="en_US" />');
   next = replaceOrInsert(next, /<meta\s+property=["']og:site_name["'][\s\S]*?>/i, '<meta property="og:site_name" content="alphaSource Consulting" />');
   next = replaceOrInsert(next, /<meta\s+property=["']og:title["'][\s\S]*?>/i, `<meta property="og:title" content="${escapeAttr(content.title)}" />`);
   next = replaceOrInsert(next, /<meta\s+property=["']og:description["'][\s\S]*?>/i, `<meta property="og:description" content="${escapeAttr(content.description)}" />`);

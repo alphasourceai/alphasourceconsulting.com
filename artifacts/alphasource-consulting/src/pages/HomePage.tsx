@@ -1,7 +1,7 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ContactForm from "@/components/ContactForm";
-import { publicFaqItems, publicRouteModifiedDisplay } from "@/lib/publicContent";
+import { publicHomeFaqItems, publicRouteModifiedDisplay } from "@/lib/publicContent";
 
 const pillars = [
   {
@@ -73,8 +73,6 @@ const offerCards = [
     href: "#contact",
   },
 ];
-
-const homeFaqItems = publicFaqItems.slice(0, 3);
 
 export default function HomePage() {
   return (
@@ -286,7 +284,7 @@ export default function HomePage() {
             <a href="/faq" className="text-sm font-bold text-[#6F4FE4] hover:text-[#0A1547]">View all FAQs</a>
           </div>
           <div className="mt-9 divide-y divide-[#0A1547]/10 border-y border-[#0A1547]/10">
-            {homeFaqItems.map((item) => (
+            {publicHomeFaqItems.map((item) => (
               <details key={item.question} className="group py-1">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-5 py-5 text-left text-base font-bold text-[#0A1547]">
                   {item.question}

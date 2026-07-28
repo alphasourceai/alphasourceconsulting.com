@@ -24,6 +24,12 @@ export type PublicTeamMember = {
 export const publicFaqSections = publicSiteContent.publicFaqSections as PublicFaqSection[];
 
 export const publicFaqItems = publicFaqSections.flatMap((section) => section.items);
+const publicFaqByQuestion = new Map(publicFaqItems.map((item) => [item.question, item]));
+export const publicHomeFaqItems = publicSiteContent.homeFaqQuestions.map((question) => {
+  const item = publicFaqByQuestion.get(question);
+  if (!item) throw new Error(`Missing configured homepage FAQ: ${question}`);
+  return item;
+});
 export const publicSupportQuestions = publicSiteContent.publicSupportQuestions as PublicFaqItem[];
 export const practiceReviewFaqItems = publicSiteContent.practiceReviewFaqItems as PublicFaqItem[];
 export const publicTeamMembers = publicSiteContent.teamMembers as PublicTeamMember[];
