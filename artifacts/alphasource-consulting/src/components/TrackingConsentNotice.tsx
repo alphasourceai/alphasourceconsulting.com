@@ -26,8 +26,8 @@ export default function TrackingConsentNotice() {
           We use essential technology to operate this site. Optional first-party analytics helps us understand public page and form activity without placing contact details in analytics events. Read our <Link href="/privacy" className="font-semibold text-[#6F4FE4] underline">Privacy Policy</Link>.
         </p>
         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
-          <button type="button" onClick={openPreferences} className="rounded-lg border border-[#0A1547]/15 px-4 py-2.5 text-sm font-semibold text-[#0A1547]">Configure preferences</button>
-          <button type="button" onClick={acceptAnalytics} className="rounded-lg bg-[#A380F6] px-4 py-2.5 text-sm font-bold text-white">Allow analytics</button>
+          <button type="button" onClick={openPreferences} className="rounded-lg border border-[#0A1547]/15 px-4 py-2.5 text-sm font-semibold text-[#0A1547]">Configure</button>
+          <button type="button" onClick={acceptAnalytics} className="rounded-lg bg-[#A380F6] px-4 py-2.5 text-sm font-bold text-white">Allow</button>
         </div>
       </aside>
     );
