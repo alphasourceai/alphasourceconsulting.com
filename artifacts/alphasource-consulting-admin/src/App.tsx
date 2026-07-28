@@ -15,6 +15,7 @@ import LoginPage from "@/pages/LoginPage";
 import OverviewPage from "@/pages/OverviewPage";
 import PDFGeneratorPage from "@/pages/PDFGeneratorPage";
 import SecureUploadsPage from "@/pages/SecureUploadsPage";
+import SiteAnalyticsPage from "@/pages/SiteAnalyticsPage";
 import UiMockupPage from "@/pages/UiMockupPage";
 import type { AdminPermissions } from "@/lib/types";
 
@@ -284,6 +285,18 @@ function AuditTrailRoute() {
   );
 }
 
+function SiteAnalyticsRoute() {
+  return (
+    <ProtectedRoute
+      canAccess={(permissions) => permissions.canReadSiteAnalytics}
+      title="Site Analytics"
+      description="Review consented public-site activity and first-party contact lead captures."
+    >
+      <SiteAnalyticsPage />
+    </ProtectedRoute>
+  );
+}
+
 function HelpRoute() {
   return (
     <ProtectedRoute
@@ -325,6 +338,7 @@ function AppRoutes() {
         <Route path="/billing" component={BillingRoute} />
         <Route path="/admin-management" component={AdminManagementRoute} />
         <Route path="/audit" component={AuditTrailRoute} />
+        <Route path="/site-analytics" component={SiteAnalyticsRoute} />
         <Route path="/help" component={HelpRoute} />
         <Route path="/ui-mockup" component={UiMockupRoute} />
         <Route component={RootRoute} />

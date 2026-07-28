@@ -41,6 +41,9 @@ import type {
   SecureUploadDownloadUrlResponse,
   SecureUploadFilesQuery,
   SecureUploadFilesResponse,
+  SiteAnalyticsLeadActionResponse,
+  SiteAnalyticsQuery,
+  SiteAnalyticsResponse,
   UpdateAdminUserAccessRequest,
   UpdateAdminUserAccessResponse,
   VoidAdminUploadRequest,
@@ -130,6 +133,25 @@ function auditEventsParams(query: AuditEventsQuery = {}): URLSearchParams {
     }
   });
 
+  return params;
+}
+
+function siteAnalyticsParams(query: SiteAnalyticsQuery = {}): URLSearchParams {
+  const params = new URLSearchParams();
+  const filters: Array<[keyof SiteAnalyticsQuery, string]> = [
+    ["startDate", "startDate"],
+    ["endDate", "endDate"],
+    ["leadStatus", "leadStatus"],
+    ["archive", "archive"],
+    ["path", "path"],
+    ["eventName", "eventName"],
+  ];
+  filters.forEach(([key, name]) => {
+    const value = query[key];
+    if (typeof value === "string" && value.trim() && value !== "all") params.set(name, value.trim());
+  });
+  if (query.leadLimit !== undefined) params.set("leadLimit", String(query.leadLimit));
+  if (query.leadOffset !== undefined) params.set("leadOffset", String(query.leadOffset));
   return params;
 }
 
@@ -263,6 +285,49 @@ export async function exportAuditEventsCsv(
   }
 
   return response.blob();
+}
+
+export function getSiteAnalytics(
+  token: string,
+  query: SiteAnalyticsQuery = {},
+  signal?: AbortSignal,
+): Promise<SiteAnalyticsResponse> {
+  const params = siteAnalyticsParams(query);
+  return adminRequest<SiteAnalyticsResponse>(`/api/admin/site-analytics?${params.toString()}`, { token, signal });
+}
+
+export async function exportSiteAnalyticsLeadsCsv(
+  token: string,
+  query: SiteAnalyticsQuery = {},
+  signal?: AbortSignal,
+): Promise<Blob> {
+  const params = siteAnalyticsParams(query);
+  const response = await fetch(`${getAdminApiBaseUrl()}/api/admin/site-analytics/leads.csv?${params.toString()}`, {
+    method: "GET",
+    headers: { Accept: "text/csv", Authorization: `Bearer ${token}` },
+    signal,
+  });
+  if (!response.ok) {
+    const error = readErrorMessage(await readJson(response));
+    throw new AdminApiError(error.message, response.status, error.code);
+  }
+  return response.blob();
+}
+
+export function updateSiteAnalyticsLeadArchiveState(
+  token: string,
+  leadId: string,
+  archived: boolean,
+  reason = "",
+  signal?: AbortSignal,
+): Promise<SiteAnalyticsLeadActionResponse> {
+  const action = archived ? "archive" : "unarchive";
+  return adminRequest<SiteAnalyticsLeadActionResponse>(`/api/admin/site-analytics/leads/${encodeURIComponent(leadId)}/${action}`, {
+    token,
+    signal,
+    method: "POST",
+    body: archived ? { reason } : {},
+  });
 }
 
 export function getAdminClients(

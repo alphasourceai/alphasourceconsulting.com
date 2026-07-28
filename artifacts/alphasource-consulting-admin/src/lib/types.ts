@@ -17,6 +17,8 @@ export type AdminPermissions = {
   canReadAdminManagement: boolean;
   canManageAdminAccess: boolean;
   canReadAudit: boolean;
+  canReadSiteAnalytics: boolean;
+  canManageSiteAnalytics: boolean;
 };
 
 export type AdminUser = {
@@ -119,6 +121,71 @@ export type AuditEventsResponse = {
   items: AuditEvent[];
   count: number;
   hasMore: boolean;
+};
+
+export type SiteAnalyticsQuery = {
+  startDate?: string;
+  endDate?: string;
+  leadStatus?: "partial" | "abandoned" | "submitted" | "all";
+  archive?: "active" | "archived" | "all";
+  path?: string;
+  eventName?: string;
+  leadLimit?: number;
+  leadOffset?: number;
+};
+
+export type SiteAnalyticsLead = {
+  id: string;
+  status: "partial" | "abandoned" | "submitted" | string;
+  formId: string | null;
+  formType: string | null;
+  productInterest: string | null;
+  contact: { fullName: string | null; email: string | null; phone: string | null };
+  messagePreview: string | null;
+  fieldsCompleted: string[];
+  lastField: string | null;
+  source: { path: string | null; cta: string | null; utm: Record<string, string> };
+  submittedAt: string | null;
+  updatedAt: string | null;
+  expiresAt: string | null;
+  archived: boolean;
+  archivedAt: string | null;
+};
+
+export type SiteAnalyticsEvent = {
+  id: string;
+  eventName: string;
+  path: string;
+  properties: Record<string, unknown>;
+  utm: Record<string, string>;
+  occurredAt: string | null;
+};
+
+export type SiteAnalyticsResponse = {
+  ok: true;
+  generatedAt: string | null;
+  dateRange: { startDate: string; endDate: string };
+  sampled: boolean;
+  summary: {
+    publicAnalyticsEvents: number;
+    pageViews: number;
+    ctaClicks: number;
+    leadCaptures: number;
+    submittedLeads: number;
+    partialLeads: number;
+    abandonedLeads: number;
+  };
+  leads: { items: SiteAnalyticsLead[]; count: number; hasMore: boolean; offset: number };
+  pageActivity: Array<{ path: string; pageViews: number; ctaClicks: number; formActivity: number; leadCount: number }>;
+  ctaActivity: Array<{ label: string; placement: string; target: string; count: number }>;
+  formActivity: Array<{ formId: string; formType: string; productInterest: string; viewed: number; started: number; submitted: number; draftSaved: number; abandoned: number }>;
+  eventTypes: Array<{ eventName: string; count: number }>;
+  events: { items: SiteAnalyticsEvent[]; count: number };
+};
+
+export type SiteAnalyticsLeadActionResponse = {
+  ok: true;
+  lead: SiteAnalyticsLead;
 };
 
 export type BillingSummary = {

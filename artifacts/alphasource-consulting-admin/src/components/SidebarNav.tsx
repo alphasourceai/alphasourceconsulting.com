@@ -12,6 +12,7 @@ const navItems = [
   { href: "/billing", label: "Billing", canShow: (permissions: AdminPermissions) => permissions.canReadBilling },
   { href: "/admin-management", label: "Admin Access", canShow: (permissions: AdminPermissions) => permissions.canReadAdminManagement },
   { href: "/audit", label: "Audit Trail", canShow: (permissions: AdminPermissions) => permissions.canReadAudit },
+  { href: "/site-analytics", label: "Site Analytics", canShow: (permissions: AdminPermissions) => permissions.canReadSiteAnalytics },
   { href: "/help", label: "Help & FAQ", canShow: () => true },
 ];
 

@@ -1,6 +1,9 @@
 import { Link } from "wouter";
+import { useTrackingConsent } from "@/context/TrackingConsentContext";
 
 export default function Footer() {
+  const { openPreferences } = useTrackingConsent();
+
   return (
     <footer className="bg-[#0A1547] text-white">
       <div className="max-w-7xl mx-auto px-6 lg:px-8 py-16">
@@ -71,12 +74,15 @@ export default function Footer() {
             &copy; {new Date().getFullYear()} alphaSource Consulting. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
-            <a href="#" className="text-white/40 text-sm hover:text-white/70 transition-colors">
+            <Link href="/terms" className="text-white/40 text-sm hover:text-white/70 transition-colors">
               Terms &amp; Conditions
-            </a>
-            <a href="#" className="text-white/40 text-sm hover:text-white/70 transition-colors">
+            </Link>
+            <Link href="/privacy" className="text-white/40 text-sm hover:text-white/70 transition-colors">
               Privacy Policy
-            </a>
+            </Link>
+            <button type="button" onClick={openPreferences} className="text-white/40 text-sm hover:text-white/70 transition-colors">
+              Privacy Choices
+            </button>
           </div>
         </div>
       </div>

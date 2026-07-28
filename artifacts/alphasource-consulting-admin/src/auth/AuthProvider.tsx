@@ -52,6 +52,8 @@ const defaultAdminPermissions: AdminPermissions = {
   canReadAdminManagement: false,
   canManageAdminAccess: false,
   canReadAudit: false,
+  canReadSiteAnalytics: false,
+  canManageSiteAnalytics: false,
 };
 
 function normalizeAdminPermissions(response: AdminMeResponse): AdminPermissions {
