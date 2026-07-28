@@ -1,15 +1,11 @@
 import { lazy, Suspense } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Seo from "@/components/Seo";
 import PageAnalytics from "@/components/PageAnalytics";
 import TrackingConsentNotice from "@/components/TrackingConsentNotice";
 import { TrackingConsentProvider } from "@/context/TrackingConsentContext";
 
-const queryClient = new QueryClient();
 const HomePage = lazy(() => import("@/pages/HomePage"));
 const DentalConsultingPage = lazy(() => import("@/pages/DentalConsultingPage"));
 const AnalyzerPage = lazy(() => import("@/pages/AnalyzerPage"));
@@ -88,16 +84,11 @@ function PublicSiteShell() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <TrackingConsentProvider>
-          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <PublicSiteShell />
-          </WouterRouter>
-        </TrackingConsentProvider>
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <TrackingConsentProvider>
+      <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+        <PublicSiteShell />
+      </WouterRouter>
+    </TrackingConsentProvider>
   );
 }
 

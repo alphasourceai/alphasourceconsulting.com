@@ -11,13 +11,69 @@ export type SeoConfig = {
 };
 
 const siteUrl = "https://alphasourceconsulting.com";
+const organizationId = `${siteUrl}/#organization`;
+const websiteId = `${siteUrl}/#website`;
+const teamMembers = [
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "@id": `${siteUrl}/about#jason-gardner`,
+    name: "Jason Gardner",
+    jobTitle: "Co-Founder & CEO",
+    description: "Dental industry operator with experience in multi-site DSOs and private practices.",
+    image: `${siteUrl}/headshot-jason.webp`,
+    worksFor: { "@id": organizationId },
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "@id": `${siteUrl}/about#brent-ford`,
+    name: "Brent Ford",
+    jobTitle: "Co-Founder & CRO",
+    description: "Growth strategist focused on digital marketing, new-patient acquisition, and sustainable practice growth.",
+    image: `${siteUrl}/headshot-brent.webp`,
+    worksFor: { "@id": organizationId },
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "@id": `${siteUrl}/about#destinee-konecny`,
+    name: "Destinee Konecny",
+    jobTitle: "Consultant",
+    description: "Dental consultant focused on client relationships, team training, and patient experience.",
+    image: `${siteUrl}/headshot-destinee.webp`,
+    worksFor: { "@id": organizationId },
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "@id": `${siteUrl}/about#ashley-stephens`,
+    name: "Ashley Stephens",
+    jobTitle: "Consultant",
+    description: "Dental operations consultant with experience in office management, scheduling, treatment planning, and workflow coordination.",
+    image: `${siteUrl}/headshot-ashley.webp`,
+    worksFor: { "@id": organizationId },
+  },
+];
 const organization = {
   "@context": "https://schema.org",
   "@type": "Organization",
+  "@id": organizationId,
   name: "alphaSource Consulting",
   legalName: "alphaSource Network, LLC",
   url: `${siteUrl}/`,
   logo: `${siteUrl}/alpha-symbol.png`,
+  description: "Dental operations consulting and practical analysis support for independent practices and dental groups.",
+  areaServed: { "@type": "Country", name: "United States" },
+  knowsAbout: [
+    "Dental operations consulting",
+    "Dental practice financial analysis",
+    "Revenue cycle operations",
+    "Multi-location dental operations",
+    "Dental practice growth strategy",
+  ],
+  founder: teamMembers.slice(0, 2).map((member) => ({ "@id": member["@id"] })),
+  employee: teamMembers.slice(2).map((member) => ({ "@id": member["@id"] })),
   contactPoint: {
     "@type": "ContactPoint",
     email: "hello@alphasourceconsulting.com",
@@ -29,9 +85,10 @@ const organization = {
 const website = {
   "@context": "https://schema.org",
   "@type": "WebSite",
+  "@id": websiteId,
   name: "alphaSource Consulting",
   url: `${siteUrl}/`,
-  publisher: { "@type": "Organization", name: "alphaSource Consulting", url: `${siteUrl}/` },
+  publisher: { "@id": organizationId },
 };
 
 function canonical(path = "/"): string {
@@ -221,7 +278,22 @@ const configs: Record<string, Omit<SeoConfig, "robots">> = {
     title: "About alphaSource Consulting | Dental Industry Experience",
     description: "Meet the alphaSource Consulting team and learn how dental operations experience and practical analysis support better practice decisions.",
     path: "/about",
-    jsonLd: pageSchema("/about", "About alphaSource Consulting", "Dental industry experience and practical operational consulting from alphaSource Consulting."),
+    jsonLd: [
+      organization,
+      ...teamMembers,
+      {
+        "@context": "https://schema.org",
+        "@type": "AboutPage",
+        name: "About alphaSource Consulting",
+        description: "Dental industry experience and practical operational consulting from alphaSource Consulting.",
+        url: canonical("/about"),
+        isPartOf: { "@id": websiteId },
+        publisher: { "@id": organizationId },
+        mainEntity: { "@id": organizationId },
+        about: teamMembers.map((member) => ({ "@id": member["@id"] })),
+      },
+      breadcrumbSchema([["Home", "/"], ["About", "/about"]]),
+    ],
   },
   "/privacy": {
     title: "Privacy Policy | alphaSource Consulting",

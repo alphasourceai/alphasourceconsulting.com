@@ -10,6 +10,50 @@ const spaShellPath = path.join(distRoot, "spa-shell.html");
 const manifestPath = path.join(projectRoot, "render-routes.json");
 const SITE_URL = "https://alphasourceconsulting.com";
 const LAST_UPDATED = "July 28, 2026";
+const ORGANIZATION_ID = `${SITE_URL}/#organization`;
+const WEBSITE_ID = `${SITE_URL}/#website`;
+const TEAM_MEMBERS = [
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "@id": `${SITE_URL}/about#jason-gardner`,
+    name: "Jason Gardner",
+    jobTitle: "Co-Founder & CEO",
+    description: "Dental industry operator with experience in multi-site DSOs and private practices.",
+    image: `${SITE_URL}/headshot-jason.webp`,
+    worksFor: { "@id": ORGANIZATION_ID },
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "@id": `${SITE_URL}/about#brent-ford`,
+    name: "Brent Ford",
+    jobTitle: "Co-Founder & CRO",
+    description: "Growth strategist focused on digital marketing, new-patient acquisition, and sustainable practice growth.",
+    image: `${SITE_URL}/headshot-brent.webp`,
+    worksFor: { "@id": ORGANIZATION_ID },
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "@id": `${SITE_URL}/about#destinee-konecny`,
+    name: "Destinee Konecny",
+    jobTitle: "Consultant",
+    description: "Dental consultant focused on client relationships, team training, and patient experience.",
+    image: `${SITE_URL}/headshot-destinee.webp`,
+    worksFor: { "@id": ORGANIZATION_ID },
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "@id": `${SITE_URL}/about#ashley-stephens`,
+    name: "Ashley Stephens",
+    jobTitle: "Consultant",
+    description: "Dental operations consultant with experience in office management, scheduling, treatment planning, and workflow coordination.",
+    image: `${SITE_URL}/headshot-ashley.webp`,
+    worksFor: { "@id": ORGANIZATION_ID },
+  },
+];
 
 if (!fs.existsSync(indexPath)) {
   throw new Error(`Build output not found at ${indexPath}. Run Vite build before prerendering.`);
@@ -253,28 +297,49 @@ function createSchemas(route, content) {
   const organization = {
     "@context": "https://schema.org",
     "@type": "Organization",
+    "@id": ORGANIZATION_ID,
     name: "alphaSource Consulting",
     legalName: "alphaSource Network, LLC",
     url: `${SITE_URL}/`,
     logo: `${SITE_URL}/alpha-symbol.png`,
+    description: "Dental operations consulting and practical analysis support for independent practices and dental groups.",
+    areaServed: { "@type": "Country", name: "United States" },
+    knowsAbout: [
+      "Dental operations consulting",
+      "Dental practice financial analysis",
+      "Revenue cycle operations",
+      "Multi-location dental operations",
+      "Dental practice growth strategy",
+    ],
+    founder: TEAM_MEMBERS.slice(0, 2).map((member) => ({ "@id": member["@id"] })),
+    employee: TEAM_MEMBERS.slice(2).map((member) => ({ "@id": member["@id"] })),
     contactPoint: {
       "@type": "ContactPoint",
       email: "hello@alphasourceconsulting.com",
       contactType: "sales and support",
     },
+    sameAs: ["https://www.linkedin.com/company/alphasource-consulting"],
   };
+  const isAboutPage = route === "/about";
   const schemas = [
     {
       "@context": "https://schema.org",
-      "@type": "WebPage",
+      "@type": isAboutPage ? "AboutPage" : "WebPage",
       name: content.title,
       description: content.description,
       url: routeUrl(route),
-      isPartOf: { "@type": "WebSite", name: "alphaSource Consulting", url: `${SITE_URL}/` },
-      publisher: organization,
+      isPartOf: { "@type": "WebSite", "@id": WEBSITE_ID, name: "alphaSource Consulting", url: `${SITE_URL}/` },
+      publisher: { "@id": ORGANIZATION_ID },
+      ...(isAboutPage
+        ? {
+            mainEntity: { "@id": ORGANIZATION_ID },
+            about: TEAM_MEMBERS.map((member) => ({ "@id": member["@id"] })),
+          }
+        : {}),
     },
   ];
   if (route === "/") schemas.unshift(organization);
+  if (isAboutPage) schemas.unshift(organization, ...TEAM_MEMBERS);
   if (content.qa) {
     schemas.push({
       "@context": "https://schema.org",
