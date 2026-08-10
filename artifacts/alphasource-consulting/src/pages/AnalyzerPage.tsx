@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { AlphyMark, type AlphyState } from "@/components/AlphyBrand";
 import { publicRouteModifiedDisplay } from "@/lib/publicContent";
 
 type OrgType = "" | "Location" | "Group";
@@ -543,6 +544,13 @@ export default function AnalyzerPage() {
           : status === "processing"
             ? "Your file is being processed by the analyzer. Keep this page open while status updates continue."
             : "Complete the required fields, acknowledge the upload terms, and select a supported file to begin.";
+  const alphyState: AlphyState = error
+    ? "needs-you"
+    : status === "queued" || status === "processing" || status === "cancel_requested"
+      ? "thinking"
+      : status === "completed"
+        ? "found"
+        : "idle";
 
   return (
     <div className="min-h-screen bg-white font-sans">
@@ -556,8 +564,12 @@ export default function AnalyzerPage() {
         />
         <div className="relative max-w-4xl mx-auto px-6 lg:px-8 text-center">
           <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 bg-white/5 text-xs font-bold text-white/80 uppercase tracking-wider mb-6">
-            <div className="w-2 h-2 rounded-full bg-[#02ABE0] animate-pulse" />
-            AI-Powered Tool
+            <AlphyMark className="h-7 w-7" />
+            <span>AI-Powered Tool</span>
+            <span className="text-white/25" aria-hidden="true">·</span>
+            <span className="normal-case tracking-normal text-white/65">
+              powered by <strong className="text-white/90">alphy</strong>
+            </span>
           </span>
           <h1 className="text-5xl lg:text-6xl font-black text-white mb-6 leading-tight">
             Dental Operations{" "}
@@ -831,13 +843,7 @@ export default function AnalyzerPage() {
               <div className="bg-[#0A1547] p-8 lg:p-10 text-white flex flex-col justify-between">
                 <div>
                   <div className="w-16 h-16 rounded-3xl bg-white/10 flex items-center justify-center mb-6">
-                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#02ABE0" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                      <polyline points="14 2 14 8 20 8" />
-                      <line x1="16" y1="13" x2="8" y2="13" />
-                      <line x1="16" y1="17" x2="8" y2="17" />
-                      <polyline points="10 9 9 9 8 9" />
-                    </svg>
+                    <AlphyMark state={alphyState} className="h-14 w-14" />
                   </div>
                   <p className="text-xs font-bold text-white/50 uppercase tracking-wider mb-2">Status</p>
                   <h3 className="text-2xl font-black mb-4">{statusLabel}</h3>

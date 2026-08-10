@@ -21,7 +21,10 @@ export default function Footer() {
               />
             </div>
             <p className="text-white/60 text-sm leading-relaxed max-w-xs">
-              Expert dental consulting powered by AI — helping practices reclaim time and amplify what matters most.
+              Expert dental consulting powered by alphy AI. Helping practices reclaim time and amplify what matters most.
+            </p>
+            <p className="mt-3 max-w-xs text-xs leading-relaxed text-white/40">
+              alphy is a trademark of alphaSource Network.
             </p>
             <div className="flex gap-3 mt-6">
               <a

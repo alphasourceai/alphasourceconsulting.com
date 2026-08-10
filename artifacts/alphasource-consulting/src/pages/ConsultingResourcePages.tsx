@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
+import { AlphyMark } from "@/components/AlphyBrand";
 import {
   publicFaqItems,
   publicFaqSections,
@@ -201,7 +202,7 @@ export function HowItWorksPage() {
     {
       title: "Analyze and validate",
       body: "AI-assisted analysis can organize approved files and surface patterns. A human consultant reviews the output and operating context.",
-      icon: <FileSearch className="h-5 w-5" />,
+      icon: <AlphyMark className="h-7 w-7" />,
       tone: "teal" as const,
     },
     {

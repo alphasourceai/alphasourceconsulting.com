@@ -2,6 +2,7 @@ import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ContactForm from "@/components/ContactForm";
+import { PoweredByAlphy } from "@/components/AlphyBrand";
 import { practiceReviewFaqItems as faqItems, publicRouteModifiedDisplay } from "@/lib/publicContent";
 
 const includedItems = [
@@ -135,7 +136,10 @@ export default function PracticeOpportunityReviewPage() {
       <section className="bg-white py-24">
         <div className="mx-auto grid max-w-7xl gap-8 px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
           <div>
-            <span className="mb-3 inline-block text-xs font-bold uppercase tracking-widest text-[#A380F6]">What It Is</span>
+            <div className="mb-3 flex flex-wrap items-center gap-3">
+              <span className="text-xs font-bold uppercase tracking-widest text-[#A380F6]">What It Is</span>
+              <PoweredByAlphy className="text-[8px] font-medium text-[#0A1547]/45" markClassName="h-6 w-6" />
+            </div>
             <h2 className="mb-5 text-4xl font-black text-[#0A1547]">A paid diagnostic between a free preview and full implementation support.</h2>
             <p className="text-[#0A1547]/65 leading-relaxed">
               The analyzer creates the initial signal. The Practice Opportunity Review adds human interpretation, consultant validation, and a practical 30-day action plan for the practice.

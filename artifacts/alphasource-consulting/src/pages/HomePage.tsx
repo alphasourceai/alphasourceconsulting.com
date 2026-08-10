@@ -1,6 +1,7 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ContactForm from "@/components/ContactForm";
+import { AlphyMark, PoweredByAlphy } from "@/components/AlphyBrand";
 import { publicHomeFaqItems, publicRouteModifiedDisplay } from "@/lib/publicContent";
 
 const pillars = [
@@ -47,7 +48,7 @@ const stats = [
   { value: "25+", label: "Years of Industry Experience" },
   { value: "5", label: "DSO Leadership" },
   { value: "40+", label: "Offices Leadership" },
-  { value: "AI", label: "Powered Operations Analysis" },
+  { value: "AI", label: "Powered Operations Analysis", alphy: true },
 ];
 
 const offerCards = [
@@ -133,7 +134,14 @@ export default function HomePage() {
               <div className="grid grid-cols-2 gap-6">
                 {stats.map((s) => (
                   <div key={s.label} className="text-center">
-                    <div className="text-3xl font-black text-white mb-1">{s.value}</div>
+                    <div className="text-3xl font-black text-white mb-1">
+                      {s.alphy ? (
+                        <span className="inline-flex items-center justify-center gap-2">
+                          <AlphyMark className="h-8 w-8" />
+                          <span>alphy</span>
+                        </span>
+                      ) : s.value}
+                    </div>
                     <div className="text-xs text-white/55 font-medium">{s.label}</div>
                   </div>
                 ))}
@@ -163,7 +171,10 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="text-center mb-16">
             <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#6F4FE4] mb-3">Our Approach</span>
-            <h2 className="text-4xl font-black text-[#0A1547]">Built for People, Powered by AI</h2>
+            <h2 className="text-4xl font-black text-[#0A1547]">
+              Built for People, Powered by AI
+              <AlphyMark className="ml-2 inline-block h-9 w-9 align-[-0.2em]" />
+            </h2>
           </div>
           <div className="space-y-8">
             {pillars.map((p, i) => (
@@ -201,7 +212,10 @@ export default function HomePage() {
 
           <div className="grid gap-5 md:grid-cols-3">
             {offerCards.map((offer, index) => (
-              <div key={offer.title} className="flex h-full flex-col rounded-3xl border border-gray-100 bg-white p-7 shadow-sm">
+              <div key={offer.title} className="relative flex h-full flex-col rounded-3xl border border-gray-100 bg-white p-7 shadow-sm">
+                {index === 0 ? (
+                  <PoweredByAlphy className="absolute right-7 top-7 text-[10px] font-medium text-[#0A1547]/45" markClassName="h-7 w-7" />
+                ) : null}
                 <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#F8F9FD] text-lg font-black text-[#0A1547]">
                   {index + 1}
                 </div>

@@ -1,6 +1,7 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ContactForm from "@/components/ContactForm";
+import { AlphyMark } from "@/components/AlphyBrand";
 import { Linkedin } from "lucide-react";
 import { publicRouteModifiedDisplay, publicTeamMembers } from "@/lib/publicContent";
 
@@ -120,11 +121,7 @@ export default function AboutPage() {
           <div className="bg-white rounded-3xl p-10 border border-gray-100 shadow-sm">
             <div className="flex items-center gap-3 mb-5">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#A380F6]/20 to-[#02ABE0]/10 flex items-center justify-center text-[#A380F6]">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-                  <line x1="8" y1="21" x2="16" y2="21"/>
-                  <line x1="12" y1="17" x2="12" y2="21"/>
-                </svg>
+                <AlphyMark className="h-8 w-8" />
               </div>
               <h2 className="text-2xl font-black text-[#0A1547]">Technology</h2>
             </div>

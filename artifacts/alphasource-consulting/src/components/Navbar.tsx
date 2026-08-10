@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
+import { ConsultingHeaderLogo } from "@/components/AlphyBrand";
 
 const navLinks = [
   { label: "Home", href: "/" },
@@ -26,15 +27,11 @@ export default function Navbar() {
     <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0A1547] border-b border-white/10">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <Link href="/" className="flex shrink-0 items-center">
-            <img
-              src={`${import.meta.env.BASE_URL}logo-color-no-bg.webp`}
-              alt="alphaSource Consulting"
-              width="600"
-              height="116"
-              decoding="async"
-              className="h-auto w-[170px] object-contain sm:w-[190px] lg:w-[220px]"
-            />
+          <Link href="/" className="flex shrink-0 items-center" aria-label="alphaSource Consulting home">
+            <ConsultingHeaderLogo />
+            <span className="ml-1.5 whitespace-nowrap text-[8px] font-medium leading-tight text-white/50 sm:text-[9px]">
+              powered by <strong className="font-bold text-white/75">alphy</strong>
+            </span>
           </Link>
 
           <div className="hidden lg:flex items-center gap-1">

@@ -226,3 +226,18 @@ html {
 .animate-fade-up-delay-1 { animation-delay: 0.1s; opacity: 0; }
 .animate-fade-up-delay-2 { animation-delay: 0.25s; opacity: 0; }
 .animate-fade-up-delay-3 { animation-delay: 0.4s; opacity: 0; }
+
+@keyframes alphyHeaderFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+.alphy-header-float {
+  animation: alphyHeaderFloat 4.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .alphy-header-float {
+    animation: none;
+  }
+}

@@ -1,6 +1,7 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ContactForm from "@/components/ContactForm";
+import { PoweredByAlphy } from "@/components/AlphyBrand";
 import { publicRouteModifiedDisplay } from "@/lib/publicContent";
 
 const services = [
@@ -117,7 +118,10 @@ export default function DentalConsultingPage() {
         <div className="max-w-5xl mx-auto px-6 lg:px-8">
           <div className="rounded-3xl p-10 md:p-12 flex flex-col md:flex-row items-center gap-8" style={{ background: "linear-gradient(135deg, #0A1547 0%, #1A2460 100%)" }}>
             <div className="flex-1">
-              <h2 className="text-2xl font-black text-white mb-3">Try the Dental Operations Analyzer</h2>
+              <h2 className="text-2xl font-black text-white mb-3">
+                Try the Dental Operations Analyzer
+                <PoweredByAlphy className="ml-3 align-middle text-[8px] font-medium text-white/50" markClassName="h-6 w-6" />
+              </h2>
               <p className="text-white/60 leading-relaxed text-sm">
                 Our AI-powered tool analyzes your practice data in minutes — surfaces your highest-leverage opportunities automatically.
               </p>
