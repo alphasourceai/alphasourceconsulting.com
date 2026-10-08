@@ -100,6 +100,14 @@ export default function LoginPage() {
                 />
               </label>
 
+              <button
+                type="button"
+                onClick={() => navigate("/forgot-password")}
+                className="admin-focus text-sm font-semibold text-[#0A1547] underline decoration-[#A380F6] underline-offset-4 hover:text-[#7C5CF2]"
+              >
+                Forgot password?
+              </button>
+
               {(formError || error) && (
                 <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
                   {formError || error}

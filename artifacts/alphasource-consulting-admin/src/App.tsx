@@ -10,10 +10,12 @@ import BillingPage from "@/pages/BillingPage";
 import ClientDetailPage from "@/pages/ClientDetailPage";
 import ClientsPage from "@/pages/ClientsPage";
 import DocumentAnalysisPage from "@/pages/DocumentAnalysisPage";
+import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
 import HelpFaqPage from "@/pages/HelpFaqPage";
 import LoginPage from "@/pages/LoginPage";
 import OverviewPage from "@/pages/OverviewPage";
 import PDFGeneratorPage from "@/pages/PDFGeneratorPage";
+import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import SecureUploadsPage from "@/pages/SecureUploadsPage";
 import SiteAnalyticsPage from "@/pages/SiteAnalyticsPage";
 import UiMockupPage from "@/pages/UiMockupPage";
@@ -327,6 +329,8 @@ function AppRoutes() {
       <Switch>
         <Route path="/" component={RootRoute} />
         <Route path="/login" component={LoginPage} />
+        <Route path="/forgot-password" component={ForgotPasswordPage} />
+        <Route path="/reset-password" component={ResetPasswordPage} />
         <Route path="/accept-invite" component={AcceptInvitePage} />
         <Route path="/overview" component={OverviewRoute} />
         <Route path="/clients/:email" component={ClientDetailRoute} />

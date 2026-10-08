@@ -5,7 +5,10 @@ let supabaseClient: SupabaseClient | null = null;
 
 export function getSupabaseClient(): SupabaseClient {
   if (!supabaseClient) {
-    supabaseClient = createClient(getSupabaseUrl(), getSupabaseAnonKey());
+    const isPasswordReset = typeof window !== "undefined" && window.location.pathname.endsWith("/reset-password");
+    supabaseClient = createClient(getSupabaseUrl(), getSupabaseAnonKey(), {
+      auth: { detectSessionInUrl: !isPasswordReset },
+    });
   }
 
   return supabaseClient;
