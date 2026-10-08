@@ -201,7 +201,10 @@ function isJobEligibleForManualProcessing(job: AdminAnalysisJob): boolean {
   const analysisKind = getJobAnalysisKind(job);
   const analysisFile = getJobAnalysisFile(job);
 
-  if (!analysisKind || !analysisFile || !manualProcessingStatuses.has(normalizedStatus)) {
+  const verificationRetry = normalizedStatus === "error"
+    && (job.error?.code === "analysis_verification_failed"
+      || analysisFile?.error?.code === "analysis_verification_failed");
+  if (!analysisKind || !analysisFile || (!manualProcessingStatuses.has(normalizedStatus) && !verificationRetry)) {
     return false;
   }
 
@@ -1865,6 +1868,7 @@ function hasFindingContent(finding: StructuredRankedFinding): boolean {
   return Boolean(
     finding.title
       || finding.operationalImplication
+      || finding.rootCauseHypothesis
       || finding.recommendedAction
       || finding.clientFacingSummary
       || finding.internalReviewerNotes,
@@ -1934,6 +1938,7 @@ function StructuredFindingCard({
 
       <div className="mt-4 grid gap-3 lg:grid-cols-2">
         <StructuredTextBlock label="Operational implication" value={finding.operationalImplication} />
+        {finding.rootCauseHypothesis && <div className="rounded-lg border border-[#F59E0B]/25 bg-white p-3"><p className="text-[11px] font-medium uppercase text-[#9B6507]">Root cause hypothesis - consultant review required</p><p className="mt-2 break-words text-sm text-[#0A1547]/75">{finding.rootCauseHypothesis}</p></div>}
         <StructuredTextBlock label="Recommended action" value={finding.recommendedAction} />
         <StructuredTextBlock label="Follow-up question" value={finding.followUpQuestion} />
         <StructuredTextBlock label="Client-facing summary" value={finding.clientFacingSummary} />

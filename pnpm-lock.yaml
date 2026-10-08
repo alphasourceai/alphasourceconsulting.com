@@ -269,6 +269,9 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.105.3
         version: 2.105.3
+      lucide-react:
+        specifier: 'catalog:'
+        version: 0.545.0(react@19.1.0)
       react:
         specifier: 'catalog:'
         version: 19.1.0

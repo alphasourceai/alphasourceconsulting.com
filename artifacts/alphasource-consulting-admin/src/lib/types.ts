@@ -452,6 +452,7 @@ export type StructuredRankedFinding = {
   evidence?: StructuredEvidenceItem[];
   financialValue?: string | null;
   operationalImplication?: string | null;
+  rootCauseHypothesis?: string | null;
   recommendedAction?: string | null;
   followUpQuestion?: string | null;
   implementationDifficulty?: "low" | "medium" | "high" | string | null;

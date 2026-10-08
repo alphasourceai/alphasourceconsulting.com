@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Link } from "wouter";
 import { useAuth } from "@/auth/AuthProvider";
+import OverviewClientWorkspace from "@/components/OverviewClientWorkspace";
 import {
   getAdminClients,
   getAuditEvents,
@@ -90,6 +91,7 @@ function isOpenCheckoutSession(session: CheckoutSessionSummary): boolean {
 
 export default function OverviewPage() {
   const { permissions, session } = useAuth();
+  const [view, setView] = useState<"client" | "platform">(permissions.canReadClients ? "client" : "platform");
   const token = session?.access_token || "";
   const [clients, setClients] = useState<AdminClient[]>([]);
   const [clientCount, setClientCount] = useState<number | null>(null);
@@ -244,13 +246,14 @@ export default function OverviewPage() {
   }, [permissions, token]);
 
   useEffect(() => {
+    if (view !== "platform") return;
     const controller = new AbortController();
     void loadOverview(controller.signal);
 
     return () => {
       controller.abort();
     };
-  }, [loadOverview]);
+  }, [loadOverview, view]);
 
   const recentSubmissionCount = clients.reduce((total, client) => total + client.submissionCount, 0);
   const pdfReadyUploadCount = pdfClients.reduce((total, client) => total + client.eligibleUploadCount, 0);
@@ -368,6 +371,11 @@ export default function OverviewPage() {
 
   return (
     <div className="space-y-5">
+      {permissions.canReadClients && <div className="inline-flex rounded-lg border border-[#0A1547]/10 bg-white p-1" role="group" aria-label="Overview view">
+        <button type="button" onClick={() => setView("client")} aria-pressed={view === "client"} className={`admin-focus rounded-md px-4 py-2 text-sm font-semibold ${view === "client" ? "bg-[#A380F6] text-white" : "text-[#0A1547]/60 hover:text-[#0A1547]"}`}>Client workspace</button>
+        <button type="button" onClick={() => setView("platform")} aria-pressed={view === "platform"} className={`admin-focus rounded-md px-4 py-2 text-sm font-semibold ${view === "platform" ? "bg-[#A380F6] text-white" : "text-[#0A1547]/60 hover:text-[#0A1547]"}`}>Platform overview</button>
+      </div>}
+      {view === "client" && permissions.canReadClients ? <OverviewClientWorkspace /> : <>
       {loading ? (
         <section className={`${sectionClassName} p-6 text-sm font-medium text-[#0A1547]/58`}>
           Loading overview...
@@ -464,6 +472,7 @@ export default function OverviewPage() {
           <EmptyPanel message={permissions.canReadAudit ? "Recent activity will appear here." : "Recent activity is hidden for this role."} />
         )}
       </section>
+      </>}
     </div>
   );
 }
